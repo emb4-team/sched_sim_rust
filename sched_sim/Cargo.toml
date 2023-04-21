@@ -9,3 +9,4 @@ edition = "2021"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_yaml = "0.9.21"
 petgraph = "0.6.3"
+yaml-rust = "0.4.5"
