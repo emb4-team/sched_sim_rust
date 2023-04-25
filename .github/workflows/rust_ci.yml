@@ -10,7 +10,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: build
         run: cargo build
-        working-directory: sched_sim_rust
+        working-directory: sched_sim
 
   fmt:
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: fmt
         run: cargo fmt --all -- --check
-        working-directory: sched_sim_rust
+        working-directory: sched_sim
 
   clippy:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-        working-directory: sched_sim_rust
+        working-directory: sched_sim
 
   test:
     runs-on: ubuntu-latest
@@ -57,4 +57,4 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: test
         run: cargo test --all -- --nocapture
-        working-directory: sched_sim_rust
+        working-directory: sched_sim
