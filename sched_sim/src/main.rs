@@ -30,7 +30,7 @@ fn main() {
         let source = graph.edge_endpoints(edge).unwrap().0;
         let target = graph.edge_endpoints(edge).unwrap().1;
         let weight = graph[edge];
-       println!("Edge from Node {} to Node {} with weight {}", graph[source].id, graph[target].id, weight);
+        println!("Edge from Node {} to Node {} with weight {}", graph[source].id, graph[target].id, weight);
     }
 
 }
