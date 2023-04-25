@@ -31,7 +31,7 @@ pub struct NodeData {
 /// ```
 /// use lib::load_yaml;
 ///
-/// let chainbase_yaml = load_yaml("../tests/chainbase.yaml");
+/// let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml");
 ///
 /// assert_eq!(chainbase_yaml[0]["directed"].as_bool().unwrap(), true);
 /// assert_eq!(chainbase_yaml[0]["multigraph"].as_bool().unwrap(), false);
@@ -61,7 +61,7 @@ pub fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
 /// ```
 /// use lib::load_graph_from_yaml;
 ///
-/// let graph = load_graph_from_yaml("../tests/chainbase.yaml");
+/// let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
 /// let first_node = graph.node_indices().next().unwrap();
 /// let first_edge = graph.edge_indices().next().unwrap();
 ///
@@ -136,9 +136,9 @@ mod tests {
 
     #[test]
     fn load_dag_yaml() {
-        let chainbase_yaml = load_yaml("../tests/chainbase.yaml");
-        let faninout_yaml = load_yaml("../tests/faninout.yaml");
-        let gnp_yaml = load_yaml("../tests/Gnp.yaml");
+        let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml");
+        let faninout_yaml = load_yaml("../tests/sample_dags/faninout.yaml");
+        let gnp_yaml = load_yaml("../tests/sample_dags/Gnp.yaml");
 
         //check chainbase yaml file
         assert!(
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn load_cainbase_graph_from_yaml() {
-        let graph = load_graph_from_yaml("../tests/chainbase.yaml");
+        let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
@@ -264,7 +264,7 @@ mod tests {
 
     #[test]
     fn load_faninout_graph_from_yaml() {
-        let graph = load_graph_from_yaml("../tests/faninout.yaml");
+        let graph = load_graph_from_yaml("../tests/sample_dags/faninout.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
@@ -332,7 +332,7 @@ mod tests {
     }
     #[test]
     fn load_gnp_graph_from_yaml() {
-        let graph = load_graph_from_yaml("../tests/Gnp.yaml");
+        let graph = load_graph_from_yaml("../tests/sample_dags/Gnp.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
