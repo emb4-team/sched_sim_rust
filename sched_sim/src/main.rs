@@ -33,6 +33,4 @@ fn main() {
        println!("Edge from Node {} to Node {} with weight {}", graph[source].id, graph[target].id, weight);
     }
 
-
-
 }
