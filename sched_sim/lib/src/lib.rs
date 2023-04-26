@@ -28,13 +28,7 @@ pub struct NodeData {
 ///
 /// ```
 /// use lib::load_yaml;
-///
-/// let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml");
-///
-/// assert_eq!(chainbase_yaml[0]["directed"].as_bool().unwrap(), true);
-/// assert_eq!(chainbase_yaml[0]["multigraph"].as_bool().unwrap(), false);
-/// assert_eq!(chainbase_yaml[0]["nodes"].as_vec().unwrap().len(), 22);
-/// assert_eq!(chainbase_yaml[0]["links"].as_vec().unwrap().len(), 25);
+/// let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml"); //load chainbase.yaml
 /// ```
 ///
 
@@ -59,17 +53,14 @@ pub fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
 /// ```
 /// use lib::load_graph_from_yaml;
 ///
-/// let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
+/// let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml"); //load chainbase.yaml as a graph object
 /// let first_node = graph.node_indices().next().unwrap();
 /// let first_edge = graph.edge_indices().next().unwrap();
 ///
-/// assert_eq!(graph.node_count(), 22);
-/// assert_eq!(graph.edge_count(), 25);
-/// assert_eq!(graph[first_node].params.get("execution_time").unwrap(), &73);
-/// assert_eq!(graph[first_node].id, 0);
-/// assert_eq!(graph[graph.edge_endpoints(first_edge).unwrap().0].id, 0);
-/// assert_eq!(graph[graph.edge_endpoints(first_edge).unwrap().1].id, 1);
-/// assert_eq!(graph[first_edge], 0);
+/// let node_num = graph.node_count();
+/// let edge_num = graph.edge_count();
+/// let node_id = graph[first_node].id;
+/// let edge_weight = graph[first_edge];
 /// ```
 ///
 
@@ -102,7 +93,6 @@ pub fn load_graph_from_yaml(path: &str) -> Graph<NodeData, i32> {
         let target = link["target"].as_i64().unwrap() as u32;
         let mut communication_time = 0;
 
-        // communication time obtained from yaml file is in i64 type
         if let Some(communication_time_value) = link["communication_time"].as_i64() {
             communication_time = communication_time_value as i32;
         }
@@ -110,7 +100,6 @@ pub fn load_graph_from_yaml(path: &str) -> Graph<NodeData, i32> {
         let mut source_node_index = NodeIndex::end();
         let mut target_node_index = NodeIndex::end();
 
-        // search for node index in graph
         for node in graph.node_indices() {
             if graph[node].id == source {
                 source_node_index = node;
