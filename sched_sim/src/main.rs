@@ -1,5 +1,4 @@
 use clap::Parser;
-use lib::load_graph_from_yaml;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
@@ -19,5 +18,5 @@ struct AppArg {
 
 /// Application main function
 fn main() {
-    let arg: AppArg = AppArg::parse();
+    let _arg: AppArg = AppArg::parse();
 }
