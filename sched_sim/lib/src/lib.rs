@@ -10,9 +10,7 @@ use yaml_rust::YamlLoader;
 
 /// custom node data structure for graph nodes (petgraph)
 pub struct NodeData {
-    /// node id
     pub id: u32,
-    /// node parameters
     pub params: HashMap<String, u32>,
 }
 
@@ -159,7 +157,8 @@ mod tests {
             25,
             "number of edges is expected to be 25"
         ); // check number of edges
-           //cehck faninout yaml file
+
+        // check faninout yaml file
         assert!(
             faninout_yaml[0]["directed"].as_bool().unwrap(),
             "directed is expected to be true"
@@ -178,7 +177,8 @@ mod tests {
             29,
             "number of edges is expected to be 29"
         ); // check number of edges
-           //check gnp yaml file
+
+        //check gnp yaml file
         assert!(
             gnp_yaml[0]["directed"].as_bool().unwrap(),
             "directed is expected to be true"
@@ -200,7 +200,7 @@ mod tests {
     }
 
     #[test]
-    fn load_cainbase_graph_from_yaml() {
+    fn load_chainbase_graph_from_yaml() {
         let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
