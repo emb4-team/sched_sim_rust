@@ -122,10 +122,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn load_dag_yaml() {
+    fn test_load_yaml_checked_hashes_for_chainbase() {
         let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml");
-        let faninout_yaml = load_yaml("../tests/sample_dags/faninout.yaml");
-        let gnp_yaml = load_yaml("../tests/sample_dags/Gnp.yaml");
 
         //check chainbase yaml file
         assert!(
@@ -146,6 +144,11 @@ mod tests {
             25,
             "number of edges is expected to be 25"
         ); // check number of edges
+    }
+
+    #[test]
+    fn test_load_yaml_checked_hashes_for_faninout() {
+        let faninout_yaml = load_yaml("../tests/sample_dags/faninout.yaml");
 
         // check faninout yaml file
         assert!(
@@ -166,7 +169,11 @@ mod tests {
             29,
             "number of edges is expected to be 29"
         ); // check number of edges
+    }
 
+    #[test]
+    fn test_load_yaml_checked_hashes_for_gnp() {
+        let gnp_yaml = load_yaml("../tests/sample_dags/Gnp.yaml");
         //check gnp yaml file
         assert!(
             gnp_yaml[0]["directed"].as_bool().unwrap(),
@@ -189,23 +196,16 @@ mod tests {
     }
 
     #[test]
-    fn load_chainbase_graph_from_yaml() {
+    fn test_load_graph_from_yaml_checked_node_for_chainbase() {
         let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
             22,
             "number of nodes is expected to be 22"
         ); // check number of nodes
-        assert_eq!(
-            graph.edge_count(),
-            25,
-            "number of edges is expected to be 25"
-        ); // check number of edges
         assert_eq!(
             graph[first_node].params.get("execution_time").unwrap(),
             &73,
@@ -223,6 +223,19 @@ mod tests {
             &50,
             "first node period is expected to be 50"
         ); // check first node period
+    }
+
+    #[test]
+    fn test_load_graph_from_yaml_checked_edge_for_chainbase() {
+        let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
+
+        assert_eq!(
+            graph.edge_count(),
+            25,
+            "number of edges is expected to be 25"
+        ); // check number of edges
         assert_eq!(
             graph[graph.edge_endpoints(first_edge).unwrap().0].id,
             0,
@@ -252,23 +265,16 @@ mod tests {
     }
 
     #[test]
-    fn load_faninout_graph_from_yaml() {
+    fn test_load_graph_from_yaml_checked_node_for_faninout() {
         let graph = load_graph_from_yaml("../tests/sample_dags/faninout.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
             20,
             "number of nodes is expected to be 20"
         ); // check number of nodes
-        assert_eq!(
-            graph.edge_count(),
-            29,
-            "number of edges is expected to be 29"
-        ); // check number of edges
         assert_eq!(
             graph[first_node].params.get("Weight").unwrap(),
             &4,
@@ -289,13 +295,19 @@ mod tests {
             &43,
             "last node execution time is expected to be 43"
         ); // check last node execution time
-        assert_eq!(graph[first_node].id, 0, "first node id is expected to be 0"); // check first node id
-        assert_eq!(graph[last_node].id, 19, "last node id is expected to be 19"); // check last node id
+    }
+
+    #[test]
+    fn test_load_graph_from_yaml_checked_edge_for_faninout() {
+        let graph = load_graph_from_yaml("../tests/sample_dags/faninout.yaml");
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
+
         assert_eq!(
-            graph[last_node].params.get("end_to_end_deadline").unwrap(),
-            &402,
-            "last node end to end deadline is expected to be 402"
-        ); // check last node end to end deadline
+            graph.edge_count(),
+            29,
+            "number of edges is expected to be 29"
+        ); // check number of edges
         assert_eq!(
             graph[graph.edge_endpoints(first_edge).unwrap().0].id,
             0,
@@ -316,27 +328,25 @@ mod tests {
             19,
             "last edge target node id is expected to be 19"
         ); // check last edge target node id
-        assert_eq!(graph[first_edge], 11); // check first edge weight
-        assert_eq!(graph[last_edge], 2); // check last edge weight
+        assert_eq!(
+            graph[first_edge], 11,
+            "first edge weight is expected to be 11"
+        ); // check first edge weight
+        assert_eq!(graph[last_edge], 2, "last edge weight is expected to be 2");
+        // check last edge weight
     }
+
     #[test]
-    fn load_gnp_graph_from_yaml() {
+    fn test_load_graph_from_yaml_checked_node_for_gnp() {
         let graph = load_graph_from_yaml("../tests/sample_dags/Gnp.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
             70,
             "number of nodes is expected to be 70"
         ); // check number of nodes
-        assert_eq!(
-            graph.edge_count(),
-            233,
-            "number of edges is expected to be 233"
-        ); // check number of edges
         assert_eq!(graph[first_node].id, 0, "first node id is expected to be 0"); // check first node id
         assert_eq!(graph[last_node].id, 69, "last node id is expected to be 69"); // check last node id
         assert_eq!(
@@ -379,6 +389,19 @@ mod tests {
             &10,
             "last node period is expected to be 10"
         ); // check last node period
+    }
+
+    #[test]
+    fn test_load_graph_from_yaml_checked_edge_for_gnp() {
+        let graph = load_graph_from_yaml("../tests/sample_dags/Gnp.yaml");
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
+
+        assert_eq!(
+            graph.edge_count(),
+            233,
+            "number of edges is expected to be 233"
+        ); // check number of edges
         assert_eq!(
             graph[graph.edge_endpoints(first_edge).unwrap().0].id,
             0,

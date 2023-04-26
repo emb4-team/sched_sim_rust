@@ -20,22 +20,4 @@ struct AppArg {
 /// Application main function
 fn main() {
     let arg: AppArg = AppArg::parse();
-    let graph = load_graph_from_yaml(&arg.file_name);
-
-    for node in graph.node_indices() {
-        println!(
-            "Node {}: {:?} : {:?}",
-            graph[node].id, node, graph[node].params
-        );
-    }
-
-    for edge in graph.edge_indices() {
-        let source = graph.edge_endpoints(edge).unwrap().0;
-        let target = graph.edge_endpoints(edge).unwrap().1;
-        let weight = graph[edge];
-        println!(
-            "Edge from Node {} to Node {} with weight {}",
-            graph[source].id, graph[target].id, weight
-        );
-    }
 }
