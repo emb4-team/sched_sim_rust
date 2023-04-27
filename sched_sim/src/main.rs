@@ -12,8 +12,7 @@ use clap::Parser;
 /// Application arguments definition using clap crate
 struct AppArg {
     #[clap(short = 'd', long = "dag_file_path", required = true)]
-    /// DAG file path
-    file_name: String,
+    dag_file_path: String,
 }
 
 /// Application main function
