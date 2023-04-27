@@ -1,4 +1,5 @@
 use clap::Parser;
+use lib::create_dag_from_yaml::create_dag_from_yaml;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
@@ -17,5 +18,6 @@ struct AppArg {
 
 /// Application main function
 fn main() {
-    let _arg: AppArg = AppArg::parse();
+    let arg: AppArg = AppArg::parse();
+    create_dag_from_yaml(&arg.dag_file_path);
 }
