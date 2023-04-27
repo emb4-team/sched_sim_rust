@@ -103,10 +103,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_dag_from_yaml_checked_node_for_chain_base() {
+    fn test_create_dag_from_yaml_normal_chain_base() {
         let graph = create_dag_from_yaml("../tests/sample_dags/chain_base.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
@@ -130,14 +132,6 @@ mod tests {
             &50,
             "first node period is expected to be 50"
         ); // check first node period
-    }
-
-    #[test]
-    fn test_create_dag_from_yaml_checked_edge_for_chain_base() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/chain_base.yaml");
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
-
         assert_eq!(
             graph.edge_count(),
             25,
@@ -172,10 +166,12 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_checked_node_for_fan_in_fan_out() {
+    fn test_create_dag_from_yaml_normal_fan_in_fan_out() {
         let graph = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
@@ -202,14 +198,6 @@ mod tests {
             &43,
             "last node execution time is expected to be 43"
         ); // check last node execution time
-    }
-
-    #[test]
-    fn test_create_dag_from_yaml_checked_edge_for_fan_in_fan_out() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out.yaml");
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
-
         assert_eq!(
             graph.edge_count(),
             29,
@@ -244,10 +232,12 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_checked_node_for_gnp() {
+    fn test_create_dag_from_yaml_normal_gnp() {
         let graph = create_dag_from_yaml("../tests/sample_dags/gnp.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
+        let first_edge = graph.edge_indices().next().unwrap();
+        let last_edge = graph.edge_indices().last().unwrap();
 
         assert_eq!(
             graph.node_count(),
@@ -296,14 +286,6 @@ mod tests {
             &10,
             "last node period is expected to be 10"
         ); // check last node period
-    }
-
-    #[test]
-    fn test_create_dag_from_yaml_checked_edge_for_gnp() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/gnp.yaml");
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
-
         assert_eq!(
             graph.edge_count(),
             233,
