@@ -318,4 +318,16 @@ mod tests {
         assert_eq!(graph[last_edge], 0, "last edge weight is expected to be 0");
         // check last edge weight
     }
+
+    #[test]
+    #[should_panic]
+    fn test_create_dag_from_yaml_disable_path() {
+        let _graph = create_dag_from_yaml("../tests/sample_dags/disable_path.yaml");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_create_dag_from_yaml_disable_f64() {
+        let _graph = create_dag_from_yaml("../tests/sample_dags/f64.yaml");
+    }
 }
