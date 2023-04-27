@@ -28,7 +28,7 @@ pub struct NodeData {
 ///
 /// ```
 /// use lib::load_yaml;
-/// let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml"); //load chainbase.yaml
+/// let chainbase_yaml = load_yaml("../tests/sample_dags/chainbase.yaml");
 /// ```
 ///
 
@@ -51,9 +51,9 @@ pub fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
 /// # Example
 ///
 /// ```
-/// use lib::load_graph_from_yaml;
+/// use lib::create_dag_from_yaml;
 ///
-/// let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml"); //load chainbase.yaml as a graph object
+/// let graph = create_dag_from_yaml("../tests/sample_dags/chainbase.yaml");
 /// let first_node = graph.node_indices().next().unwrap();
 /// let first_edge = graph.edge_indices().next().unwrap();
 ///
@@ -64,7 +64,7 @@ pub fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
 /// ```
 ///
 
-pub fn load_graph_from_yaml(path: &str) -> Graph<NodeData, i32> {
+pub fn create_dag_from_yaml(path: &str) -> Graph<NodeData, i32> {
     let path = path;
     let docs = load_yaml(path);
     let doc = &docs[0];
@@ -196,8 +196,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_node_for_chainbase() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
+    fn test_create_dag_from_yaml_checked_node_for_chainbase() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/chainbase.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
 
@@ -226,8 +226,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_edge_for_chainbase() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/chainbase.yaml");
+    fn test_create_dag_from_yaml_checked_edge_for_chainbase() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/chainbase.yaml");
         let first_edge = graph.edge_indices().next().unwrap();
         let last_edge = graph.edge_indices().last().unwrap();
 
@@ -265,8 +265,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_node_for_faninout() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/faninout.yaml");
+    fn test_create_dag_from_yaml_checked_node_for_faninout() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/faninout.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
 
@@ -298,8 +298,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_edge_for_faninout() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/faninout.yaml");
+    fn test_create_dag_from_yaml_checked_edge_for_faninout() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/faninout.yaml");
         let first_edge = graph.edge_indices().next().unwrap();
         let last_edge = graph.edge_indices().last().unwrap();
 
@@ -337,8 +337,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_node_for_gnp() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/Gnp.yaml");
+    fn test_create_dag_from_yaml_checked_node_for_gnp() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/Gnp.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
 
@@ -392,8 +392,8 @@ mod tests {
     }
 
     #[test]
-    fn test_load_graph_from_yaml_checked_edge_for_gnp() {
-        let graph = load_graph_from_yaml("../tests/sample_dags/Gnp.yaml");
+    fn test_create_dag_from_yaml_checked_edge_for_gnp() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/Gnp.yaml");
         let first_edge = graph.edge_indices().next().unwrap();
         let last_edge = graph.edge_indices().last().unwrap();
 
