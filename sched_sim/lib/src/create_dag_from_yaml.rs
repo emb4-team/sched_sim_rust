@@ -110,51 +110,53 @@ mod tests {
         let first_edge = dag.edge_indices().next().unwrap();
         let last_edge = dag.edge_indices().last().unwrap();
 
-        assert_eq!(dag.node_count(), 22, "number of nodes is expected to be 22"); // check number of nodes
+        assert_eq!(dag.node_count(), 22, "number of nodes is expected to be 22");
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &73.0,
-            "first node execution time is expected to be 73"
-        ); // check first node execution time
+            "first node execution time is expected to be 73.0"
+        );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &2.0,
-            "last node execution time is expected to be 2"
-        ); // check last node execution time
-        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0"); // check first node id
-        assert_eq!(dag[last_node].id, 21, "last node id is expected to be 21"); // check last node id
+            "last node execution time is expected to be 2.0"
+        );
+        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0");
+        assert_eq!(dag[last_node].id, 21, "last node id is expected to be 21");
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
             &50.0,
-            "first node period is expected to be 50"
-        ); // check first node period
-        assert_eq!(dag.edge_count(), 25, "number of edges is expected to be 25"); // check number of edges
+            "first node period is expected to be 50.0"
+        );
+        assert_eq!(dag.edge_count(), 25, "number of edges is expected to be 25");
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
-        ); // check first edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
-        ); // check first edge target node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             21,
             "last edge source node id is expected to be 21"
-        ); // check last edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             18,
             "last edge target node id is expected to be 18"
-        ); // check last edge target node id
+        );
         assert_eq!(
             dag[first_edge], 0.0,
-            "first edge weight is expected to be 0"
-        ); // check first edge weight
-        assert_eq!(dag[last_edge], 0.0, "last edge weight is expected to be 0");
-        // check last edge weight
+            "first edge weight is expected to be 0.0"
+        );
+        assert_eq!(
+            dag[last_edge], 0.0,
+            "last edge weight is expected to be 0.0"
+        );
     }
 
     #[test]
@@ -165,54 +167,56 @@ mod tests {
         let first_edge = dag.edge_indices().next().unwrap();
         let last_edge = dag.edge_indices().last().unwrap();
 
-        assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20"); // check number of nodes
+        assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &4.0,
-            "first node weight is expected to be 4"
-        ); // check first node weight
+            "first node weight is expected to be 4.0"
+        );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &1.0,
-            "last node weight is expected to be 1"
-        ); // check last node weight
+            "last node weight is expected to be 1.0"
+        );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &3.0,
-            "first node execution time is expected to be 3"
-        ); // check first node execution time
+            "first node execution time is expected to be 3.0"
+        );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &43.0,
-            "last node execution time is expected to be 43"
-        ); // check last node execution time
-        assert_eq!(dag.edge_count(), 29, "number of edges is expected to be 29"); // check number of edges
+            "last node execution time is expected to be 43.0"
+        );
+        assert_eq!(dag.edge_count(), 29, "number of edges is expected to be 29");
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
-        ); // check first edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
-        ); // check first edge target node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             18,
             "last edge source node id is expected to be 18"
-        ); // check last edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             19,
             "last edge target node id is expected to be 19"
-        ); // check last edge target node id
+        );
         assert_eq!(
             dag[first_edge], 11.0,
-            "first edge weight is expected to be 11"
-        ); // check first edge weight
-        assert_eq!(dag[last_edge], 2.0, "last edge weight is expected to be 2");
-        // check last edge weight
+            "first edge weight is expected to be 11.0"
+        );
+        assert_eq!(
+            dag[last_edge], 2.0,
+            "last edge weight is expected to be 2.0"
+        );
     }
 
     #[test]
@@ -223,80 +227,82 @@ mod tests {
         let first_edge = dag.edge_indices().next().unwrap();
         let last_edge = dag.edge_indices().last().unwrap();
 
-        assert_eq!(dag.node_count(), 70, "number of nodes is expected to be 70"); // check number of nodes
-        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0"); // check first node id
-        assert_eq!(dag[last_node].id, 69, "last node id is expected to be 69"); // check last node id
+        assert_eq!(dag.node_count(), 70, "number of nodes is expected to be 70");
+        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0");
+        assert_eq!(dag[last_node].id, 69, "last node id is expected to be 69");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &1.0,
-            "first node weight is expected to be 1"
-        ); // check first node weight
+            "first node weight is expected to be 1.0"
+        );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &5.0,
-            "last node weight is expected to be 5"
-        ); // check last node weight
+            "last node weight is expected to be 5.0"
+        );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &34.0,
-            "first node execution time is expected to be 34"
-        ); // check first node execution time
+            "first node execution time is expected to be 34.0"
+        );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &1.0,
-            "last node execution time is expected to be 1"
-        ); // check last node execution time
+            "last node execution time is expected to be 1.0"
+        );
         assert_eq!(
             dag[first_node].params.get("offset").unwrap(),
             &4.0,
-            "first node offset is expected to be 4"
-        ); // check first node offset
+            "first node offset is expected to be 4.0"
+        );
         assert_eq!(
             dag[last_node].params.get("offset").unwrap(),
             &5.0,
-            "last node offset is expected to be 5"
-        ); // check last node offset
+            "last node offset is expected to be 5.0"
+        );
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
             &6000.0,
-            "first node period is expected to be 6000"
-        ); // check first node period
+            "first node period is expected to be 6000.0"
+        );
         assert_eq!(
             dag[last_node].params.get("period").unwrap(),
             &10.0,
-            "last node period is expected to be 10"
-        ); // check last node period
+            "last node period is expected to be 10.0"
+        );
         assert_eq!(
             dag.edge_count(),
             233,
             "number of edges is expected to be 233"
-        ); // check number of edges
+        );
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
-        ); // check first edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             2,
             "first edge target node id is expected to be 2"
-        ); // check first edge target node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             68,
             "last edge source node id is expected to be 68"
-        ); // check last edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             14,
             "last edge target node id is expected to be 14"
-        ); // check last edge target node id
+        );
         assert_eq!(
             dag[first_edge], 0.0,
-            "first edge weight is expected to be 0"
-        ); // check first edge weight
-        assert_eq!(dag[last_edge], 0.0, "last edge weight is expected to be 0");
-        // check last edge weight
+            "first edge weight is expected to be 0.0"
+        );
+        assert_eq!(
+            dag[last_edge], 0.0,
+            "last edge weight is expected to be 0.0"
+        );
     }
 
     #[test]
@@ -307,54 +313,56 @@ mod tests {
         let first_edge = dag.edge_indices().next().unwrap();
         let last_edge = dag.edge_indices().last().unwrap();
 
-        assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3"); // check number of nodes
+        assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &4.1,
-            "first node weight is expected to be 4"
-        ); // check first node weight
+            "first node weight is expected to be 4.1"
+        );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &1.0,
-            "last node weight is expected to be 1"
-        ); // check last node weight
+            "last node weight is expected to be 1.0"
+        );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &3.1,
-            "first node execution time is expected to be 3"
-        ); // check first node execution time
+            "first node execution time is expected to be 3.1"
+        );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &43.0,
-            "last node execution time is expected to be 43"
-        ); // check last node execution time
-        assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2"); // check number of edges
+            "last node execution time is expected to be 43.0"
+        );
+        assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2");
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
-        ); // check first edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
-        ); // check first edge target node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             1,
             "last edge source node id is expected to be 1"
-        ); // check last edge source node id
+        );
         assert_eq!(
             dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             2,
             "last edge target node id is expected to be 19"
-        ); // check last edge target node id
+        );
         assert_eq!(
             dag[first_edge], 11.1,
-            "first edge weight is expected to be 11"
-        ); // check first edge weight
-        assert_eq!(dag[last_edge], 2.0, "last edge weight is expected to be 2");
-        // check last edge weight
+            "first edge weight is expected to be 11.1"
+        );
+        assert_eq!(
+            dag[last_edge], 2.0,
+            "last edge weight is expected to be 2.0"
+        );
     }
 
     #[test]
