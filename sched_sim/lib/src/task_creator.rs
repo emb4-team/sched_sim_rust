@@ -8,7 +8,7 @@ use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
 
-use std::path;
+use std::path::PathBuf;
 
 fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
     if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
@@ -19,6 +19,7 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
 }
 
 /// custom node data structure for dag nodes (petgraph)
+#[derive(Debug)]
 pub struct NodeData {
     pub id: u32,
     pub params: HashMap<String, f32>,
@@ -28,7 +29,7 @@ pub struct NodeData {
 ///
 /// # Arguments
 ///
-/// *  `path` - yaml file path
+/// *  `file_path` - yaml file path
 ///
 /// # Returns
 ///
@@ -37,7 +38,7 @@ pub struct NodeData {
 /// # Example
 ///
 /// ```
-/// use lib::dag_creator::create_dag_from_yaml;
+/// use lib::task_creator::create_dag_from_yaml;
 ///
 /// let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
 /// let first_node = dag.node_indices().next().unwrap();
@@ -48,6 +49,7 @@ pub struct NodeData {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
+
 pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
@@ -100,25 +102,128 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     dag
 }
 
-pub fn create_task_from_folder(path: &str) -> Vec<Graph<NodeData, f32>> {
-    let target_path = path;
-    let target = path::PathBuf::from(target_path);
-    let files = target.read_dir().expect("read_dir call failed");
-    let mut graph_ary: Vec<Graph<NodeData, f32>> = Vec::new();
-    for dir_entry in files {
-        let file_path = dir_entry.unwrap().path();
-        if file_path.extension().unwrap() != "yaml" || file_path.to_str().unwrap().contains("log") {
-            continue;
-        }
-        let graph = create_dag_from_yaml(file_path.to_str().unwrap());
-        graph_ary.push(graph);
+fn get_file_path_sort_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
+    let dir_metadata = std::fs::metadata(dir_path).unwrap();
+    if !dir_metadata.is_dir() {
+        panic!("Not a directory");
     }
-    graph_ary
+    let mut file_path_list = Vec::new();
+    if let Ok(dir_entries) = PathBuf::from(dir_path).read_dir() {
+        for dir_entry in dir_entries.flatten() {
+            if let Some(ext) = dir_entry.path().extension() {
+                if ext == "yaml" && !dir_entry.path().to_str().unwrap().contains("log") {
+                    file_path_list.push(dir_entry.path());
+                }
+            }
+        }
+    }
+    if file_path_list.is_empty() {
+        panic!("No YAML file found in {}", dir_path);
+    }
+    file_path_list.sort();
+    println!("{:?}", file_path_list);
+    file_path_list
+}
+
+/// load yaml files and return a task (dag list)
+///
+/// # Arguments
+///
+/// *  `dir_path` - dir path for yaml files
+///
+/// # Returns
+///
+/// *  `task` - dag list (petgraph vector)
+///
+/// # Example
+///
+/// ```
+/// use lib::task_creator::create_task_from_dir;
+/// let task = create_task_from_dir("../tests/sample_dags/multiple_yaml_files");
+/// let first_node_num = task[0].node_count();
+/// let first_edge_num = task[0].edge_count();
+/// let first_node_exe_time = task[0][task[0].node_indices().next().unwrap()].params["execution_time"];
+/// ```
+
+pub fn create_task_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
+    let file_path_list = get_file_path_sort_list_in_dir(dir_path);
+    let mut task: Vec<Graph<NodeData, f32>> = Vec::new();
+
+    for file_path in file_path_list {
+        let dag = create_dag_from_yaml(file_path.to_str().unwrap());
+        task.push(dag);
+    }
+    task
 }
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
+
+    #[test]
+    fn test_create_task_from_dir_normal_each_file() {
+        let task = create_task_from_dir("../tests/sample_dags/multiple_yaml_files");
+        let expected_edge_count = vec![29, 28, 32, 31, 29, 32, 32, 28, 27, 33];
+        let expected_exe_time = vec![3.0, 10.0, 46.0, 17.0, 25.0, 42.0, 21.0, 10.0, 5.0, 14.0];
+        assert_eq!(task.len(), 10, "number of task is expected to be 10");
+        for (itr, dag) in task.into_iter().enumerate() {
+            assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20");
+            assert_eq!(
+                dag.edge_count(),
+                expected_edge_count[itr],
+                "{}th DAG's number of edges is expected to be {}",
+                itr,
+                expected_edge_count[itr]
+            );
+            assert_eq!(
+                dag[NodeIndex::new(0)].params.get("execution_time").unwrap(),
+                &expected_exe_time[itr],
+                "{}th DAG's first node execution time is expected to be {}",
+                itr,
+                expected_exe_time[itr]
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_task_from_dir_normal_multiple_format() {
+        let task = create_task_from_dir("../tests/sample_dags/multiple_format");
+        let expected_node_count = vec![22, 20, 3, 70];
+        assert_eq!(task.len(), 4, "number of task is expected to be 4");
+        for (itr, dag) in task.into_iter().enumerate() {
+            assert_eq!(
+                dag.node_count(),
+                expected_node_count[itr],
+                "{}th DAG's number of nodes is expected to be {}",
+                itr,
+                expected_node_count[itr]
+            );
+        }
+    }
+
+    #[test]
+    fn test_create_task_from_dir_normal_mixing_dif_ext() {
+        create_task_from_dir("../tests/sample_dags/mixing_different_extensions");
+    }
+
+    #[test]
+    fn test_create_task_from_dir_normal_mixing_not_dag_yaml() {
+        create_task_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_create_task_from_dir_disable_no_yaml_files() {
+        create_task_from_dir("../tests/sample_dags/no_yaml_files");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_create_task_from_dir_disable_no_dir() {
+        create_task_from_dir("../tests/sample_dags/gnp_format.yaml");
+    }
 
     #[test]
     fn test_create_dag_from_yaml_normal_chain_base() {
