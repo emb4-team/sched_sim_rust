@@ -1,4 +1,4 @@
-//! library for scheduling simulation.
+//! Generate a petgraph DAG object from a yaml file
 
 use std::fs;
 use yaml_rust::Yaml;
@@ -8,22 +8,21 @@ use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
 
-fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
-    if !path.ends_with(".yaml") && !path.ends_with(".yml") {
-        panic!("Invalid file type: {}", path);
+fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
+    if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
+        panic!("Invalid file type: {}", file_path);
     }
-    let file_path = fs::read_to_string(path);
-    let file_string = file_path.unwrap();
-    YamlLoader::load_from_str(&file_string).unwrap()
+    let file_content = fs::read_to_string(file_path).unwrap();
+    YamlLoader::load_from_str(&file_content).unwrap()
 }
 
-/// custom node data structure for graph nodes (petgraph)
+/// custom node data structure for dag nodes (petgraph)
 pub struct NodeData {
     pub id: u32,
     pub params: HashMap<String, f32>,
 }
 
-/// load yaml file and return a graph object (petgraph)
+/// load yaml file and return a dag object (petgraph)
 ///
 /// # Arguments
 ///
@@ -31,33 +30,30 @@ pub struct NodeData {
 ///
 /// # Returns
 ///
-/// *  `graph` - graph object (petgraph)
+/// *  `dag` - dag object (petgraph)
 ///
 /// # Example
 ///
 /// ```
 /// use lib::create_dag_from_yaml::create_dag_from_yaml;
 ///
-/// let graph = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
-/// let first_node = graph.node_indices().next().unwrap();
-/// let first_edge = graph.edge_indices().next().unwrap();
+/// let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
+/// let first_node = dag.node_indices().next().unwrap();
+/// let first_edge = dag.edge_indices().next().unwrap();
 ///
-/// let node_num = graph.node_count();
-/// let edge_num = graph.edge_count();
-/// let node_id = graph[first_node].id;
-/// let edge_weight = graph[first_edge];
+/// let node_num = dag.node_count();
+/// let edge_num = dag.edge_count();
+/// let node_id = dag[first_node].id;
+/// let edge_weight = dag[first_edge];
 /// ```
-///
+pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
+    let yaml_docs = load_yaml(file_path);
+    let yaml_doc = &yaml_docs[0];
 
-pub fn create_dag_from_yaml(path: &str) -> Graph<NodeData, f32> {
-    let path = path;
-    let docs = load_yaml(path);
-    let doc = &docs[0];
+    let mut dag = Graph::<NodeData, f32>::new();
 
-    let mut graph = Graph::<NodeData, f32>::new();
-
-    // add nodes to graph
-    for node in doc["nodes"].as_vec().unwrap() {
+    // add nodes to dag
+    for node in yaml_doc["nodes"].as_vec().unwrap() {
         let mut params = HashMap::new();
         let id = node["id"].as_i64().unwrap() as u32;
 
@@ -76,16 +72,14 @@ pub fn create_dag_from_yaml(path: &str) -> Graph<NodeData, f32> {
                 }
             }
         }
-
-        let _node_a = graph.add_node(NodeData { id, params });
+        dag.add_node(NodeData { id, params });
     }
 
-    // add edges to graph
-    for link in doc["links"].as_vec().unwrap() {
-        let source = link["source"].as_i64().unwrap() as u32;
-        let target = link["target"].as_i64().unwrap() as u32;
+    // add edges to dag
+    for link in yaml_doc["links"].as_vec().unwrap() {
+        let source = link["source"].as_i64().unwrap() as usize;
+        let target = link["target"].as_i64().unwrap() as usize;
         let mut communication_time = 0.0;
-
         match &link["communication_time"] {
             Yaml::Integer(communication_time_value) => {
                 communication_time = *communication_time_value as f32;
@@ -95,24 +89,13 @@ pub fn create_dag_from_yaml(path: &str) -> Graph<NodeData, f32> {
             }
             _ => {}
         }
-
-        let mut source_node_index = NodeIndex::end();
-        let mut target_node_index = NodeIndex::end();
-
-        for node in graph.node_indices() {
-            if graph[node].id == source {
-                source_node_index = node;
-            }
-            if graph[node].id == target {
-                target_node_index = node;
-            }
-            if source_node_index != NodeIndex::end() && target_node_index != NodeIndex::end() {
-                break;
-            }
-        }
-        graph.add_edge(source_node_index, target_node_index, communication_time);
+        dag.add_edge(
+            NodeIndex::new(source),
+            NodeIndex::new(target),
+            communication_time,
+        );
     }
-    graph
+    dag
 }
 
 #[cfg(test)]
@@ -121,306 +104,274 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_normal_chain_base() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
-        let first_node = graph.node_indices().next().unwrap();
-        let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
+        let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
+        let first_node = dag.node_indices().next().unwrap();
+        let last_node = dag.node_indices().last().unwrap();
+        let first_edge = dag.edge_indices().next().unwrap();
+        let last_edge = dag.edge_indices().last().unwrap();
 
+        assert_eq!(dag.node_count(), 22, "number of nodes is expected to be 22"); // check number of nodes
         assert_eq!(
-            graph.node_count(),
-            22,
-            "number of nodes is expected to be 22"
-        ); // check number of nodes
-        assert_eq!(
-            graph[first_node].params.get("execution_time").unwrap(),
+            dag[first_node].params.get("execution_time").unwrap(),
             &73.0,
             "first node execution time is expected to be 73"
         ); // check first node execution time
         assert_eq!(
-            graph[last_node].params.get("execution_time").unwrap(),
+            dag[last_node].params.get("execution_time").unwrap(),
             &2.0,
             "last node execution time is expected to be 2"
         ); // check last node execution time
-        assert_eq!(graph[first_node].id, 0, "first node id is expected to be 0"); // check first node id
-        assert_eq!(graph[last_node].id, 21, "last node id is expected to be 21"); // check last node id
+        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0"); // check first node id
+        assert_eq!(dag[last_node].id, 21, "last node id is expected to be 21"); // check last node id
         assert_eq!(
-            graph[first_node].params.get("period").unwrap(),
+            dag[first_node].params.get("period").unwrap(),
             &50.0,
             "first node period is expected to be 50"
         ); // check first node period
+        assert_eq!(dag.edge_count(), 25, "number of edges is expected to be 25"); // check number of edges
         assert_eq!(
-            graph.edge_count(),
-            25,
-            "number of edges is expected to be 25"
-        ); // check number of edges
-        assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
         ); // check first edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
         ); // check first edge target node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             21,
             "last edge source node id is expected to be 21"
         ); // check last edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             18,
             "last edge target node id is expected to be 18"
         ); // check last edge target node id
         assert_eq!(
-            graph[first_edge], 0.0,
+            dag[first_edge], 0.0,
             "first edge weight is expected to be 0"
         ); // check first edge weight
-        assert_eq!(
-            graph[last_edge], 0.0,
-            "last edge weight is expected to be 0"
-        );
+        assert_eq!(dag[last_edge], 0.0, "last edge weight is expected to be 0");
         // check last edge weight
     }
 
     #[test]
     fn test_create_dag_from_yaml_normal_fan_in_fan_out() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out_format.yaml");
-        let first_node = graph.node_indices().next().unwrap();
-        let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
+        let dag = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out_format.yaml");
+        let first_node = dag.node_indices().next().unwrap();
+        let last_node = dag.node_indices().last().unwrap();
+        let first_edge = dag.edge_indices().next().unwrap();
+        let last_edge = dag.edge_indices().last().unwrap();
 
+        assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20"); // check number of nodes
         assert_eq!(
-            graph.node_count(),
-            20,
-            "number of nodes is expected to be 20"
-        ); // check number of nodes
-        assert_eq!(
-            graph[first_node].params.get("Weight").unwrap(),
+            dag[first_node].params.get("Weight").unwrap(),
             &4.0,
             "first node weight is expected to be 4"
         ); // check first node weight
         assert_eq!(
-            graph[last_node].params.get("Weight").unwrap(),
+            dag[last_node].params.get("Weight").unwrap(),
             &1.0,
             "last node weight is expected to be 1"
         ); // check last node weight
         assert_eq!(
-            graph[first_node].params.get("execution_time").unwrap(),
+            dag[first_node].params.get("execution_time").unwrap(),
             &3.0,
             "first node execution time is expected to be 3"
         ); // check first node execution time
         assert_eq!(
-            graph[last_node].params.get("execution_time").unwrap(),
+            dag[last_node].params.get("execution_time").unwrap(),
             &43.0,
             "last node execution time is expected to be 43"
         ); // check last node execution time
+        assert_eq!(dag.edge_count(), 29, "number of edges is expected to be 29"); // check number of edges
         assert_eq!(
-            graph.edge_count(),
-            29,
-            "number of edges is expected to be 29"
-        ); // check number of edges
-        assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
         ); // check first edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
         ); // check first edge target node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             18,
             "last edge source node id is expected to be 18"
         ); // check last edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             19,
             "last edge target node id is expected to be 19"
         ); // check last edge target node id
         assert_eq!(
-            graph[first_edge], 11.0,
+            dag[first_edge], 11.0,
             "first edge weight is expected to be 11"
         ); // check first edge weight
-        assert_eq!(
-            graph[last_edge], 2.0,
-            "last edge weight is expected to be 2"
-        );
+        assert_eq!(dag[last_edge], 2.0, "last edge weight is expected to be 2");
         // check last edge weight
     }
 
     #[test]
     fn test_create_dag_from_yaml_normal_gnp() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/gnp_format.yaml");
-        let first_node = graph.node_indices().next().unwrap();
-        let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
+        let dag = create_dag_from_yaml("../tests/sample_dags/gnp_format.yaml");
+        let first_node = dag.node_indices().next().unwrap();
+        let last_node = dag.node_indices().last().unwrap();
+        let first_edge = dag.edge_indices().next().unwrap();
+        let last_edge = dag.edge_indices().last().unwrap();
 
+        assert_eq!(dag.node_count(), 70, "number of nodes is expected to be 70"); // check number of nodes
+        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0"); // check first node id
+        assert_eq!(dag[last_node].id, 69, "last node id is expected to be 69"); // check last node id
         assert_eq!(
-            graph.node_count(),
-            70,
-            "number of nodes is expected to be 70"
-        ); // check number of nodes
-        assert_eq!(graph[first_node].id, 0, "first node id is expected to be 0"); // check first node id
-        assert_eq!(graph[last_node].id, 69, "last node id is expected to be 69"); // check last node id
-        assert_eq!(
-            graph[first_node].params.get("Weight").unwrap(),
+            dag[first_node].params.get("Weight").unwrap(),
             &1.0,
             "first node weight is expected to be 1"
         ); // check first node weight
         assert_eq!(
-            graph[last_node].params.get("Weight").unwrap(),
+            dag[last_node].params.get("Weight").unwrap(),
             &5.0,
             "last node weight is expected to be 5"
         ); // check last node weight
         assert_eq!(
-            graph[first_node].params.get("execution_time").unwrap(),
+            dag[first_node].params.get("execution_time").unwrap(),
             &34.0,
             "first node execution time is expected to be 34"
         ); // check first node execution time
         assert_eq!(
-            graph[last_node].params.get("execution_time").unwrap(),
+            dag[last_node].params.get("execution_time").unwrap(),
             &1.0,
             "last node execution time is expected to be 1"
         ); // check last node execution time
         assert_eq!(
-            graph[first_node].params.get("offset").unwrap(),
+            dag[first_node].params.get("offset").unwrap(),
             &4.0,
             "first node offset is expected to be 4"
         ); // check first node offset
         assert_eq!(
-            graph[last_node].params.get("offset").unwrap(),
+            dag[last_node].params.get("offset").unwrap(),
             &5.0,
             "last node offset is expected to be 5"
         ); // check last node offset
         assert_eq!(
-            graph[first_node].params.get("period").unwrap(),
+            dag[first_node].params.get("period").unwrap(),
             &6000.0,
             "first node period is expected to be 6000"
         ); // check first node period
         assert_eq!(
-            graph[last_node].params.get("period").unwrap(),
+            dag[last_node].params.get("period").unwrap(),
             &10.0,
             "last node period is expected to be 10"
         ); // check last node period
         assert_eq!(
-            graph.edge_count(),
+            dag.edge_count(),
             233,
             "number of edges is expected to be 233"
         ); // check number of edges
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
         ); // check first edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             2,
             "first edge target node id is expected to be 2"
         ); // check first edge target node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             68,
             "last edge source node id is expected to be 68"
         ); // check last edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             14,
             "last edge target node id is expected to be 14"
         ); // check last edge target node id
         assert_eq!(
-            graph[first_edge], 0.0,
+            dag[first_edge], 0.0,
             "first edge weight is expected to be 0"
         ); // check first edge weight
-        assert_eq!(
-            graph[last_edge], 0.0,
-            "last edge weight is expected to be 0"
-        );
+        assert_eq!(dag[last_edge], 0.0, "last edge weight is expected to be 0");
         // check last edge weight
     }
 
     #[test]
     fn test_create_dag_from_yaml_normal_float_params() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/float_params.yaml");
-        let first_node = graph.node_indices().next().unwrap();
-        let last_node = graph.node_indices().last().unwrap();
-        let first_edge = graph.edge_indices().next().unwrap();
-        let last_edge = graph.edge_indices().last().unwrap();
+        let dag = create_dag_from_yaml("../tests/sample_dags/float_params.yaml");
+        let first_node = dag.node_indices().next().unwrap();
+        let last_node = dag.node_indices().last().unwrap();
+        let first_edge = dag.edge_indices().next().unwrap();
+        let last_edge = dag.edge_indices().last().unwrap();
 
-        assert_eq!(graph.node_count(), 3, "number of nodes is expected to be 3"); // check number of nodes
+        assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3"); // check number of nodes
         assert_eq!(
-            graph[first_node].params.get("Weight").unwrap(),
+            dag[first_node].params.get("Weight").unwrap(),
             &4.1,
             "first node weight is expected to be 4"
         ); // check first node weight
         assert_eq!(
-            graph[last_node].params.get("Weight").unwrap(),
+            dag[last_node].params.get("Weight").unwrap(),
             &1.0,
             "last node weight is expected to be 1"
         ); // check last node weight
         assert_eq!(
-            graph[first_node].params.get("execution_time").unwrap(),
+            dag[first_node].params.get("execution_time").unwrap(),
             &3.1,
             "first node execution time is expected to be 3"
         ); // check first node execution time
         assert_eq!(
-            graph[last_node].params.get("execution_time").unwrap(),
+            dag[last_node].params.get("execution_time").unwrap(),
             &43.0,
             "last node execution time is expected to be 43"
         ); // check last node execution time
-        assert_eq!(graph.edge_count(), 2, "number of edges is expected to be 2"); // check number of edges
+        assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2"); // check number of edges
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().0].id,
             0,
             "first edge source node id is expected to be 0"
         ); // check first edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(first_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(first_edge).unwrap().1].id,
             1,
             "first edge target node id is expected to be 1"
         ); // check first edge target node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().0].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().0].id,
             1,
             "last edge source node id is expected to be 1"
         ); // check last edge source node id
         assert_eq!(
-            graph[graph.edge_endpoints(last_edge).unwrap().1].id,
+            dag[dag.edge_endpoints(last_edge).unwrap().1].id,
             2,
             "last edge target node id is expected to be 19"
         ); // check last edge target node id
         assert_eq!(
-            graph[first_edge], 11.1,
+            dag[first_edge], 11.1,
             "first edge weight is expected to be 11"
         ); // check first edge weight
-        assert_eq!(
-            graph[last_edge], 2.0,
-            "last edge weight is expected to be 2"
-        );
+        assert_eq!(dag[last_edge], 2.0, "last edge weight is expected to be 2");
         // check last edge weight
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_disable_path() {
-        let _graph = create_dag_from_yaml("../tests/sample_dags/disable_path.yaml");
+        let _dag = create_dag_from_yaml("../tests/sample_dags/disable_path.yaml");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_disable_no_yaml() {
-        let _graph = create_dag_from_yaml("../tests/sample_dags/no_yaml.tex");
+        let _dag = create_dag_from_yaml("../tests/sample_dags/no_yaml.tex");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_disable_broken_link() {
-        let _graph = create_dag_from_yaml("../tests/sample_dags/broken_link.yaml");
+        let _dag = create_dag_from_yaml("../tests/sample_dags/broken_link.yaml");
     }
 }
