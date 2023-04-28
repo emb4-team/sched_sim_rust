@@ -1,5 +1,6 @@
 use clap::Parser;
-use lib::create_dag_from_yaml::create_dag_from_yaml;
+use lib::dag_creator::create_dag_from_yaml;
+use lib::dag_creator::create_task_from_folder;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
