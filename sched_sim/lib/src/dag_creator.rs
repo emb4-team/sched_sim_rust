@@ -49,7 +49,6 @@ pub struct NodeData {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
-
 pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
@@ -102,7 +101,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     dag
 }
 
-fn get_file_path_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
+fn get_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
     let dir_metadata = std::fs::metadata(dir_path).unwrap();
     if !dir_metadata.is_dir() {
         panic!("Not a directory");
@@ -112,7 +111,7 @@ fn get_file_path_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
         for dir_entry in dir_entries.flatten() {
             if let Some(ext) = dir_entry.path().extension() {
                 if ext == "yaml" && !dir_entry.path().to_str().unwrap().contains("log") {
-                    file_path_list.push(dir_entry.path());
+                    file_path_list.push(dir_entry.path().to_str().unwrap().to_string());
                 }
             }
         }
@@ -142,14 +141,12 @@ fn get_file_path_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
 /// let first_edge_num = dag_set[0].edge_count();
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
 /// ```
-
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
     let file_path_list = get_file_path_list_in_dir(dir_path);
     let mut dag_set: Vec<Graph<NodeData, f32>> = Vec::new();
 
     for file_path in file_path_list {
-        println!("Loading {}...", file_path.to_str().unwrap());
-        let dag = create_dag_from_yaml(file_path.to_str().unwrap());
+        let dag = create_dag_from_yaml(&file_path);
         dag_set.push(dag);
     }
     dag_set
@@ -160,19 +157,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_dag_set_from_dir_normal_each_file() {
+    fn test_create_dag_ser_from_dir_normal_multiple_yaml_files() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
 
     #[test]
     fn test_create_dag_set_from_dir_normal_mixing_dif_ext() {
-        create_dag_set_from_dir("../tests/sample_dags/mixing_different_extensions");
+        let dag_set = create_dag_set_from_dir("../tests/sample_dags/mixing_different_extensions");
+        assert_eq!(dag_set.len(), 1, "number of dag_set is expected to be 1");
     }
 
     #[test]
     fn test_create_dag_set_from_dir_normal_mixing_not_dag_yaml() {
-        create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
+        let dag_set = create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
+        assert_eq!(dag_set.len(), 1, "number of dag_set is expected to be 1");
     }
 
     #[test]
