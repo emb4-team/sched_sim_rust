@@ -102,7 +102,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     dag
 }
 
-fn get_file_path_sort_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
+fn get_file_path_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
     let dir_metadata = std::fs::metadata(dir_path).unwrap();
     if !dir_metadata.is_dir() {
         panic!("Not a directory");
@@ -120,8 +120,6 @@ fn get_file_path_sort_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
     if file_path_list.is_empty() {
         panic!("No YAML file found in {}", dir_path);
     }
-    file_path_list.sort();
-    println!("{:?}", file_path_list);
     file_path_list
 }
 
@@ -146,10 +144,11 @@ fn get_file_path_sort_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
 /// ```
 
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
-    let file_path_list = get_file_path_sort_list_in_dir(dir_path);
+    let file_path_list = get_file_path_list_in_dir(dir_path);
     let mut dag_set: Vec<Graph<NodeData, f32>> = Vec::new();
 
     for file_path in file_path_list {
+        println!("Loading {}...", file_path.to_str().unwrap());
         let dag = create_dag_from_yaml(file_path.to_str().unwrap());
         dag_set.push(dag);
     }
@@ -165,8 +164,8 @@ mod tests {
     #[test]
     fn test_create_dag_set_from_dir_normal_each_file() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
-        let expected_edge_count = vec![29, 28, 32, 31, 29, 32, 32, 28, 27, 33];
-        let expected_exe_time = vec![3.0, 10.0, 46.0, 17.0, 25.0, 42.0, 21.0, 10.0, 5.0, 14.0];
+        let expected_edge_count = vec![32, 33, 28, 27, 28, 29, 31, 32, 32, 29];
+        let expected_exe_time = vec![21.0, 14.0, 10.0, 5.0, 10.0, 25.0, 17.0, 46.0, 42.0, 3.0];
         assert_eq!(dag_set.len(), 10, "number of dag_set is expected to be 10");
         for (itr, dag) in dag_set.into_iter().enumerate() {
             assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20");
@@ -190,7 +189,7 @@ mod tests {
     #[test]
     fn test_create_dag_set_from_dir_normal_multiple_format() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_format");
-        let expected_node_count = vec![22, 20, 3, 70];
+        let expected_node_count = vec![3, 70, 20, 22];
         assert_eq!(dag_set.len(), 4, "number of dag_set is expected to be 4");
         for (itr, dag) in dag_set.into_iter().enumerate() {
             assert_eq!(
