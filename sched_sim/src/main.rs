@@ -24,6 +24,6 @@ fn main() {
     if let Some(dag_file_path) = arg.dag_file_path {
         let _dag = create_dag_from_yaml(&dag_file_path);
     } else if let Some(dag_dir_path) = arg.dag_dir_path {
-        let task = create_task_from_dir(&dag_dir_path);
+        let _task = create_task_from_dir(&dag_dir_path);
     }
 }
