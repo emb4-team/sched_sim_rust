@@ -1,5 +1,5 @@
 use clap::Parser;
-use lib::task_creator::*;
+use lib::dag_creator::*;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]

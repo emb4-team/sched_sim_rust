@@ -38,7 +38,7 @@ pub struct NodeData {
 /// # Example
 ///
 /// ```
-/// use lib::task_creator::create_dag_from_yaml;
+/// use lib::dag_creator::create_dag_from_yaml;
 ///
 /// let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
 /// let first_node = dag.node_indices().next().unwrap();
@@ -138,7 +138,7 @@ fn get_file_path_sort_list_in_dir(dir_path: &str) -> Vec<PathBuf> {
 /// # Example
 ///
 /// ```
-/// use lib::task_creator::create_task_from_dir;
+/// use lib::dag_creator::create_task_from_dir;
 /// let task = create_task_from_dir("../tests/sample_dags/multiple_yaml_files");
 /// let first_node_num = task[0].node_count();
 /// let first_edge_num = task[0].edge_count();
