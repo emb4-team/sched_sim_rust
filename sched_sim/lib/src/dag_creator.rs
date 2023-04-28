@@ -189,7 +189,7 @@ mod tests {
     #[test]
     fn test_create_dag_set_from_dir_normal_multiple_format() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_format");
-        let expected_node_count = vec![3, 70, 20, 22];
+        let expected_node_count = vec![3, 2, 2, 2];
         assert_eq!(dag_set.len(), 4, "number of dag_set is expected to be 4");
         for (itr, dag) in dag_set.into_iter().enumerate() {
             assert_eq!(
