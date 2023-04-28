@@ -53,55 +53,60 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
 
-    let mut dag = Graph::<NodeData, f32>::new();
+    // Check if nodes and links fields exist
+    if let (Some(nodes), Some(links)) = (yaml_doc["nodes"].as_vec(), yaml_doc["links"].as_vec()) {
+        let mut dag = Graph::<NodeData, f32>::new();
 
-    // add nodes to dag
-    for node in yaml_doc["nodes"].as_vec().unwrap() {
-        let mut params = HashMap::new();
-        let id = node["id"].as_i64().unwrap() as u32;
+        // add nodes to dag
+        for node in nodes {
+            let mut params = HashMap::new();
+            let id = node["id"].as_i64().unwrap() as u32;
 
-        // add node parameters to HashMap
-        for (key, value) in node.as_hash().unwrap() {
-            let key_str = key.as_str().unwrap();
-            if key_str != "id" {
-                match value {
-                    Yaml::Integer(_i) => {
-                        params.insert(key_str.to_owned(), value.as_i64().unwrap() as f32);
+            // add node parameters to HashMap
+            for (key, value) in node.as_hash().unwrap() {
+                let key_str = key.as_str().unwrap();
+                if key_str != "id" {
+                    match value {
+                        Yaml::Integer(_i) => {
+                            params.insert(key_str.to_owned(), value.as_i64().unwrap() as f32);
+                        }
+                        Yaml::Real(_r) => {
+                            params.insert(key_str.to_owned(), value.as_f64().unwrap() as f32);
+                        }
+                        _ => {}
                     }
-                    Yaml::Real(_r) => {
-                        params.insert(key_str.to_owned(), value.as_f64().unwrap() as f32);
-                    }
-                    _ => {}
                 }
             }
+            dag.add_node(NodeData { id, params });
         }
-        dag.add_node(NodeData { id, params });
-    }
 
-    // add edges to dag
-    for link in yaml_doc["links"].as_vec().unwrap() {
-        let source = link["source"].as_i64().unwrap() as usize;
-        let target = link["target"].as_i64().unwrap() as usize;
-        let mut communication_time = 0.0;
-        match &link["communication_time"] {
-            Yaml::Integer(communication_time_value) => {
-                communication_time = *communication_time_value as f32;
+        // add edges to dag
+        for link in links {
+            let source = link["source"].as_i64().unwrap() as usize;
+            let target = link["target"].as_i64().unwrap() as usize;
+            let mut communication_time = 0.0;
+            match &link["communication_time"] {
+                Yaml::Integer(communication_time_value) => {
+                    communication_time = *communication_time_value as f32;
+                }
+                Yaml::Real(communication_time_value) => {
+                    communication_time = communication_time_value.parse::<f32>().unwrap();
+                }
+                _ => {}
             }
-            Yaml::Real(communication_time_value) => {
-                communication_time = communication_time_value.parse::<f32>().unwrap();
-            }
-            _ => {}
+            dag.add_edge(
+                NodeIndex::new(source),
+                NodeIndex::new(target),
+                communication_time,
+            );
         }
-        dag.add_edge(
-            NodeIndex::new(source),
-            NodeIndex::new(target),
-            communication_time,
-        );
+        dag
+    } else {
+        panic!("YAML files are not DAG structures.");
     }
-    dag
 }
 
-fn get_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
+fn get_yaml_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
     let dir_metadata = std::fs::metadata(dir_path).unwrap();
     if !dir_metadata.is_dir() {
         panic!("Not a directory");
@@ -110,7 +115,7 @@ fn get_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
     if let Ok(dir_entries) = PathBuf::from(dir_path).read_dir() {
         for dir_entry in dir_entries.flatten() {
             if let Some(ext) = dir_entry.path().extension() {
-                if ext == "yaml" && !dir_entry.path().to_str().unwrap().contains("log") {
+                if (ext == "yaml") || (ext == "yml") {
                     file_path_list.push(dir_entry.path().to_str().unwrap().to_string());
                 }
             }
@@ -142,7 +147,8 @@ fn get_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
-    let file_path_list = get_file_path_list_in_dir(dir_path);
+    let file_path_list = get_yaml_file_path_list_in_dir(dir_path);
+    println!("file_path_list: {:?}", file_path_list);
     let mut dag_set: Vec<Graph<NodeData, f32>> = Vec::new();
 
     for file_path in file_path_list {
@@ -157,7 +163,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_dag_ser_from_dir_normal_multiple_yaml_files() {
+    fn test_create_dag_set_from_dir_normal_multiple_yaml_files() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
@@ -169,9 +175,9 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_set_from_dir_normal_mixing_not_dag_yaml() {
-        let dag_set = create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
-        assert_eq!(dag_set.len(), 1, "number of dag_set is expected to be 1");
+    #[should_panic]
+    fn test_create_dag_set_from_dir_disable_mixing_not_dag_yaml() {
+        create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
     }
 
     #[test]
