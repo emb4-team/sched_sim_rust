@@ -9,6 +9,9 @@ use petgraph::prelude::*;
 use std::collections::HashMap;
 
 fn load_yaml(path: &str) -> Vec<yaml_rust::Yaml> {
+    if !path.ends_with(".yaml") && !path.ends_with(".yml") {
+        panic!("Invalid file type: {}", path);
+    }
     let file_path = fs::read_to_string(path);
     let file_string = file_path.unwrap();
     YamlLoader::load_from_str(&file_string).unwrap()
@@ -35,7 +38,7 @@ pub struct NodeData {
 /// ```
 /// use lib::create_dag_from_yaml::create_dag_from_yaml;
 ///
-/// let graph = create_dag_from_yaml("../tests/sample_dags/chain_base.yaml");
+/// let graph = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
 /// let first_node = graph.node_indices().next().unwrap();
 /// let first_edge = graph.edge_indices().next().unwrap();
 ///
@@ -118,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_normal_chain_base() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/chain_base.yaml");
+        let graph = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
@@ -184,7 +187,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_normal_fan_in_fan_out() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out.yaml");
+        let graph = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out_format.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
@@ -253,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_normal_gnp() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/gnp.yaml");
+        let graph = create_dag_from_yaml("../tests/sample_dags/gnp_format.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
@@ -343,18 +346,14 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_normal_f32() {
-        let graph = create_dag_from_yaml("../tests/sample_dags/f32.yaml");
+    fn test_create_dag_from_yaml_normal_float_params() {
+        let graph = create_dag_from_yaml("../tests/sample_dags/float_params.yaml");
         let first_node = graph.node_indices().next().unwrap();
         let last_node = graph.node_indices().last().unwrap();
         let first_edge = graph.edge_indices().next().unwrap();
         let last_edge = graph.edge_indices().last().unwrap();
 
-        assert_eq!(
-            graph.node_count(),
-            20,
-            "number of nodes is expected to be 20"
-        ); // check number of nodes
+        assert_eq!(graph.node_count(), 3, "number of nodes is expected to be 3"); // check number of nodes
         assert_eq!(
             graph[first_node].params.get("Weight").unwrap(),
             &4.1,
@@ -375,11 +374,7 @@ mod tests {
             &43.0,
             "last node execution time is expected to be 43"
         ); // check last node execution time
-        assert_eq!(
-            graph.edge_count(),
-            29,
-            "number of edges is expected to be 29"
-        ); // check number of edges
+        assert_eq!(graph.edge_count(), 2, "number of edges is expected to be 2"); // check number of edges
         assert_eq!(
             graph[graph.edge_endpoints(first_edge).unwrap().0].id,
             0,
@@ -392,12 +387,12 @@ mod tests {
         ); // check first edge target node id
         assert_eq!(
             graph[graph.edge_endpoints(last_edge).unwrap().0].id,
-            18,
-            "last edge source node id is expected to be 18"
+            1,
+            "last edge source node id is expected to be 1"
         ); // check last edge source node id
         assert_eq!(
             graph[graph.edge_endpoints(last_edge).unwrap().1].id,
-            19,
+            2,
             "last edge target node id is expected to be 19"
         ); // check last edge target node id
         assert_eq!(
@@ -420,7 +415,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_disable_no_yaml() {
-        let _graph = create_dag_from_yaml("../tests/sample_dags/disable_path.tex");
+        let _graph = create_dag_from_yaml("../tests/sample_dags/no_yaml.tex");
     }
 
     #[test]
