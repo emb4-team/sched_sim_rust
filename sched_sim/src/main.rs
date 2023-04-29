@@ -17,6 +17,8 @@ struct AppArg {
     dag_file_path: Option<String>,
     #[clap(short = 'd', long = "dag_dir_path", required = false)]
     dag_dir_path: Option<String>,
+    #[clap(short = 'c', long = "core_num", required = true)]
+    core_num: usize,
 }
 
 /// Application main function
@@ -26,6 +28,6 @@ fn main() {
         let _dag = create_dag_from_yaml(&dag_file_path);
     } else if let Some(dag_dir_path) = arg.dag_dir_path {
         let _dag_set = create_dag_set_from_dir(&dag_dir_path);
-        federated(&dag_dir_path, 50);
+        federated(&dag_dir_path, arg.core_num);
     }
 }
