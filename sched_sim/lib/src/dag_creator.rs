@@ -73,7 +73,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                         Yaml::Real(_r) => {
                             params.insert(key_str.to_owned(), value.as_f64().unwrap() as f32);
                         }
-                        _ => {}
+                        _ => unreachable!(),
                     }
                 }
             }
@@ -85,6 +85,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
             let source = link["source"].as_i64().unwrap() as usize;
             let target = link["target"].as_i64().unwrap() as usize;
             let mut communication_time = 0.0;
+
             match &link["communication_time"] {
                 Yaml::Integer(communication_time_value) => {
                     communication_time = *communication_time_value as f32;
@@ -92,7 +93,8 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                 Yaml::Real(communication_time_value) => {
                     communication_time = communication_time_value.parse::<f32>().unwrap();
                 }
-                _ => {}
+                Yaml::BadValue => {}
+                _ => unreachable!(),
             }
             dag.add_edge(
                 NodeIndex::new(source),
@@ -106,7 +108,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     }
 }
 
-fn get_yaml_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
+fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
     if !std::fs::metadata(dir_path).unwrap().is_dir() {
         panic!("Not a directory");
     }
@@ -144,8 +146,7 @@ fn get_yaml_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
-    let file_path_list = get_yaml_file_path_list_in_dir(dir_path);
-    println!("file_path_list: {:?}", file_path_list);
+    let file_path_list = get_yaml_paths_from_dir(dir_path);
     let mut dag_set: Vec<Graph<NodeData, f32>> = Vec::new();
 
     for file_path in file_path_list {
@@ -160,37 +161,37 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_create_dag_set_from_dir_normal_multiple_yaml_files() {
+    fn test_create_dag_set_from_dir_multiple_yaml_files() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
 
     #[test]
-    fn test_create_dag_set_from_dir_normal_mixing_dif_ext() {
+    fn test_create_dag_set_from_dir_mixing_dif_ext() {
         let dag_set = create_dag_set_from_dir("../tests/sample_dags/mixing_different_extensions");
         assert_eq!(dag_set.len(), 1, "number of dag_set is expected to be 1");
     }
 
     #[test]
     #[should_panic]
-    fn test_create_dag_set_from_dir_disable_mixing_not_dag_yaml() {
+    fn test_create_dag_set_from_dir_mixing_not_dag_yaml() {
         create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
     }
 
     #[test]
     #[should_panic]
-    fn test_create_dag_set_from_dir_disable_no_yaml_files() {
+    fn test_create_dag_set_from_dir_no_yaml_files() {
         create_dag_set_from_dir("../tests/sample_dags/no_yaml_files");
     }
 
     #[test]
     #[should_panic]
-    fn test_create_dag_set_from_dir_disable_no_dir() {
+    fn test_create_dag_set_from_dir_no_dir() {
         create_dag_set_from_dir("../tests/sample_dags/gnp_format.yaml");
     }
 
     #[test]
-    fn test_create_dag_from_yaml_normal_chain_base() {
+    fn test_create_dag_from_yaml_chain_base() {
         let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
@@ -247,7 +248,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_normal_fan_in_fan_out() {
+    fn test_create_dag_from_yaml_fan_in_fan_out() {
         let dag = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
@@ -307,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_normal_gnp() {
+    fn test_create_dag_from_yaml_gnp() {
         let dag = create_dag_from_yaml("../tests/sample_dags/gnp_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
@@ -393,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn test_create_dag_from_yaml_normal_float_params() {
+    fn test_create_dag_from_yaml_float_params() {
         let dag = create_dag_from_yaml("../tests/sample_dags/float_params.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
@@ -454,19 +455,19 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_create_dag_from_yaml_disable_path() {
+    fn test_create_dag_from_yaml_path() {
         let _dag = create_dag_from_yaml("../tests/sample_dags/disable_path.yaml");
     }
 
     #[test]
     #[should_panic]
-    fn test_create_dag_from_yaml_disable_no_yaml() {
+    fn test_create_dag_from_yaml_no_yaml() {
         let _dag = create_dag_from_yaml("../tests/sample_dags/no_yaml.tex");
     }
 
     #[test]
     #[should_panic]
-    fn test_create_dag_from_yaml_disable_broken_link() {
+    fn test_create_dag_from_yaml_broken_link() {
         let _dag = create_dag_from_yaml("../tests/sample_dags/broken_link.yaml");
     }
 }
