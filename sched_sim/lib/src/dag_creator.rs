@@ -19,9 +19,9 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
 }
 
 /// custom node data structure for dag nodes (petgraph)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NodeData {
-    pub id: u32,
+    pub id: i32,
     pub params: HashMap<String, f32>,
 }
 
@@ -60,7 +60,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
         // add nodes to dag
         for node in nodes {
             let mut params = HashMap::new();
-            let id = node["id"].as_i64().unwrap() as u32;
+            let id = node["id"].as_i64().unwrap() as i32;
 
             // add node parameters to HashMap
             for (key, value) in node.as_hash().unwrap() {
