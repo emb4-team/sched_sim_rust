@@ -133,18 +133,6 @@ fn find_critical_paths(
     critical_paths
 }
 
-fn _extract_critical_path_nodes(
-    sorted_nodes: &[NodeIndex],
-    earliest_start_times: &[f32],
-    latest_start_times: &[f32],
-) -> Vec<NodeIndex> {
-    sorted_nodes
-        .iter()
-        .filter(|node| earliest_start_times[node.index()] == latest_start_times[node.index()])
-        .cloned()
-        .collect()
-}
-
 /// Returns the critical path of a DAG
 ///
 /// # Arguments
