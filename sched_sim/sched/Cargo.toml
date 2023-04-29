@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 lib = { path = "../lib"}
+petgraph = "0.6.3"
