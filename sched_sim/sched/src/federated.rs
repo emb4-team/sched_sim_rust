@@ -17,9 +17,9 @@ fn get_critical_path_wect(critical_paths: Vec<Vec<NodeIndex>>, dag: Graph<NodeDa
         .sum()
 }
 
-fn is_high_utilization_task(execution_time: f32, period: f32, deadline: f32) -> bool {
-    // 関数の本体
-    true
+fn is_high_utilization_task(sum_wect: f32, deadline: f32) -> bool {
+    let utilization_rate = sum_wect / deadline;
+    utilization_rate > 1.0
 }
 
 pub fn federated(folder_path: &str) {
@@ -31,18 +31,20 @@ pub fn federated(folder_path: &str) {
 
     for dag in dag_set {
         let last_node = dag.node_indices().last().unwrap();
-        let mut sum_wect = 0.0;
         let deadline = dag[last_node].params["end_to_end_deadline"];
+        let sum_wect = cal_total_wect(dag.clone());
+        let critical_paths = get_critical_paths(dag.clone());
+        let critical_path_wect = get_critical_path_wect(critical_paths.clone(), dag.clone());
+
+        if is_high_utilization_task(sum_wect, deadline) {
+            println!("high utilization task: {:?}", dag);
+        } else {
+            println!("low utilization task: {:?}", dag);
+        }
+
         deadlines.push(deadline);
-
-        sum_wects.push(cal_total_wect(dag.clone()));
-
-        let mut critical_paths = get_critical_paths(dag.clone());
-        critical_paths[0].pop();
-        critical_paths[0].remove(0);
-
-        critical_path_wects.push(get_critical_path_wect(critical_paths, dag.clone()));
-
+        sum_wects.push(sum_wect);
+        critical_path_wects.push(critical_path_wect);
         utilization_rates.push(cal_total_wect(dag.clone()) / deadline);
     }
     println!("deadlines: {:?}", deadlines);
