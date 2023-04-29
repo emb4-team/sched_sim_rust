@@ -107,18 +107,13 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
 }
 
 fn get_yaml_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
-    let dir_metadata = std::fs::metadata(dir_path).unwrap();
-    if !dir_metadata.is_dir() {
+    if !std::fs::metadata(dir_path).unwrap().is_dir() {
         panic!("Not a directory");
     }
     let mut file_path_list = Vec::new();
-    let dir_path_buf = PathBuf::from(dir_path);
-    let dir_entries = dir_path_buf.read_dir().unwrap();
-    for dir_entry_result in dir_entries {
-        let dir_entry = dir_entry_result.unwrap();
-        let path = dir_entry.path();
+    for dir_entry_result in PathBuf::from(dir_path).read_dir().unwrap() {
+        let path = dir_entry_result.unwrap().path();
         let extension = path.extension().unwrap();
-
         if extension == "yaml" || extension == "yml" {
             file_path_list.push(path.to_str().unwrap().to_string());
         }
