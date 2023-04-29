@@ -6,11 +6,13 @@ pub fn federated(folder_path: &str) {
     let mut deadlines: Vec<f32> = Vec::new();
     let mut sum_wects: Vec<f32> = Vec::new();
     let mut critical_path_wects: Vec<f32> = Vec::new();
+    let mut utilization_rates: Vec<f32> = Vec::new();
 
     for dag in dag_set {
         let last_node = dag.node_indices().last().unwrap();
         let mut sum_wect = 0.0;
-        deadlines.push(dag[last_node].params["end_to_end_deadline"]);
+        let deadline = dag[last_node].params["end_to_end_deadline"];
+        deadlines.push(deadline);
 
         for node in dag.node_indices() {
             sum_wect += dag[node].params["execution_time"];
@@ -27,8 +29,11 @@ pub fn federated(folder_path: &str) {
                 .map(|node| dag[*node].params["execution_time"])
                 .sum(),
         );
+
+        utilization_rates.push(sum_wect / deadline);
     }
     println!("deadlines: {:?}", deadlines);
     println!("sum_wects: {:?}", sum_wects);
     println!("critical_path_wects: {:?}", critical_path_wects);
+    println!("utilization_rates: {:?}", utilization_rates);
 }
