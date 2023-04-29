@@ -180,6 +180,7 @@ impl GraphExt for Graph<NodeData, f32> {
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>> {
         self.add_dummy_source_node();
         self.add_dummy_sink_node();
+        println!("DAG: {:?}", self);
         let earliest_start_times = self.calculate_earliest_start_times();
         let latest_start_times = self.calculate_latest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
@@ -192,8 +193,8 @@ impl GraphExt for Graph<NodeData, f32> {
             let outgoing_edges = self.edges_directed(node, Outgoing);
 
             if outgoing_edges.clone().count() == 0 {
-                critical_path.pop();
-                critical_path.remove(0);
+                critical_path.pop(); // Remove the dummy sink node
+                critical_path.remove(0); // Remove the dummy source node
                 critical_paths.push(critical_path);
             } else {
                 for edge in outgoing_edges {
