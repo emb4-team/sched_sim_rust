@@ -3,11 +3,10 @@ use lib::dag_handler::get_critical_paths;
 
 pub fn federated(folder_path: &str) {
     let dag_set = create_dag_set_from_dir(folder_path);
-    let mut deadlines = vec![0.0; dag_set.len()];
+    let mut deadlines: Vec<f32> = Vec::new();
     for dag in dag_set {
         let last_node = dag.node_indices().last().unwrap();
-        let last_node_execution_time = dag[last_node].params["deadline"];
-        let node_id = dag[last_node].id;
-        deadlines[node_id as usize] = last_node_execution_time;
+        let deadline = dag[last_node].params["end_to_end_deadline"];
+        deadlines.push(deadline);
     }
 }
