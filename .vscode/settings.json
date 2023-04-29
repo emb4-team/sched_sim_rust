@@ -1,7 +1,8 @@
 {
     "rust-analyzer.linkedProjects": [
         "./sched_sim/lib/Cargo.toml",
-        "./sched_sim/Cargo.toml"
+        "./sched_sim/Cargo.toml",
+        "./sched_sim/scheduler/Cargo.toml"
     ],
 
     "cSpell.words": [
