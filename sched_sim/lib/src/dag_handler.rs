@@ -30,7 +30,7 @@ fn connect_dummy_nodes(
 }
 
 /// add one dummy node at the start and end of the DAG to obtain the critical path.
-/// because multiple input and output nodes complicate the calculation
+/// because multiple input and output nodes complicate the calculation.
 fn add_dummy_nodes(dag: &Graph<NodeData, f32>) -> Graph<NodeData, f32> {
     let mut new_dag: Graph<dag_creator::NodeData, f32> = (*dag).clone();
 
