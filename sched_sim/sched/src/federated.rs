@@ -1,6 +1,6 @@
 use lib::dag_creator::{create_dag_set_from_dir, NodeData};
 use lib::dag_handler::get_critical_paths;
-use petgraph::Graph;
+use petgraph::graph::{Graph, NodeIndex};
 
 fn cal_total_wect(dag: Graph<NodeData, f32>) -> f32 {
     let mut sum_wect = 0.0;
@@ -8,6 +8,13 @@ fn cal_total_wect(dag: Graph<NodeData, f32>) -> f32 {
         sum_wect += dag[node].params["execution_time"];
     }
     sum_wect
+}
+
+fn get_critical_path_wect(critical_paths: Vec<Vec<NodeIndex>>, dag: Graph<NodeData, f32>) -> f32 {
+    critical_paths[0]
+        .iter()
+        .map(|node| dag[*node].params["execution_time"])
+        .sum()
 }
 
 fn is_high_utilization_task(execution_time: f32, period: f32, deadline: f32) -> bool {
@@ -34,12 +41,7 @@ pub fn federated(folder_path: &str) {
         critical_paths[0].pop();
         critical_paths[0].remove(0);
 
-        critical_path_wects.push(
-            critical_paths[0]
-                .iter()
-                .map(|node| dag[*node].params["execution_time"])
-                .sum(),
-        );
+        critical_path_wects.push(get_critical_path_wect(critical_paths, dag.clone()));
 
         utilization_rates.push(cal_total_wect(dag.clone()) / deadline);
     }
