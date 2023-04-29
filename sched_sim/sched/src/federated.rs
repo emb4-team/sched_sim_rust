@@ -1,5 +1,19 @@
-use lib::dag_creator::create_dag_set_from_dir;
+use lib::dag_creator::{create_dag_set_from_dir, NodeData};
 use lib::dag_handler::get_critical_paths;
+use petgraph::Graph;
+
+fn cal_total_wect(dag: Graph<NodeData, f32>) -> f32 {
+    let mut sum_wect = 0.0;
+    for node in dag.node_indices() {
+        sum_wect += dag[node].params["execution_time"];
+    }
+    sum_wect
+}
+
+fn is_high_utilization_task(execution_time: f32, period: f32, deadline: f32) -> bool {
+    // 関数の本体
+    true
+}
 
 pub fn federated(folder_path: &str) {
     let dag_set = create_dag_set_from_dir(folder_path);
@@ -14,10 +28,7 @@ pub fn federated(folder_path: &str) {
         let deadline = dag[last_node].params["end_to_end_deadline"];
         deadlines.push(deadline);
 
-        for node in dag.node_indices() {
-            sum_wect += dag[node].params["execution_time"];
-        }
-        sum_wects.push(sum_wect);
+        sum_wects.push(cal_total_wect(dag.clone()));
 
         let mut critical_paths = get_critical_paths(dag.clone());
         critical_paths[0].pop();
@@ -30,7 +41,7 @@ pub fn federated(folder_path: &str) {
                 .sum(),
         );
 
-        utilization_rates.push(sum_wect / deadline);
+        utilization_rates.push(cal_total_wect(dag.clone()) / deadline);
     }
     println!("deadlines: {:?}", deadlines);
     println!("sum_wects: {:?}", sum_wects);
