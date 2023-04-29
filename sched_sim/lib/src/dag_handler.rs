@@ -29,6 +29,8 @@ fn connect_dummy_nodes(
     }
 }
 
+/// add one dummy node at the start and end of the DAG to obtain the critical path.
+/// because multiple input and output nodes complicate the calculation.
 fn add_dummy_nodes(dag: &Graph<NodeData, f32>) -> Graph<NodeData, f32> {
     let mut new_dag: Graph<dag_creator::NodeData, f32> = (*dag).clone();
 
@@ -90,6 +92,7 @@ fn calculate_latest_start_times(
     latest_start_times
 }
 
+/// Multiple critical paths are obtained using Breadth-First Search, BFS
 fn find_critical_paths(
     dag: &Graph<NodeData, f32>,
     start_node: NodeIndex,
@@ -132,7 +135,7 @@ fn find_critical_paths(
 ///
 /// # Returns
 ///
-/// * `critical path` -containing the nodes in the critical path.
+/// * `critical path` -containing the nodes in the critical path. Multiple critical paths may exist. so the return value is a vector of vectors.
 ///
 /// # Example
 ///
