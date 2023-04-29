@@ -185,7 +185,32 @@ mod tests {
 
     #[test]
     fn test_get_critical_paths_multiple() {
-        let dag = create_dag_from_yaml("../tests/sample_dags/multiple_critical_paths.yaml");
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        let n5 = dag.add_node(create_node(5, "execution_time", 26.0));
+        let n6 = dag.add_node(create_node(6, "execution_time", 26.0));
+        let n7 = dag.add_node(create_node(7, "execution_time", 27.0));
+        let n8 = dag.add_node(create_node(8, "execution_time", 43.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n1, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n1, n4, 1.0);
+        dag.add_edge(n2, n5, 1.0);
+        dag.add_edge(n3, n6, 1.0);
+        dag.add_edge(n4, n7, 1.0);
+        dag.add_edge(n5, n8, 1.0);
+        dag.add_edge(n6, n8, 1.0);
+        dag.add_edge(n7, n8, 1.0);
+
         let critical_path = get_critical_paths(dag);
         assert_eq!(
             critical_path[0]
