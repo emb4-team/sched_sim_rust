@@ -112,13 +112,15 @@ fn get_yaml_file_path_list_in_dir(dir_path: &str) -> Vec<String> {
         panic!("Not a directory");
     }
     let mut file_path_list = Vec::new();
-    if let Ok(dir_entries) = PathBuf::from(dir_path).read_dir() {
-        for dir_entry in dir_entries.flatten() {
-            if let Some(ext) = dir_entry.path().extension() {
-                if (ext == "yaml") || (ext == "yml") {
-                    file_path_list.push(dir_entry.path().to_str().unwrap().to_string());
-                }
-            }
+    let dir_path_buf = PathBuf::from(dir_path);
+    let dir_entries = dir_path_buf.read_dir().unwrap();
+    for dir_entry_result in dir_entries {
+        let dir_entry = dir_entry_result.unwrap();
+        let path = dir_entry.path();
+        let extension = path.extension().unwrap();
+
+        if extension == "yaml" || extension == "yml" {
+            file_path_list.push(path.to_str().unwrap().to_string());
         }
     }
     if file_path_list.is_empty() {
