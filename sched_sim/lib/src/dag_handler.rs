@@ -10,7 +10,6 @@ use std::f32::MAX;
 fn create_dummy_node(id: i32) -> NodeData {
     let mut params = HashMap::new();
     params.insert(String::from("execution_time"), 0.0);
-
     NodeData { id, params }
 }
 
@@ -36,18 +35,8 @@ fn add_dummy_nodes(dag: &Graph<NodeData, f32>) -> Graph<NodeData, f32> {
     let start_node_index = new_dag.add_node(create_dummy_node(-1));
     let end_node_index = new_dag.add_node(create_dummy_node(-2));
 
-    connect_nodes(
-        dag,
-        &mut new_dag,
-        start_node_index,
-        petgraph::Direction::Incoming,
-    );
-    connect_nodes(
-        dag,
-        &mut new_dag,
-        end_node_index,
-        petgraph::Direction::Outgoing,
-    );
+    connect_nodes(dag, &mut new_dag, start_node_index, Incoming);
+    connect_nodes(dag, &mut new_dag, end_node_index, Outgoing);
     new_dag
 }
 
@@ -112,7 +101,7 @@ fn find_critical_paths(
     queue.push_back((start_node, vec![start_node]));
 
     while let Some((node, path)) = queue.pop_front() {
-        let outgoing_edges = dag.edges_directed(node, petgraph::Direction::Outgoing);
+        let outgoing_edges = dag.edges_directed(node, Outgoing);
 
         if outgoing_edges.clone().count() == 0 {
             critical_paths.push(path);
