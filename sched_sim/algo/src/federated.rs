@@ -25,10 +25,7 @@ fn is_high_utilization_task(sum_wect: f32, deadline: f32) -> bool {
 pub fn federated(folder_path: &str, core_num: usize) -> bool {
     let mut remaining_cores = core_num;
     let dag_set = create_dag_set_from_dir(folder_path);
-    let mut deadlines: Vec<f32> = Vec::new();
-    let mut sum_wects: Vec<f32> = Vec::new();
-    let mut critical_path_wects: Vec<f32> = Vec::new();
-    let mut utilization_rates: Vec<f32> = Vec::new();
+    let mut low_utilizations = 0.0;
 
     for dag in dag_set {
         let last_node = dag.node_indices().last().unwrap();
@@ -41,12 +38,21 @@ pub fn federated(folder_path: &str, core_num: usize) -> bool {
             let using_cores =
                 ((sum_wect - critical_path_wect) / (deadline - critical_path_wect)).ceil();
             if using_cores as usize > remaining_cores {
-                eprintln!("Insufficient number of cores for the task set.");
+                println!("Insufficient number of cores for the task set.");
                 return false;
             } else {
                 remaining_cores -= using_cores as usize;
             }
+        } else {
+            low_utilizations += sum_wect / deadline;
         }
     }
-    true
+
+    if remaining_cores as f32 > 2.0 * low_utilizations {
+        println!("can allocate task set to {} cores.", core_num);
+        true
+    } else {
+        println!("cannot allocate task set to {} cores.", core_num);
+        false
+    }
 }
