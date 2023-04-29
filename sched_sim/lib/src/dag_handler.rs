@@ -13,7 +13,7 @@ fn create_dummy_node(id: i32) -> NodeData {
     NodeData { id, params }
 }
 
-fn connect_nodes(
+fn connect_dummy_nodes(
     dag: &Graph<NodeData, f32>,
     new_dag: &mut Graph<NodeData, f32>,
     dummy_node_index: NodeIndex,
@@ -35,8 +35,8 @@ fn add_dummy_nodes(dag: &Graph<NodeData, f32>) -> Graph<NodeData, f32> {
     let start_node_index = new_dag.add_node(create_dummy_node(-1));
     let end_node_index = new_dag.add_node(create_dummy_node(-2));
 
-    connect_nodes(dag, &mut new_dag, start_node_index, Incoming);
-    connect_nodes(dag, &mut new_dag, end_node_index, Outgoing);
+    connect_dummy_nodes(dag, &mut new_dag, start_node_index, Incoming);
+    connect_dummy_nodes(dag, &mut new_dag, end_node_index, Outgoing);
     new_dag
 }
 
@@ -97,23 +97,25 @@ fn find_critical_paths(
     latest_start_times: &[f32],
 ) -> Vec<Vec<NodeIndex>> {
     let mut critical_paths = Vec::new();
-    let mut queue = VecDeque::new();
-    queue.push_back((start_node, vec![start_node]));
+    let mut path_search_queue = VecDeque::new();
+    path_search_queue.push_back((start_node, vec![start_node]));
 
-    while let Some((node, path)) = queue.pop_front() {
+    while let Some((node, mut critical_path)) = path_search_queue.pop_front() {
         let outgoing_edges = dag.edges_directed(node, Outgoing);
 
         if outgoing_edges.clone().count() == 0 {
-            critical_paths.push(path);
+            critical_path.pop();
+            critical_path.remove(0);
+            critical_paths.push(critical_path);
         } else {
             for edge in outgoing_edges {
                 let target_node = edge.target();
                 if earliest_start_times[target_node.index()]
                     == latest_start_times[target_node.index()]
                 {
-                    let mut new_path = path.clone();
-                    new_path.push(target_node);
-                    queue.push_back((target_node, new_path));
+                    let mut current_critical_path = critical_path.clone();
+                    current_critical_path.push(target_node);
+                    path_search_queue.push_back((target_node, current_critical_path));
                 }
             }
         }
@@ -138,26 +140,32 @@ fn find_critical_paths(
 /// use petgraph::Graph;
 /// use lib::dag_creator::NodeData;
 /// use lib::dag_handler::get_critical_paths;
+/// use std::collections::HashMap;
 ///
 /// let mut dag = Graph::<NodeData, f32>::new();
+/// let mut params = HashMap::new();
+/// params.insert("execution_time".to_string(), 1.0);
+/// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
+/// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
+/// dag.add_edge(n0, n1, 1.0);
+///
 /// let critical_path = get_critical_paths(dag);
 /// println!("The critical path is: {:?}", critical_path);
 /// ```
 pub fn get_critical_paths(dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let dag = add_dummy_nodes(&dag);
     let sorted_nodes = toposort(&dag, None).unwrap();
+    let start_node = sorted_nodes[0];
 
     let earliest_start_times = calculate_earliest_start_times(&dag, &sorted_nodes);
     let latest_start_times =
         calculate_latest_start_times(&dag, &sorted_nodes, &earliest_start_times);
 
-    let start_node = sorted_nodes[0];
     find_critical_paths(&dag, start_node, &earliest_start_times, &latest_start_times)
 }
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -194,14 +202,14 @@ mod tests {
                 .iter()
                 .map(|node_index| node_index.index())
                 .collect::<Vec<_>>(),
-            vec![9_usize, 0_usize, 1_usize, 4_usize, 7_usize, 8_usize, 10_usize]
+            vec![0_usize, 1_usize, 4_usize, 7_usize, 8_usize]
         );
         assert_eq!(
             critical_path[1]
                 .iter()
                 .map(|node_index| node_index.index())
                 .collect::<Vec<_>>(),
-            vec![9_usize, 0_usize, 1_usize, 2_usize, 5_usize, 8_usize, 10_usize]
+            vec![0_usize, 1_usize, 2_usize, 5_usize, 8_usize]
         );
     }
 }
