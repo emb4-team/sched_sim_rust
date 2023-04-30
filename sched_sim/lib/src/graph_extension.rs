@@ -224,8 +224,8 @@ impl GraphExtension for Graph<NodeData, f32> {
         critical_paths
     }
 
+    /// check if the graph contains a node with the given id
     fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex {
-        // Check for duplicate id
         for node_index in self.node_indices() {
             let existing_node = self.node_weight(node_index).unwrap();
             if existing_node.id == node_data.id {
