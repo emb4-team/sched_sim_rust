@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use std::path::PathBuf;
 
-use crate::graph_ext::NodeData;
+use crate::graph_extension::NodeData;
 
 fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
     if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {

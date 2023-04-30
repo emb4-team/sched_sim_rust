@@ -6,6 +6,9 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
+const SOURCE_NODE_ID: i32 = -1;
+const SINK_NODE_ID: i32 = -2;
+
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
 pub struct NodeData {
@@ -21,7 +24,7 @@ impl NodeData {
     }
 }
 
-pub trait GraphExt {
+pub trait GraphExtension {
     fn add_dummy_source_node(&mut self);
     fn add_dummy_sink_node(&mut self);
     fn remove_dummy_source_node(&mut self);
@@ -31,14 +34,18 @@ pub trait GraphExt {
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
 }
 
-impl GraphExt for Graph<NodeData, f32> {
+impl GraphExtension for Graph<NodeData, f32> {
     fn add_dummy_source_node(&mut self) {
         for node_index in self.node_indices() {
-            if self[node_index].id == -1 {
+            if self[node_index].id == SOURCE_NODE_ID {
                 panic!("The dummy source node has already been added.");
             }
         }
-        let dummy_node = self.add_node(NodeData::new(-1, "execution_time".to_owned(), 0.0));
+        let dummy_node = self.add_node(NodeData::new(
+            SOURCE_NODE_ID,
+            "execution_time".to_owned(),
+            0.0,
+        ));
         let nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
@@ -52,11 +59,15 @@ impl GraphExt for Graph<NodeData, f32> {
     }
     fn add_dummy_sink_node(&mut self) {
         for node_index in self.node_indices() {
-            if self[node_index].id == -2 {
+            if self[node_index].id == SINK_NODE_ID {
                 panic!("The dummy sink node has already been added.");
             }
         }
-        let dummy_node = self.add_node(NodeData::new(-2, "execution_time".to_owned(), 0.0));
+        let dummy_node = self.add_node(NodeData::new(
+            SINK_NODE_ID,
+            "execution_time".to_owned(),
+            0.0,
+        ));
         let nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
@@ -71,10 +82,8 @@ impl GraphExt for Graph<NodeData, f32> {
     fn remove_dummy_source_node(&mut self) {
         let node_to_remove = self
             .node_indices()
-            .find(|&i| self[i].id == -1)
+            .find(|&i| self[i].id == SOURCE_NODE_ID)
             .expect("Could not find dummy source node");
-
-        // Remove all incoming edges to the dummy node
         let incoming_edges = self
             .edges_directed(node_to_remove, Incoming)
             .map(|e| e.id())
@@ -82,17 +91,13 @@ impl GraphExt for Graph<NodeData, f32> {
         for edge_id in incoming_edges {
             self.remove_edge(edge_id);
         }
-
-        // Remove the dummy node
         self.remove_node(node_to_remove);
     }
     fn remove_dummy_sink_node(&mut self) {
         let node_to_remove = self
             .node_indices()
-            .find(|&i| self[i].id == -2)
+            .find(|&i| self[i].id == SINK_NODE_ID)
             .expect("Could not find dummy sink node");
-
-        // Remove all outgoing edges from the dummy node
         let outgoing_edges = self
             .edges_directed(node_to_remove, Outgoing)
             .map(|e| e.id())
@@ -100,10 +105,9 @@ impl GraphExt for Graph<NodeData, f32> {
         for edge_id in outgoing_edges {
             self.remove_edge(edge_id);
         }
-
-        // Remove the dummy node
         self.remove_node(node_to_remove);
     }
+
     /// Calculate the earliest start times for each node in the DAG.
     fn calculate_earliest_start_times(&mut self) -> Vec<f32> {
         let sorted_nodes = toposort(&*self, None).unwrap();
@@ -165,8 +169,8 @@ impl GraphExt for Graph<NodeData, f32> {
     /// ```
     /// use petgraph::Graph;
     /// use std::collections::HashMap;
-    /// use lib::graph_ext::NodeData;
-    /// use lib::graph_ext::GraphExt;
+    /// use lib::graph_extension::NodeData;
+    /// use lib::graph_extension::GraphExtension;
     ///
     /// let mut dag = Graph::<NodeData, f32>::new();
     /// let mut params = HashMap::new();
