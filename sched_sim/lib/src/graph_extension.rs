@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
+use crate::graph_extension_helper::*;
+
 const SOURCE_NODE_ID: i32 = -1;
 const SINK_NODE_ID: i32 = -2;
 
@@ -138,7 +140,7 @@ impl GraphExtension for Graph<NodeData, f32> {
     }
     /// Calculate the latest start times for each node in the DAG.
     fn calculate_latest_start_times(&mut self) -> Vec<f32> {
-        let earliest_start_times = self.calculate_earliest_start_times();
+        let earliest_start_times = calculate_earliest_start_times(self);
         let sorted_nodes = toposort(&*self, None).unwrap();
         let node_count = self.node_count();
         let mut latest_start_times = vec![f32::MAX; node_count];
@@ -192,8 +194,8 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.add_dummy_source_node();
         self.add_dummy_sink_node();
         println!("DAG: {:?}", self);
-        let earliest_start_times = self.calculate_earliest_start_times();
-        let latest_start_times = self.calculate_latest_start_times();
+        let earliest_start_times = calculate_earliest_start_times(self);
+        let latest_start_times = calculate_latest_start_times(self);
         let sorted_nodes = toposort(&*self, None).unwrap();
         let start_node = sorted_nodes[0];
         let mut critical_paths = Vec::new();
