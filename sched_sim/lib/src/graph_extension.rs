@@ -9,6 +9,12 @@ use std::f32;
 const SOURCE_NODE_ID: i32 = -1;
 const SINK_NODE_ID: i32 = -2;
 
+/// custom error type for graph operations
+#[derive(Debug)]
+pub enum CustomError {
+    DuplicateId,
+}
+
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
 pub struct NodeData {
@@ -32,6 +38,7 @@ pub trait GraphExtension {
     fn calculate_earliest_start_times(&mut self) -> Vec<f32>;
     fn calculate_latest_start_times(&mut self) -> Vec<f32>;
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
+    fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -176,7 +183,7 @@ impl GraphExtension for Graph<NodeData, f32> {
     /// let mut params = HashMap::new();
     /// params.insert("execution_time".to_string(), 1.0);
     /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
-    /// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
+    /// let n1 = dag.add_node_with_check(NodeData { id: 1, params: params.clone() });
     /// dag.add_edge(n0, n1, 1.0);
     /// let critical_path = dag.get_critical_paths();
     /// println!("The critical path is: {:?}", critical_path);
@@ -215,6 +222,17 @@ impl GraphExtension for Graph<NodeData, f32> {
         }
 
         critical_paths
+    }
+
+    fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex {
+        // Check for duplicate id
+        for node_index in self.node_indices() {
+            let existing_node = self.node_weight(node_index).unwrap();
+            if existing_node.id == node_data.id {
+                panic!("Duplicate id found: {}", node_data.id);
+            }
+        }
+        self.add_node(node_data)
     }
 }
 
