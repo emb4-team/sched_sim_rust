@@ -149,7 +149,6 @@ impl GraphExtension for Graph<NodeData, f32> {
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>> {
         self.add_dummy_source_node();
         self.add_dummy_sink_node();
-        println!("DAG: {:?}", self);
         let earliest_start_times = calculate_earliest_start_times(self);
         let latest_start_times = calculate_latest_start_times(self);
         let sorted_nodes = toposort(&*self, None).unwrap();
