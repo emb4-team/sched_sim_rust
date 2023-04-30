@@ -37,8 +37,6 @@ pub trait GraphExtension {
     fn add_dummy_sink_node(&mut self);
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
-    fn calculate_earliest_start_times(&mut self) -> Vec<f32>;
-    fn calculate_latest_start_times(&mut self) -> Vec<f32>;
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
     fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex;
 }
@@ -117,51 +115,6 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.remove_node(node_to_remove);
     }
 
-    /// Calculate the earliest start times for each node in the DAG.
-    fn calculate_earliest_start_times(&mut self) -> Vec<f32> {
-        let sorted_nodes = toposort(&*self, None).unwrap();
-        let mut earliest_start_times = vec![0.0; self.node_count()];
-
-        for node in sorted_nodes.iter() {
-            let max_earliest_start_time = self
-                .edges_directed(*node, Incoming)
-                .map(|edge| {
-                    let source_node = edge.source();
-                    let exe_time = self[source_node].params["execution_time"];
-                    earliest_start_times[source_node.index()] + exe_time
-                })
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(0.0);
-
-            earliest_start_times[node.index()] = max_earliest_start_time;
-        }
-
-        earliest_start_times
-    }
-    /// Calculate the latest start times for each node in the DAG.
-    fn calculate_latest_start_times(&mut self) -> Vec<f32> {
-        let earliest_start_times = calculate_earliest_start_times(self);
-        let sorted_nodes = toposort(&*self, None).unwrap();
-        let node_count = self.node_count();
-        let mut latest_start_times = vec![f32::MAX; node_count];
-        latest_start_times[node_count - 1] = earliest_start_times[node_count - 1];
-
-        for &node in sorted_nodes.iter().rev() {
-            let min_latest_start_time = self
-                .edges_directed(node, Outgoing)
-                .map(|edge| {
-                    let target_node = edge.target();
-                    let pre_exe_time = self[node].params["execution_time"];
-                    latest_start_times[target_node.index()] - pre_exe_time
-                })
-                .min_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(earliest_start_times[node_count - 1]);
-
-            latest_start_times[node.index()] = min_latest_start_time;
-        }
-
-        latest_start_times
-    }
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
     ///
