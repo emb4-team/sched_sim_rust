@@ -53,11 +53,13 @@ impl GraphExtension for Graph<NodeData, f32> {
             "execution_time".to_owned(),
             0.0,
         ));
+        // add edges from dummy source node to all nodes without incoming edges
         let nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
             .collect::<Vec<_>>();
 
+        // exclude self to avoid self-referencing
         for node_index in nodes {
             if node_index != dummy_node {
                 self.add_edge(dummy_node, node_index, 0.0);
@@ -75,11 +77,12 @@ impl GraphExtension for Graph<NodeData, f32> {
             "execution_time".to_owned(),
             0.0,
         ));
+        // add edges from all nodes without outgoing edges to dummy sink node
         let nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
             .collect::<Vec<_>>();
-
+        // exclude self to avoid self-referencing
         for node_index in nodes {
             if node_index != dummy_node {
                 self.add_edge(node_index, dummy_node, 0.0);
@@ -87,32 +90,32 @@ impl GraphExtension for Graph<NodeData, f32> {
         }
     }
     fn remove_dummy_source_node(&mut self) {
-        let node_to_remove = self
+        let dummy_source_node = self
             .node_indices()
             .find(|&i| self[i].id == SOURCE_NODE_ID)
             .expect("Could not find dummy source node");
         let incoming_edges = self
-            .edges_directed(node_to_remove, Incoming)
-            .map(|e| e.id())
+            .edges_directed(dummy_source_node, Incoming)
+            .map(|edge_from_source| edge_from_source.id())
             .collect::<Vec<_>>();
         for edge_id in incoming_edges {
             self.remove_edge(edge_id);
         }
-        self.remove_node(node_to_remove);
+        self.remove_node(dummy_source_node);
     }
     fn remove_dummy_sink_node(&mut self) {
-        let node_to_remove = self
+        let dummy_sink_node = self
             .node_indices()
             .find(|&i| self[i].id == SINK_NODE_ID)
             .expect("Could not find dummy sink node");
         let outgoing_edges = self
-            .edges_directed(node_to_remove, Outgoing)
-            .map(|e| e.id())
+            .edges_directed(dummy_sink_node, Outgoing)
+            .map(|edge_to_sink| edge_to_sink.id())
             .collect::<Vec<_>>();
         for edge_id in outgoing_edges {
             self.remove_edge(edge_id);
         }
-        self.remove_node(node_to_remove);
+        self.remove_node(dummy_sink_node);
     }
 
     /// Returns the critical path of a DAG
