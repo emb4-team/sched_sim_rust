@@ -25,7 +25,7 @@ impl NodeData {
     }
 }
 
-pub trait GraphExtension {
+trait GraphExtension {
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
@@ -132,7 +132,7 @@ impl GraphExtension for Graph<NodeData, f32> {
     /// ```
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>> {
         /// Calculate the earliest start times for each node in the DAG.
-        pub fn calculate_earliest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<f32> {
+        fn calculate_earliest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<f32> {
             let sorted_nodes = toposort(&*dag, None).unwrap();
             let mut earliest_start_times = vec![0.0; dag.node_count()];
 
@@ -153,7 +153,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             earliest_start_times
         }
         /// Calculate the latest start times for each node in the DAG.
-        pub fn calculate_latest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<f32> {
+        fn calculate_latest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<f32> {
             let earliest_start_times = calculate_earliest_start_times(dag);
             let sorted_nodes = toposort(&*dag, None).unwrap();
             let node_count = dag.node_count();
