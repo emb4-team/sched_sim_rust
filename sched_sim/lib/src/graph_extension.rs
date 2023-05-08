@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
-const SOURCE_NODE_FLAG: i32 = -1;
-const SINK_NODE_FLAG: i32 = -2;
+const SOURCE_NODE_FLAG: f32 = -1.0;
+const SINK_NODE_FLAG: f32 = -2.0;
 
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             source_node_id,
             &[
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), SOURCE_NODE_FLAG as f32),
+                ("is_dummy".to_string(), SOURCE_NODE_FLAG),
             ]
             .iter()
             .cloned()
@@ -71,7 +71,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             sink_node_id,
             &[
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), SINK_NODE_FLAG as f32),
+                ("is_dummy".to_string(), SINK_NODE_FLAG),
             ]
             .iter()
             .cloned()
@@ -87,11 +87,9 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SOURCE_NODE_FLAG as f32)
+                .map_or(false, |&v| v == SOURCE_NODE_FLAG)
         }) {
-            if self[dummy_source_node].params.contains_key("is_dummy") {
-                self.remove_node(dummy_source_node);
-            }
+            self.remove_node(dummy_source_node);
         }
     }
     fn remove_dummy_sink_node(&mut self) {
@@ -99,11 +97,9 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SINK_NODE_FLAG as f32)
+                .map_or(false, |&v| v == SINK_NODE_FLAG)
         }) {
-            if self[dummy_sink_node].params.contains_key("is_dummy") {
-                self.remove_node(dummy_sink_node);
-            }
+            self.remove_node(dummy_sink_node);
         }
     }
     /// Returns the critical path of a DAG
