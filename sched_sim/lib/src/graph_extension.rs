@@ -5,7 +5,6 @@ use petgraph::Direction::{Incoming, Outgoing};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
-use std::iter::FromIterator;
 
 const SOURCE_NODE_ID: i32 = -1;
 const SINK_NODE_ID: i32 = -2;
@@ -36,44 +35,35 @@ pub trait GraphExtension {
 
 impl GraphExtension for Graph<NodeData, f32> {
     fn add_dummy_source_node(&mut self) {
-        for node_index in self.node_indices() {
-            if self[node_index].id == SOURCE_NODE_ID {
-                panic!("The dummy source node has already been added.");
-            }
+        if self.node_indices().any(|i| self[i].id == SOURCE_NODE_ID) {
+            panic!("The dummy source node has already been added.");
         }
-        let params = HashMap::from_iter([("execution_time".to_owned(), 0.0)]);
-        let dummy_node = self.add_node(NodeData::new(SOURCE_NODE_ID, &params));
-        // add edges from dummy source node to all nodes without incoming edges
-        let nodes = self
+        let source_nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
             .collect::<Vec<_>>();
-
-        // exclude self to avoid self-referencing
-        for node_index in nodes {
-            if node_index != dummy_node {
-                self.add_edge(dummy_node, node_index, 0.0);
-            }
+        let dummy_source_i = self.add_node(NodeData::new(
+            SOURCE_NODE_ID,
+            &HashMap::from([("execution_time".to_string(), 0.0)]),
+        ));
+        for source_i in source_nodes {
+            self.add_edge(dummy_source_i, source_i, 0.0);
         }
     }
     fn add_dummy_sink_node(&mut self) {
-        for node_index in self.node_indices() {
-            if self[node_index].id == SINK_NODE_ID {
-                panic!("The dummy sink node has already been added.");
-            }
+        if self.node_indices().any(|i| self[i].id == SINK_NODE_ID) {
+            panic!("The dummy sink node has already been added.");
         }
-        let params = HashMap::from_iter([("execution_time".to_owned(), 0.0)]);
-        let dummy_node = self.add_node(NodeData::new(SINK_NODE_ID, &params));
-        // add edges from all nodes without outgoing edges to dummy sink node
-        let nodes = self
+        let sink_nodes = self
             .node_indices()
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
             .collect::<Vec<_>>();
-        // exclude self to avoid self-referencing
-        for node_index in nodes {
-            if node_index != dummy_node {
-                self.add_edge(node_index, dummy_node, 0.0);
-            }
+        let dummy_sink_i = self.add_node(NodeData::new(
+            SINK_NODE_ID,
+            &HashMap::from([("execution_time".to_string(), 0.0)]),
+        ));
+        for sink_i in sink_nodes {
+            self.add_edge(sink_i, dummy_sink_i, 0.0);
         }
     }
     fn remove_dummy_source_node(&mut self) {
