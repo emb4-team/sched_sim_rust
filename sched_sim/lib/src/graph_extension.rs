@@ -25,7 +25,7 @@ impl NodeData {
     }
 }
 
-trait GraphExtension {
+pub trait GraphExtension {
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
@@ -36,8 +36,16 @@ trait GraphExtension {
 impl GraphExtension for Graph<NodeData, f32> {
     fn add_dummy_source_node(&mut self) -> NodeIndex {
         let source_node_id = self.node_count() as i32;
-        if self.node_indices().any(|i| self[i].id == source_node_id) {
-            panic!("The dummy source node has already been added.");
+        if let Some(dummy_source_node) = self.node_indices().find(|&i| {
+            self[i]
+                .params
+                .get("is_dummy")
+                .map_or(false, |&v| v == SOURCE_NODE_FLAG)
+        }) {
+            panic!(
+                "The dummy source node has already been added. NodeIndex: {:?}",
+                dummy_source_node
+            );
         }
         let source_nodes = self
             .node_indices()
@@ -45,13 +53,10 @@ impl GraphExtension for Graph<NodeData, f32> {
             .collect::<Vec<_>>();
         let dummy_source_i = self.add_node(NodeData::new(
             source_node_id,
-            &[
+            &HashMap::from([
                 ("execution_time".to_string(), 0.0),
                 ("is_dummy".to_string(), SOURCE_NODE_FLAG),
-            ]
-            .iter()
-            .cloned()
-            .collect(),
+            ]),
         ));
         for source_i in source_nodes {
             self.add_edge(dummy_source_i, source_i, 0.0);
@@ -60,8 +65,16 @@ impl GraphExtension for Graph<NodeData, f32> {
     }
     fn add_dummy_sink_node(&mut self) -> NodeIndex {
         let sink_node_id = self.node_count() as i32;
-        if self.node_indices().any(|i| self[i].id == sink_node_id) {
-            panic!("The dummy sink node has already been added.");
+        if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
+            self[i]
+                .params
+                .get("is_dummy")
+                .map_or(false, |&v| v == SINK_NODE_FLAG)
+        }) {
+            panic!(
+                "The dummy sink node has already been added. NodeIndex: {:?}",
+                dummy_sink_node
+            );
         }
         let sink_nodes = self
             .node_indices()
@@ -69,13 +82,10 @@ impl GraphExtension for Graph<NodeData, f32> {
             .collect::<Vec<_>>();
         let dummy_sink_i = self.add_node(NodeData::new(
             sink_node_id,
-            &[
+            &HashMap::from([
                 ("execution_time".to_string(), 0.0),
                 ("is_dummy".to_string(), SINK_NODE_FLAG),
-            ]
-            .iter()
-            .cloned()
-            .collect(),
+            ]),
         ));
         for sink_i in sink_nodes {
             self.add_edge(sink_i, dummy_sink_i, 0.0);
@@ -90,6 +100,8 @@ impl GraphExtension for Graph<NodeData, f32> {
                 .map_or(false, |&v| v == SOURCE_NODE_FLAG)
         }) {
             self.remove_node(dummy_source_node);
+        } else {
+            panic!("The dummy source node does not exist.");
         }
     }
     fn remove_dummy_sink_node(&mut self) {
@@ -100,6 +112,8 @@ impl GraphExtension for Graph<NodeData, f32> {
                 .map_or(false, |&v| v == SINK_NODE_FLAG)
         }) {
             self.remove_node(dummy_sink_node);
+        } else {
+            panic!("The dummy sink node does not exist.");
         }
     }
     /// Returns the critical path of a DAG
@@ -287,5 +301,47 @@ mod tests {
         assert_eq!(dag.edge_count(), 6);
         dag.remove_dummy_sink_node();
         assert_eq!(dag.edge_count(), 4);
+    }
+    #[test]
+    #[should_panic]
+    fn test_remove_dummy_node_no_exist() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n2, n4, 1.0);
+
+        dag.remove_dummy_source_node();
+        dag.remove_dummy_sink_node();
+    }
+    #[test]
+    #[should_panic]
+    fn test_add_dummy_node_duplication() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        dag.add_dummy_source_node();
+        dag.add_dummy_source_node();
+        dag.add_dummy_sink_node();
+        dag.add_dummy_sink_node();
     }
 }
