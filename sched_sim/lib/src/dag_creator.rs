@@ -10,7 +10,6 @@ use std::collections::HashMap;
 
 use std::path::PathBuf;
 
-use crate::graph_extension::GraphExtension;
 use crate::graph_extension::NodeData;
 
 fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
@@ -73,7 +72,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                     }
                 }
             }
-            dag.add_node_with_check(NodeData { id, params });
+            dag.add_node(NodeData { id, params });
         }
 
         // add edges to dag

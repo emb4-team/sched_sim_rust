@@ -38,7 +38,6 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
-    fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -48,7 +47,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 panic!("The dummy source node has already been added.");
             }
         }
-        let dummy_node = self.add_node_with_check(NodeData::new(
+        let dummy_node = self.add_node(NodeData::new(
             SOURCE_NODE_ID,
             "execution_time".to_owned(),
             0.0,
@@ -72,7 +71,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 panic!("The dummy sink node has already been added.");
             }
         }
-        let dummy_node = self.add_node_with_check(NodeData::new(
+        let dummy_node = self.add_node(NodeData::new(
             SINK_NODE_ID,
             "execution_time".to_owned(),
             0.0,
@@ -140,8 +139,8 @@ impl GraphExtension for Graph<NodeData, f32> {
     /// let mut dag = Graph::<NodeData, f32>::new();
     /// let mut params = HashMap::new();
     /// params.insert("execution_time".to_string(), 1.0);
-    /// let n0 = dag.add_node_with_check(NodeData { id: 0, params: params.clone() });
-    /// let n1 = dag.add_node_with_check(NodeData { id: 1, params: params.clone() });
+    /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
+    /// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
     /// dag.add_edge(n0, n1, 1.0);
     /// let critical_path = dag.get_critical_paths();
     /// println!("The critical path is: {:?}", critical_path);
@@ -180,17 +179,6 @@ impl GraphExtension for Graph<NodeData, f32> {
 
         critical_paths
     }
-
-    /// check if the graph contains a node with the given id
-    fn add_node_with_check(&mut self, node_data: NodeData) -> NodeIndex {
-        for node_index in self.node_indices() {
-            let existing_node = self.node_weight(node_index).unwrap();
-            if existing_node.id == node_data.id {
-                panic!("Duplicate id found: {}", node_data.id);
-            }
-        }
-        self.add_node(node_data)
-    }
 }
 
 #[cfg(test)]
@@ -205,15 +193,15 @@ mod tests {
             NodeData { id, params }
         }
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node_with_check(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_with_check(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node_with_check(create_node(2, "execution_time", 45.0));
-        let n3 = dag.add_node_with_check(create_node(3, "execution_time", 26.0));
-        let n4 = dag.add_node_with_check(create_node(4, "execution_time", 44.0));
-        let n5 = dag.add_node_with_check(create_node(5, "execution_time", 26.0));
-        let n6 = dag.add_node_with_check(create_node(6, "execution_time", 26.0));
-        let n7 = dag.add_node_with_check(create_node(7, "execution_time", 27.0));
-        let n8 = dag.add_node_with_check(create_node(8, "execution_time", 43.0));
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        let n5 = dag.add_node(create_node(5, "execution_time", 26.0));
+        let n6 = dag.add_node(create_node(6, "execution_time", 26.0));
+        let n7 = dag.add_node(create_node(7, "execution_time", 27.0));
+        let n8 = dag.add_node(create_node(8, "execution_time", 43.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n1, n2, 1.0);
         dag.add_edge(n1, n3, 1.0);
