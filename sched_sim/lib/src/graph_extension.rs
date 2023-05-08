@@ -89,7 +89,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 .get("is_dummy")
                 .map_or(false, |&v| v == SOURCE_NODE_FLAG as f32)
         }) {
-            if self[dummy_source_node].params.contains_key("dummy") {
+            if self[dummy_source_node].params.contains_key("is_dummy") {
                 self.remove_node(dummy_source_node);
             }
         }
@@ -101,7 +101,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 .get("is_dummy")
                 .map_or(false, |&v| v == SINK_NODE_FLAG as f32)
         }) {
-            if self[dummy_sink_node].params.contains_key("dummy") {
+            if self[dummy_sink_node].params.contains_key("is_dummy") {
                 self.remove_node(dummy_sink_node);
             }
         }
