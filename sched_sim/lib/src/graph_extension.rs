@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
-const SOURCE_NODE_ID: i32 = -1;
-const SINK_NODE_ID: i32 = -2;
+const SOURCE_NODE_FLAG: i32 = -1;
+const SINK_NODE_FLAG: i32 = -2;
 
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
@@ -35,7 +35,8 @@ pub trait GraphExtension {
 
 impl GraphExtension for Graph<NodeData, f32> {
     fn add_dummy_source_node(&mut self) -> NodeIndex {
-        if self.node_indices().any(|i| self[i].id == SOURCE_NODE_ID) {
+        let source_node_id = self.node_count() as i32;
+        if self.node_indices().any(|i| self[i].id == source_node_id) {
             panic!("The dummy source node has already been added.");
         }
         let source_nodes = self
@@ -43,8 +44,14 @@ impl GraphExtension for Graph<NodeData, f32> {
             .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
             .collect::<Vec<_>>();
         let dummy_source_i = self.add_node(NodeData::new(
-            SOURCE_NODE_ID,
-            &HashMap::from([("execution_time".to_string(), 0.0)]),
+            source_node_id,
+            &[
+                ("execution_time".to_string(), 0.0),
+                ("is_dummy".to_string(), SOURCE_NODE_FLAG as f32),
+            ]
+            .iter()
+            .cloned()
+            .collect(),
         ));
         for source_i in source_nodes {
             self.add_edge(dummy_source_i, source_i, 0.0);
@@ -52,7 +59,8 @@ impl GraphExtension for Graph<NodeData, f32> {
         dummy_source_i
     }
     fn add_dummy_sink_node(&mut self) -> NodeIndex {
-        if self.node_indices().any(|i| self[i].id == SINK_NODE_ID) {
+        let sink_node_id = self.node_count() as i32;
+        if self.node_indices().any(|i| self[i].id == sink_node_id) {
             panic!("The dummy sink node has already been added.");
         }
         let sink_nodes = self
@@ -60,8 +68,14 @@ impl GraphExtension for Graph<NodeData, f32> {
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
             .collect::<Vec<_>>();
         let dummy_sink_i = self.add_node(NodeData::new(
-            SINK_NODE_ID,
-            &HashMap::from([("execution_time".to_string(), 0.0)]),
+            sink_node_id,
+            &[
+                ("execution_time".to_string(), 0.0),
+                ("is_dummy".to_string(), SINK_NODE_FLAG as f32),
+            ]
+            .iter()
+            .cloned()
+            .collect(),
         ));
         for sink_i in sink_nodes {
             self.add_edge(sink_i, dummy_sink_i, 0.0);
@@ -69,20 +83,29 @@ impl GraphExtension for Graph<NodeData, f32> {
         dummy_sink_i
     }
     fn remove_dummy_source_node(&mut self) {
-        let dummy_source_node = self
-            .node_indices()
-            .find(|&i| self[i].id == SOURCE_NODE_ID)
-            .expect("Could not find dummy source node");
-        self.remove_node(dummy_source_node);
+        if let Some(dummy_source_node) = self.node_indices().find(|&i| {
+            self[i]
+                .params
+                .get("is_dummy")
+                .map_or(false, |&v| v == SOURCE_NODE_FLAG as f32)
+        }) {
+            if self[dummy_source_node].params.contains_key("dummy") {
+                self.remove_node(dummy_source_node);
+            }
+        }
     }
     fn remove_dummy_sink_node(&mut self) {
-        let dummy_sink_node = self
-            .node_indices()
-            .find(|&i| self[i].id == SINK_NODE_ID)
-            .expect("Could not find dummy sink node");
-        self.remove_node(dummy_sink_node);
+        if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
+            self[i]
+                .params
+                .get("is_dummy")
+                .map_or(false, |&v| v == SINK_NODE_FLAG as f32)
+        }) {
+            if self[dummy_sink_node].params.contains_key("dummy") {
+                self.remove_node(dummy_sink_node);
+            }
+        }
     }
-
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
     ///
