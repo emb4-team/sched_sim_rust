@@ -9,12 +9,6 @@ use std::f32;
 const SOURCE_NODE_ID: i32 = -1;
 const SINK_NODE_ID: i32 = -2;
 
-/// custom error type for graph operations
-#[derive(Debug)]
-pub enum CustomError {
-    DuplicateId,
-}
-
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
 pub struct NodeData {
