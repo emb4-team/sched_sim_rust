@@ -5,6 +5,7 @@ use petgraph::Direction::{Incoming, Outgoing};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
+use std::iter::FromIterator;
 
 const SOURCE_NODE_ID: i32 = -1;
 const SINK_NODE_ID: i32 = -2;
@@ -17,10 +18,11 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub fn new(id: i32, key: String, value: f32) -> NodeData {
-        let mut params = HashMap::new();
-        params.insert(key, value);
-        NodeData { id, params }
+    pub fn new(id: i32, params: &HashMap<String, f32>) -> NodeData {
+        NodeData {
+            id,
+            params: params.clone(),
+        }
     }
 }
 
@@ -39,11 +41,8 @@ impl GraphExtension for Graph<NodeData, f32> {
                 panic!("The dummy source node has already been added.");
             }
         }
-        let dummy_node = self.add_node(NodeData::new(
-            SOURCE_NODE_ID,
-            "execution_time".to_owned(),
-            0.0,
-        ));
+        let params = HashMap::from_iter([("execution_time".to_owned(), 0.0)]);
+        let dummy_node = self.add_node(NodeData::new(SOURCE_NODE_ID, &params));
         // add edges from dummy source node to all nodes without incoming edges
         let nodes = self
             .node_indices()
@@ -63,11 +62,8 @@ impl GraphExtension for Graph<NodeData, f32> {
                 panic!("The dummy sink node has already been added.");
             }
         }
-        let dummy_node = self.add_node(NodeData::new(
-            SINK_NODE_ID,
-            "execution_time".to_owned(),
-            0.0,
-        ));
+        let params = HashMap::from_iter([("execution_time".to_owned(), 0.0)]);
+        let dummy_node = self.add_node(NodeData::new(SINK_NODE_ID, &params));
         // add edges from all nodes without outgoing edges to dummy sink node
         let nodes = self
             .node_indices()
