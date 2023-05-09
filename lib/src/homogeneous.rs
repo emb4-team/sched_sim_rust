@@ -1,4 +1,5 @@
 use crate::core::Core;
+use petgraph::graph::NodeIndex;
 
 pub struct HomogeneousProcessor {
     cores: Vec<Core>,
@@ -12,7 +13,7 @@ impl HomogeneousProcessor {
         Self { cores }
     }
 
-    pub fn allocate(&mut self, core_id: usize, node_i: i32, exec_time: i32) {
+    pub fn allocate(&mut self, core_id: usize, node_i: Option<NodeIndex>, exec_time: i32) {
         self.cores[core_id].allocate(node_i, exec_time);
     }
 
