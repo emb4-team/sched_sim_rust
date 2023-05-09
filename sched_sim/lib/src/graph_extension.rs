@@ -6,8 +6,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
-const SOURCE_NODE_FLAG: f32 = -1.0;
-const SINK_NODE_FLAG: f32 = -2.0;
+const DUMMY_SOURCE_NODE_FLAG: f32 = -1.0;
+const DUMMY_SINK_NODE_FLAG: f32 = -2.0;
 
 /// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone)]
@@ -41,7 +41,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SOURCE_NODE_FLAG)
+                .map_or(false, |&v| v == DUMMY_SOURCE_NODE_FLAG)
         }) {
             panic!(
                 "The dummy source node has already been added. NodeIndex: {:?}",
@@ -53,7 +53,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), SOURCE_NODE_FLAG),
+                ("is_dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
             ]),
         ));
         for source_i in source_nodes {
@@ -67,7 +67,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SINK_NODE_FLAG)
+                .map_or(false, |&v| v == DUMMY_SINK_NODE_FLAG)
         }) {
             panic!(
                 "The dummy sink node has already been added. NodeIndex: {:?}",
@@ -79,7 +79,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), SINK_NODE_FLAG),
+                ("is_dummy".to_string(), DUMMY_SINK_NODE_FLAG),
             ]),
         ));
         for sink_i in sink_nodes {
@@ -93,7 +93,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SOURCE_NODE_FLAG)
+                .map_or(false, |&v| v == DUMMY_SOURCE_NODE_FLAG)
         }) {
             self.remove_node(dummy_source_node);
         } else {
@@ -106,7 +106,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self[i]
                 .params
                 .get("is_dummy")
-                .map_or(false, |&v| v == SINK_NODE_FLAG)
+                .map_or(false, |&v| v == DUMMY_SINK_NODE_FLAG)
         }) {
             self.remove_node(dummy_sink_node);
         } else {
