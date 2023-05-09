@@ -35,7 +35,7 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
 /// ```
 /// use lib::dag_creator::create_dag_from_yaml;
 ///
-/// let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
+/// let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml");
 /// let first_node = dag.node_indices().next().unwrap();
 /// let first_edge = dag.edge_indices().next().unwrap();
 ///
@@ -135,7 +135,7 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 ///
 /// ```
 /// use lib::dag_creator::create_dag_set_from_dir;
-/// let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
+/// let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml_files");
 /// let first_node_num = dag_set[0].node_count();
 /// let first_edge_num = dag_set[0].edge_count();
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
@@ -157,37 +157,37 @@ mod tests {
 
     #[test]
     fn test_create_dag_set_from_dir_multiple_yaml_files() {
-        let dag_set = create_dag_set_from_dir("../tests/sample_dags/multiple_yaml_files");
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml_files");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
 
     #[test]
     fn test_create_dag_set_from_dir_mixing_dif_ext() {
-        let dag_set = create_dag_set_from_dir("../tests/sample_dags/mixing_different_extensions");
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/mixing_different_extensions");
         assert_eq!(dag_set.len(), 1, "number of dag_set is expected to be 1");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_set_from_dir_mixing_not_dag_yaml() {
-        create_dag_set_from_dir("../tests/sample_dags/mixing_not_dag_yaml");
+        create_dag_set_from_dir("tests/sample_dags/mixing_not_dag_yaml");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_set_from_dir_no_yaml_files() {
-        create_dag_set_from_dir("../tests/sample_dags/no_yaml_files");
+        create_dag_set_from_dir("tests/sample_dags/no_yaml_files");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_set_from_dir_no_dir() {
-        create_dag_set_from_dir("../tests/sample_dags/gnp_format.yaml");
+        create_dag_set_from_dir("tests/sample_dags/gnp_format.yaml");
     }
 
     #[test]
     fn test_create_dag_from_yaml_chain_base() {
-        let dag = create_dag_from_yaml("../tests/sample_dags/chain_base_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -244,7 +244,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_fan_in_fan_out() {
-        let dag = create_dag_from_yaml("../tests/sample_dags/fan_in_fan_out_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/fan_in_fan_out_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -304,7 +304,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_gnp() {
-        let dag = create_dag_from_yaml("../tests/sample_dags/gnp_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/gnp_format.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -390,7 +390,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_float_params() {
-        let dag = create_dag_from_yaml("../tests/sample_dags/float_params.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/float_params.yaml");
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -451,18 +451,18 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_path() {
-        let _dag = create_dag_from_yaml("../tests/sample_dags/disable_path.yaml");
+        let _dag = create_dag_from_yaml("tests/sample_dags/disable_path.yaml");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_no_yaml() {
-        let _dag = create_dag_from_yaml("../tests/sample_dags/no_yaml.tex");
+        let _dag = create_dag_from_yaml("tests/sample_dags/no_yaml.tex");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_broken_link() {
-        let _dag = create_dag_from_yaml("../tests/sample_dags/broken_link.yaml");
+        let _dag = create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
     }
 }

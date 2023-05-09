@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.2.4", features = ["derive"] }
-lib = { path = "lib"}
+lib = { path = "../lib"}

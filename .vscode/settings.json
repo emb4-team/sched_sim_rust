@@ -1,6 +1,6 @@
 {
     "rust-analyzer.linkedProjects": [
-        "./sched_sim/lib/Cargo.toml",
+        "./lib/Cargo.toml",
         "./sched_sim/Cargo.toml"
     ],
 
