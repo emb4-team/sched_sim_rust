@@ -40,7 +40,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
-                .get("is_dummy")
+                .get("dummy")
                 .map_or(false, |&v| v == DUMMY_SOURCE_NODE_FLAG)
         }) {
             panic!(
@@ -53,7 +53,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
+                ("dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
             ]),
         ));
         for source_i in source_nodes {
@@ -66,7 +66,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
-                .get("is_dummy")
+                .get("dummy")
                 .map_or(false, |&v| v == DUMMY_SINK_NODE_FLAG)
         }) {
             panic!(
@@ -79,7 +79,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
-                ("is_dummy".to_string(), DUMMY_SINK_NODE_FLAG),
+                ("dummy".to_string(), DUMMY_SINK_NODE_FLAG),
             ]),
         ));
         for sink_i in sink_nodes {
@@ -92,7 +92,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
-                .get("is_dummy")
+                .get("dummy")
                 .map_or(false, |&v| v == DUMMY_SOURCE_NODE_FLAG)
         }) {
             self.remove_node(dummy_source_node);
@@ -105,7 +105,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
-                .get("is_dummy")
+                .get("dummy")
                 .map_or(false, |&v| v == DUMMY_SINK_NODE_FLAG)
         }) {
             self.remove_node(dummy_sink_node);
