@@ -325,7 +325,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_dummy_node_deleted_edge() {
+    fn test_remove_dummy_node_check_whether_connected_edges_removed() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
             params.insert(key.to_string(), value);
@@ -467,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_dummy_node_integrity() {
+    fn test_add_dummy_node_integrity_for_id_and_node_index() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
             params.insert(key.to_string(), value);
