@@ -31,11 +31,12 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
+    fn get_source_nodes(&self) -> Vec<NodeIndex>;
+    fn get_sink_nodes(&self) -> Vec<NodeIndex>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
     fn add_dummy_source_node(&mut self) -> NodeIndex {
-        let source_node_id = self.node_count() as i32;
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
@@ -47,12 +48,9 @@ impl GraphExtension for Graph<NodeData, f32> {
                 dummy_source_node
             );
         }
-        let source_nodes = self
-            .node_indices()
-            .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
-            .collect::<Vec<_>>();
+        let source_nodes = self.get_source_nodes();
         let dummy_source_i = self.add_node(NodeData::new(
-            source_node_id,
+            self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
                 ("is_dummy".to_string(), SOURCE_NODE_FLAG),
@@ -64,7 +62,6 @@ impl GraphExtension for Graph<NodeData, f32> {
         dummy_source_i
     }
     fn add_dummy_sink_node(&mut self) -> NodeIndex {
-        let sink_node_id = self.node_count() as i32;
         if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
             self[i]
                 .params
@@ -76,12 +73,9 @@ impl GraphExtension for Graph<NodeData, f32> {
                 dummy_sink_node
             );
         }
-        let sink_nodes = self
-            .node_indices()
-            .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
-            .collect::<Vec<_>>();
+        let sink_nodes = self.get_sink_nodes();
         let dummy_sink_i = self.add_node(NodeData::new(
-            sink_node_id,
+            self.node_count() as i32,
             &HashMap::from([
                 ("execution_time".to_string(), 0.0),
                 ("is_dummy".to_string(), SINK_NODE_FLAG),
@@ -163,7 +157,10 @@ impl GraphExtension for Graph<NodeData, f32> {
 
                 earliest_start_times[node.index()] = max_earliest_start_time;
             }
-
+            assert!(
+                !earliest_start_times.iter().any(|&time| time < 0.0),
+                "The earliest start times should be non-negative."
+            );
             earliest_start_times
         }
         /// Calculate the latest start times for each node in the DAG.
@@ -172,7 +169,9 @@ impl GraphExtension for Graph<NodeData, f32> {
             let sorted_nodes = toposort(&*dag, None).unwrap();
             let node_count = dag.node_count();
             let mut latest_start_times = vec![f32::MAX; node_count];
-            latest_start_times[node_count - 1] = earliest_start_times[node_count - 1];
+            let sink_node_index = dag.get_sink_nodes();
+            latest_start_times[sink_node_index[0].index()] =
+                earliest_start_times[sink_node_index[0].index()];
 
             for &node in sorted_nodes.iter().rev() {
                 let min_latest_start_time = dag
@@ -183,19 +182,21 @@ impl GraphExtension for Graph<NodeData, f32> {
                         latest_start_times[target_node.index()] - pre_exe_time
                     })
                     .min_by(|a, b| a.partial_cmp(b).unwrap())
-                    .unwrap_or(earliest_start_times[node_count - 1]);
+                    .unwrap_or(earliest_start_times[sink_node_index[0].index()]);
 
                 latest_start_times[node.index()] = min_latest_start_time;
             }
-
+            assert!(
+                !latest_start_times.iter().any(|&time| time < 0.0),
+                "The latest start times should be non-negative."
+            );
             latest_start_times
         }
-        self.add_dummy_source_node();
+
         self.add_dummy_sink_node();
+        let start_node = self.add_dummy_source_node();
         let earliest_start_times = calculate_earliest_start_times(self);
         let latest_start_times = calculate_latest_start_times(self);
-        let sorted_nodes = toposort(&*self, None).unwrap();
-        let start_node = sorted_nodes[0];
         let mut critical_paths = Vec::new();
         let mut path_search_queue = VecDeque::new();
         path_search_queue.push_back((start_node, vec![start_node]));
@@ -223,6 +224,16 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.remove_dummy_source_node();
         self.remove_dummy_sink_node();
         critical_paths
+    }
+    fn get_source_nodes(&self) -> Vec<NodeIndex> {
+        self.node_indices()
+            .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
+            .collect::<Vec<_>>()
+    }
+    fn get_sink_nodes(&self) -> Vec<NodeIndex> {
+        self.node_indices()
+            .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
+            .collect::<Vec<_>>()
     }
 }
 
@@ -276,6 +287,7 @@ mod tests {
             vec![0_usize, 1_usize, 2_usize, 5_usize, 8_usize]
         );
     }
+
     #[test]
     fn test_remove_dummy_node_deleted_edge() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
@@ -287,21 +299,18 @@ mod tests {
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
         let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
 
         dag.add_dummy_source_node();
         dag.add_dummy_sink_node();
-        assert_eq!(dag.edge_count(), 7);
+        assert_eq!(dag.edge_count(), 5);
         dag.remove_dummy_source_node();
-        assert_eq!(dag.edge_count(), 6);
-        dag.remove_dummy_sink_node();
         assert_eq!(dag.edge_count(), 4);
+        dag.remove_dummy_sink_node();
+        assert_eq!(dag.edge_count(), 2);
     }
+
     #[test]
     #[should_panic]
     fn test_remove_dummy_node_no_exist() {
@@ -311,19 +320,16 @@ mod tests {
             NodeData { id, params }
         }
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
 
         dag.remove_dummy_source_node();
         dag.remove_dummy_sink_node();
     }
+
     #[test]
     #[should_panic]
     fn test_add_dummy_node_duplication() {
@@ -343,5 +349,105 @@ mod tests {
         dag.add_dummy_source_node();
         dag.add_dummy_sink_node();
         dag.add_dummy_sink_node();
+    }
+
+    #[test]
+    fn test_get_source_nodes_normal() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        assert_eq!(
+            dag.get_source_nodes(),
+            vec![NodeIndex::new(0), NodeIndex::new(1), NodeIndex::new(2),]
+        );
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        assert_eq!(dag.get_source_nodes(), vec![NodeIndex::new(0)]);
+    }
+
+    #[test]
+    fn test_get_source_nodes_dummy_node() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        dag.add_dummy_source_node();
+        assert_eq!(dag.get_source_nodes(), vec![NodeIndex::new(3)]);
+    }
+
+    #[test]
+    fn test_get_sink_nodes_normal() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        assert_eq!(
+            dag.get_sink_nodes(),
+            vec![NodeIndex::new(0), NodeIndex::new(1), NodeIndex::new(2)]
+        );
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        assert_eq!(
+            dag.get_sink_nodes(),
+            vec![NodeIndex::new(1), NodeIndex::new(2)]
+        );
+    }
+
+    #[test]
+    fn test_get_sink_nodes_dummy_node() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        dag.add_dummy_sink_node();
+        assert_eq!(dag.get_sink_nodes(), vec![NodeIndex::new(3)]);
+    }
+
+    #[test]
+    fn test_add_dummy_node_integrity() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        let source_index = dag.add_dummy_source_node();
+        let sink_index = dag.add_dummy_sink_node();
+
+        assert!(dag[source_index].id == source_index.index() as i32);
+        assert!(dag[sink_index].id == sink_index.index() as i32);
     }
 }
