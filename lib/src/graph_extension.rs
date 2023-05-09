@@ -34,6 +34,7 @@ pub trait GraphExtension {
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_total_wcet(&self) -> f32;
+    fn get_critical_path_wcet(&mut self) -> f32;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -247,6 +248,19 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.node_indices()
             .map(|node| {
                 *self[node]
+                    .params
+                    .get("execution_time")
+                    .unwrap_or_else(|| panic!("execution_time not found"))
+            })
+            .sum()
+    }
+
+    fn get_critical_path_wcet(&mut self) -> f32 {
+        let critical_paths = self.get_critical_paths();
+        critical_paths[0]
+            .iter()
+            .map(|node| {
+                self[*node]
                     .params
                     .get("execution_time")
                     .unwrap_or_else(|| panic!("execution_time not found"))
@@ -532,5 +546,75 @@ mod tests {
         dag.add_edge(n0, n2, 1.0);
 
         assert_eq!(dag.get_total_wcet(), 11.0);
+    }
+
+    #[test]
+    fn test_get_critical_path_wcet_single() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n2, n4, 1.0);
+
+        assert_eq!(dag.get_critical_path_wcet(), 113.0);
+    }
+
+    #[test]
+    fn test_get_critical_path_wcet_multiple() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        let n5 = dag.add_node(create_node(5, "execution_time", 26.0));
+        let n6 = dag.add_node(create_node(6, "execution_time", 26.0));
+        let n7 = dag.add_node(create_node(7, "execution_time", 27.0));
+        let n8 = dag.add_node(create_node(8, "execution_time", 43.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n1, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n1, n4, 1.0);
+        dag.add_edge(n2, n5, 1.0);
+        dag.add_edge(n3, n6, 1.0);
+        dag.add_edge(n4, n7, 1.0);
+        dag.add_edge(n5, n8, 1.0);
+        dag.add_edge(n6, n8, 1.0);
+        dag.add_edge(n7, n8, 1.0);
+
+        assert_eq!(dag.get_critical_path_wcet(), 123.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_critical_path_wcet_node_no_includes_execution_time() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "weight", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        assert_eq!(dag.get_critical_path_wcet(), 11.0);
     }
 }
