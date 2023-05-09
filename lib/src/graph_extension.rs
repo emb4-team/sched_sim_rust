@@ -635,10 +635,16 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let mut params = HashMap::new();
-        params.insert("execution_time".to_string(), 11.0);
-        params.insert("end_to_end_deadline".to_string(), 25.0);
-        let n2 = dag.add_node(NodeData { id: 2, params });
+        let n2 = dag.add_node(NodeData {
+            id: 2,
+            params: {
+                let mut params = HashMap::new();
+                params.insert("execution_time".to_string(), 11.0);
+                params.insert("end_to_end_deadline".to_string(), 25.0);
+                params
+            },
+        });
+
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n1, n2, 1.0);
 
