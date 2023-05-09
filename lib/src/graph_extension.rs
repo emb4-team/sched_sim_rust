@@ -33,6 +33,7 @@ pub trait GraphExtension {
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
+    fn get_total_wcet(&self) -> f32;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -240,6 +241,17 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.node_indices()
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
             .collect::<Vec<_>>()
+    }
+
+    fn get_total_wcet(&self) -> f32 {
+        self.node_indices()
+            .map(|node| {
+                *self[node]
+                    .params
+                    .get("execution_time")
+                    .unwrap_or_else(|| panic!("execution_time not found"))
+            })
+            .sum()
     }
 }
 
@@ -485,5 +497,40 @@ mod tests {
 
         assert!(dag[source_index].id == source_index.index() as i32);
         assert!(dag[sink_index].id == sink_index.index() as i32);
+    }
+
+    #[test]
+    fn test_get_total_wcet_normal() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        assert_eq!(dag.get_total_wcet(), 14.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_total_wcet_node_no_includes_execution_time() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "weight", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        assert_eq!(dag.get_total_wcet(), 11.0);
     }
 }
