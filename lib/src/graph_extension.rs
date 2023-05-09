@@ -35,6 +35,7 @@ pub trait GraphExtension {
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_total_wcet(&self) -> f32;
     fn get_critical_path_wcet(&mut self) -> f32;
+    fn get_deadline(&mut self) -> f32;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -266,6 +267,12 @@ impl GraphExtension for Graph<NodeData, f32> {
                     .unwrap_or_else(|| panic!("execution_time not found"))
             })
             .sum()
+    }
+
+    fn get_deadline(&mut self) -> f32 {
+        self.node_indices()
+            .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
+            .unwrap_or_else(|| panic!("The deadline does not exist."))
     }
 }
 
@@ -545,7 +552,7 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
 
-        assert_eq!(dag.get_total_wcet(), 11.0);
+        dag.get_total_wcet();
     }
 
     #[test]
@@ -615,6 +622,43 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
 
-        assert_eq!(dag.get_critical_path_wcet(), 11.0);
+        dag.get_critical_path_wcet();
+    }
+
+    #[test]
+    fn test_get_deadline_normal() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let mut params = HashMap::new();
+        params.insert("execution_time".to_string(), 11.0);
+        params.insert("end_to_end_deadline".to_string(), 25.0);
+        let n2 = dag.add_node(NodeData { id: 2, params });
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n1, n2, 1.0);
+
+        assert_eq!(dag.get_deadline(), 25.0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_deadline_node_no_includes_end_to_end_deadline() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(8, "execution_time", 143.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n1, n2, 1.0);
+        dag.get_deadline();
     }
 }
