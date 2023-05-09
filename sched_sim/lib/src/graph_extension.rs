@@ -61,6 +61,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         }
         dummy_source_i
     }
+
     fn add_dummy_sink_node(&mut self) -> NodeIndex {
         if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
             self[i]
@@ -86,6 +87,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         }
         dummy_sink_i
     }
+
     fn remove_dummy_source_node(&mut self) {
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
@@ -98,6 +100,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             panic!("The dummy source node does not exist.");
         }
     }
+
     fn remove_dummy_sink_node(&mut self) {
         if let Some(dummy_sink_node) = self.node_indices().find(|&i| {
             self[i]
@@ -163,6 +166,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             );
             earliest_start_times
         }
+
         /// Calculate the latest start times for each node in the DAG.
         fn calculate_latest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<f32> {
             let earliest_start_times = calculate_earliest_start_times(dag);
@@ -225,11 +229,13 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.remove_dummy_sink_node();
         critical_paths
     }
+
     fn get_source_nodes(&self) -> Vec<NodeIndex> {
         self.node_indices()
             .filter(|&i| self.edges_directed(i, Incoming).next().is_none())
             .collect::<Vec<_>>()
     }
+
     fn get_sink_nodes(&self) -> Vec<NodeIndex> {
         self.node_indices()
             .filter(|&i| self.edges_directed(i, Outgoing).next().is_none())
@@ -240,6 +246,36 @@ impl GraphExtension for Graph<NodeData, f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_critical_paths_single() {
+        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n2, n4, 1.0);
+
+        let critical_path = dag.get_critical_paths();
+        assert_eq!(critical_path.len(), 1);
+
+        assert_eq!(
+            critical_path[0]
+                .iter()
+                .map(|node_index| node_index.index())
+                .collect::<Vec<_>>(),
+            vec![0_usize, 2_usize, 4_usize]
+        );
+    }
 
     #[test]
     fn test_get_critical_paths_multiple() {
