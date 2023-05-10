@@ -6,7 +6,7 @@ use petgraph::graph::NodeIndex;
 ///execution not possible because not allocate, execution in progress, execution finished
 #[derive(Debug, PartialEq)]
 pub enum ProcessResult {
-    False,
+    Idle,
     Continue,
     Done,
 }
@@ -42,7 +42,7 @@ impl Core {
 
     pub fn process(&mut self) -> ProcessResult {
         if self.is_idle {
-            return False;
+            return Idle;
         }
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_core_process_no_allocated() {
         let mut core = Core::default();
-        assert_eq!(core.process(), False);
+        assert_eq!(core.process(), Idle);
     }
 
     #[test]
