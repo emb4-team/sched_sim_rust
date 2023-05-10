@@ -57,7 +57,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> bool
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
-            warn!("unsuited task {:#?} ", dag);
+            warn!("unsuited task");
             return false;
         }
 
