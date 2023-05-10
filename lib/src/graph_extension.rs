@@ -257,18 +257,9 @@ impl GraphExtension for Graph<NodeData, f32> {
             .sum()
     }
 
-    fn get_total_wcet_from_nodes(&mut self, path: &[NodeIndex]) -> f32 {
-        if let Some((&from, &to)) = path.iter().zip(path.iter().skip(1)).next() {
-            if !petgraph::algo::has_path_connecting(&*self, from, to, None) {
-                panic!(
-                    "There is no path connecting nodes {} and {}",
-                    from.index(),
-                    to.index()
-                );
-            }
-        }
-
-        path.iter()
+    fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32 {
+        nodes
+            .iter()
             .map(|node| {
                 self[*node]
                     .params
