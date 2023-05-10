@@ -1,4 +1,5 @@
 use crate::core::Core;
+use crate::core::ProcessResult;
 use petgraph::graph::NodeIndex;
 
 pub struct HomogeneousProcessor {
@@ -17,10 +18,8 @@ impl HomogeneousProcessor {
         self.cores[core_id].allocate(node_i, exec_time)
     }
 
-    pub fn process(&mut self) {
-        for core in &mut self.cores {
-            core.process();
-        }
+    pub fn process(&mut self) -> Vec<ProcessResult> {
+        self.cores.iter_mut().map(|core| core.process()).collect()
     }
 }
 
@@ -39,8 +38,8 @@ mod tests {
 
     fn create_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
-        dag.add_node(create_node(0, "execution_time", 4.0));
-        dag.add_node(create_node(1, "execution_time", 6.0));
+        dag.add_node(create_node(0, "execution_time", 2.0));
+        dag.add_node(create_node(1, "execution_time", 3.0));
         dag
     }
 
@@ -57,7 +56,7 @@ mod tests {
     }
 
     #[test]
-    fn test_homogeneous_processor_allocate() {
+    fn test_homogeneous_processor_allocate_normal() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
         let mut node_indices = dag.node_indices();
@@ -91,5 +90,48 @@ mod tests {
         let n0 = node_indices.next().unwrap();
 
         processor.allocate(2, n0, dag[n0].params["execution_time"]);
+    }
+
+    #[test]
+    fn test_homogeneous_processor_process_normal() {
+        let mut processor = HomogeneousProcessor::new(2);
+        let dag = create_dag();
+        let mut node_indices = dag.node_indices();
+        let n0 = node_indices.next().unwrap();
+        let n1 = node_indices.next().unwrap();
+
+        processor.allocate(0, n0, dag[n0].params["execution_time"]);
+        processor.allocate(1, n1, dag[n1].params["execution_time"]);
+        let result = processor.process();
+        assert_eq!(
+            result,
+            vec![ProcessResult::Continue, ProcessResult::Continue]
+        );
+        assert_eq!(processor.cores[0].remain_proc_time, 1.0);
+        assert_eq!(processor.cores[1].remain_proc_time, 2.0);
+    }
+
+    #[test]
+    fn test_homogeneous_processor_process_when_one_core_no_allocated() {
+        let mut processor = HomogeneousProcessor::new(2);
+        let dag = create_dag();
+        let mut node_indices = dag.node_indices();
+        let n0 = node_indices.next().unwrap();
+
+        processor.allocate(0, n0, dag[n0].params["execution_time"]);
+        let mut result = processor.process();
+        assert_eq!(result, vec![ProcessResult::Continue, ProcessResult::Idle]);
+        result = processor.process();
+        assert_eq!(result, vec![ProcessResult::Done, ProcessResult::Idle]);
+        result = processor.process();
+        assert_eq!(result, vec![ProcessResult::Idle, ProcessResult::Idle]);
+    }
+
+    #[test]
+    fn test_homogeneous_processor_process_when_processor_no_allocated() {
+        let mut processor = HomogeneousProcessor::new(2);
+
+        let result = processor.process();
+        assert_eq!(result, vec![ProcessResult::Idle, ProcessResult::Idle]);
     }
 }
