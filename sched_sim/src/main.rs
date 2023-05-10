@@ -1,5 +1,6 @@
 use clap::Parser;
 use lib::dag_creator::*;
+mod federated;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
@@ -25,6 +26,6 @@ fn main() {
         let _dag = create_dag_from_yaml(&dag_file_path);
     } else if let Some(dag_dir_path) = arg.dag_dir_path {
         let _dag_set = create_dag_set_from_dir(&dag_dir_path);
-        federated(_dag_set, 4);
+        federated::federated(_dag_set, 4);
     }
 }
