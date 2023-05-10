@@ -3,6 +3,16 @@ use lib::graph_extension::GraphExtension;
 use lib::graph_extension::NodeData;
 use log::warn;
 use petgraph::graph::Graph;
+use FederateResult::*;
+
+/// For determination of federates
+#[derive(Debug, PartialEq)]
+pub enum FederateResult {
+    Unsuitable,
+    InsufficientCoresHigh,
+    InsufficientCoresLow,
+    Successful,
+}
 
 /// This function attempts to apply federated scheduling to a set of directed acyclic graphs
 /// (DAGs), each representing a task with a certain end-to-end end_to_end_deadline and a worst-case
@@ -45,7 +55,7 @@ use petgraph::graph::Graph;
 /// let can_schedule = federated(dag_set, total_cores);
 /// ```
 ///
-pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> bool {
+pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> FederateResult {
     let mut remaining_cores = total_cores;
     let mut low_utilizations = 0.0;
 
@@ -58,7 +68,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> bool
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
             warn!("Task set is not suitable for Federated scheduling.");
-            return false;
+            return Unsuitable;
         }
 
         if volume / end_to_end_deadline > 1.0 {
@@ -67,7 +77,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> bool
                 .ceil() as usize;
             if using_cores > remaining_cores {
                 warn!("Insufficient number of cores for the task set.");
-                return false;
+                return InsufficientCoresHigh;
             } else {
                 remaining_cores -= using_cores;
             }
@@ -75,7 +85,11 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> bool
             low_utilizations += volume / end_to_end_deadline;
         }
     }
-    remaining_cores as f32 > 2.0 * low_utilizations
+    if remaining_cores as f32 > 2.0 * low_utilizations {
+        Successful
+    } else {
+        InsufficientCoresLow
+    }
 }
 
 #[cfg(test)]
@@ -114,7 +128,7 @@ mod tests {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
             params.insert("end_to_end_deadline".to_owned(), 30.0);
-            dag.add_node(NodeData { id: 3, params })
+            dag.add_node(NodeData { id: 2, params })
         };
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
@@ -122,55 +136,51 @@ mod tests {
     }
     fn create_deadline_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
-        let _n0 = {
-            let mut params = HashMap::new();
-            params.insert("execution_time".to_owned(), 10.0);
-            params.insert("end_to_end_deadline".to_owned(), 10.0);
-            dag.add_node(NodeData { id: 3, params })
-        };
+        let mut params = HashMap::new();
+        params.insert("execution_time".to_owned(), 20.0);
+        params.insert("end_to_end_deadline".to_owned(), 10.0);
+        dag.add_node(NodeData { id: 0, params });
         dag
     }
+
     #[test]
     fn test_federated_enough_core() {
-        let dag0 = create_high_utilization_dag();
-        let dag1 = create_high_utilization_dag();
-        let dag2 = create_low_utilization_dag();
-        let dag_set = vec![dag0, dag1, dag2];
-        let total_cores = 40;
-        let can_schedule = federated(dag_set, total_cores);
-        assert!(can_schedule);
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+
+        assert_eq!(federated(dag_set, 40), Successful);
     }
+
     #[test]
-    #[should_panic]
     fn test_federated_lack_cores_for_high_tasks() {
-        let dag0 = create_high_utilization_dag();
-        let dag1 = create_high_utilization_dag();
-        let dag2 = create_low_utilization_dag();
-        let dag_set = vec![dag0, dag1, dag2];
-        let total_cores = 1;
-        let can_schedule = federated(dag_set, total_cores);
-        assert!(can_schedule);
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+
+        assert_eq!(federated(dag_set, 1), InsufficientCoresHigh);
     }
+
     #[test]
-    #[should_panic]
     fn test_federated_lack_cores_for_low_tasks() {
-        let dag0 = create_high_utilization_dag();
-        let dag1 = create_low_utilization_dag();
-        let dag2 = create_low_utilization_dag();
-        let dag_set = vec![dag0, dag1, dag2];
-        let total_cores = 2;
-        let can_schedule = federated(dag_set, total_cores);
-        assert!(can_schedule);
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+
+        assert_eq!(federated(dag_set, 2), InsufficientCoresLow);
     }
+
     #[test]
-    #[should_panic]
     fn test_federated_unsuited_tasks() {
-        let dag0 = create_deadline_exceeding_dag();
-        let dag1 = create_deadline_exceeding_dag();
-        let dag2 = create_deadline_exceeding_dag();
-        let dag_set = vec![dag0, dag1, dag2];
-        let total_cores = 5;
-        let can_schedule = federated(dag_set, total_cores);
-        assert!(can_schedule);
+        assert_eq!(
+            federated(vec![create_deadline_exceeding_dag()], 5),
+            Unsuitable
+        );
     }
 }
