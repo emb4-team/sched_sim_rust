@@ -1,3 +1,4 @@
+use log::warn;
 use petgraph::algo::toposort;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
@@ -5,8 +6,6 @@ use petgraph::Direction::{Incoming, Outgoing};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
-
-use log::warn;
 
 const DUMMY_SOURCE_NODE_FLAG: f32 = -1.0;
 const DUMMY_SINK_NODE_FLAG: f32 = -2.0;
@@ -297,6 +296,13 @@ mod tests {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
+    }
+
+    #[test]
+    fn init_env_logger() {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Warn)
+            .init();
     }
 
     #[test]
