@@ -98,7 +98,7 @@ mod tests {
         let n3 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
-            params.insert("end_to_end_end_to_end_deadline".to_owned(), 10.0);
+            params.insert("end_to_end_deadline".to_owned(), 10.0);
             dag.add_node(NodeData { id: 3, params })
         };
         dag.add_edge(n0, n1, 1.0);
@@ -113,7 +113,7 @@ mod tests {
         let n2 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
-            params.insert("end_to_end_end_to_end_deadline".to_owned(), 30.0);
+            params.insert("end_to_end_deadline".to_owned(), 30.0);
             dag.add_node(NodeData { id: 3, params })
         };
         dag.add_edge(n0, n1, 1.0);
@@ -122,16 +122,12 @@ mod tests {
     }
     fn create_deadline_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = {
+        let _n0 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 10.0);
-            params.insert("end_to_end_end_to_end_deadline".to_owned(), 10.0);
+            params.insert("end_to_end_deadline".to_owned(), 10.0);
             dag.add_node(NodeData { id: 3, params })
         };
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n1, n2, 1.0);
         dag
     }
     #[test]
