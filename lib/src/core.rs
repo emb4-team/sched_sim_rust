@@ -1,5 +1,6 @@
 //! This module contains the definition of the core and the process result enum
 use crate::core::ProcessResult::*;
+use log::warn;
 use petgraph::graph::NodeIndex;
 
 ///enum to represent three types of states
@@ -31,7 +32,7 @@ impl Default for Core {
 impl Core {
     pub fn allocate(&mut self, node_i: NodeIndex, exec_time: i32) -> bool {
         if !self.is_idle {
-            println!("Core is already allocated to a node");
+            warn!("Core is already allocated to a node");
             return false;
         }
         self.is_idle = false;
@@ -57,6 +58,13 @@ impl Core {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn init_env_logger() {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Warn)
+            .init();
+    }
 
     #[test]
     fn test_core_default_params() {
