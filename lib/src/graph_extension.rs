@@ -506,8 +506,6 @@ mod tests {
     fn test_get_total_wcet_node_no_includes_execution_time() {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "weight", 3.0));
-        dag.add_node(create_node(1, "execution_time", 6.0));
-        dag.add_node(create_node(2, "execution_time", 5.0));
 
         dag.get_total_wcet();
     }
@@ -544,12 +542,8 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
 
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-
-        let path = vec![n1, n2];
+        let path = vec![n0, n1];
         dag.get_path_wcet(&path);
     }
 
@@ -559,10 +553,10 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "weight", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
+
         dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        let path = vec![n0, n1, n2];
+
+        let path = vec![n0, n1];
         dag.get_path_wcet(&path);
     }
 
@@ -570,9 +564,8 @@ mod tests {
     fn test_get_end_to_end_deadline_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(NodeData {
-            id: 2,
+        let n1 = dag.add_node(NodeData {
+            id: 1,
             params: {
                 let mut params = HashMap::new();
                 params.insert("execution_time".to_string(), 11.0);
@@ -582,7 +575,6 @@ mod tests {
         });
 
         dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n1, n2, 1.0);
 
         assert_eq!(dag.get_end_to_end_deadline(), 25.0);
     }
@@ -591,8 +583,6 @@ mod tests {
     fn test_get_end_to_end_deadline_node_no_includes_end_to_end_deadline() {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 3.0));
-        dag.add_node(create_node(1, "execution_time", 6.0));
-        dag.add_node(create_node(8, "execution_time", 143.0));
 
         assert_eq!(dag.get_end_to_end_deadline(), 0.0);
     }
