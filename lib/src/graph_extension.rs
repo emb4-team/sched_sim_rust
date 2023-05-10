@@ -546,11 +546,9 @@ mod tests {
             NodeData { id, params }
         }
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "weight", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_node(create_node(0, "weight", 3.0));
+        dag.add_node(create_node(1, "execution_time", 6.0));
+        dag.add_node(create_node(2, "execution_time", 5.0));
 
         dag.get_total_wcet();
     }
