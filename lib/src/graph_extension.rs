@@ -36,7 +36,7 @@ pub trait GraphExtension {
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_total_wcet(&self) -> f32;
     fn get_path_wcet(&mut self, path: &[NodeIndex]) -> f32;
-    fn get_end_to_end_deadline(&mut self) -> f32;
+    fn get_end_to_end_deadline(&mut self) -> Option<f32>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -277,13 +277,12 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
             .sum()
     }
-
-    fn get_end_to_end_deadline(&mut self) -> f32 {
+    fn get_end_to_end_deadline(&mut self) -> Option<f32> {
         self.node_indices()
             .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .unwrap_or_else(|| {
+            .or_else(|| {
                 warn!("The end-to-end deadline does not exist.");
-                0.0
+                None
             })
     }
 }
@@ -579,7 +578,7 @@ mod tests {
 
         dag.add_edge(n0, n1, 1.0);
 
-        assert_eq!(dag.get_end_to_end_deadline(), 25.0);
+        assert_eq!(dag.get_end_to_end_deadline(), Some(25.0));
     }
 
     #[test]
@@ -587,6 +586,6 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 3.0));
 
-        assert_eq!(dag.get_end_to_end_deadline(), 0.0);
+        assert_eq!(dag.get_end_to_end_deadline(), None);
     }
 }
