@@ -10,19 +10,14 @@ use std::collections::HashMap;
 
 use std::path::PathBuf;
 
+use crate::graph_extension::NodeData;
+
 fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
     if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
         panic!("Invalid file type: {}", file_path);
     }
     let file_content = fs::read_to_string(file_path).unwrap();
     YamlLoader::load_from_str(&file_content).unwrap()
-}
-
-/// custom node data structure for dag nodes (petgraph)
-#[derive(Debug)]
-pub struct NodeData {
-    pub id: u32,
-    pub params: HashMap<String, f32>,
 }
 
 /// load yaml file and return a dag object (petgraph)
@@ -60,7 +55,7 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
         // add nodes to dag
         for node in nodes {
             let mut params = HashMap::new();
-            let id = node["id"].as_i64().unwrap() as u32;
+            let id = node["id"].as_i64().unwrap() as i32;
 
             // add node parameters to HashMap
             for (key, value) in node.as_hash().unwrap() {
