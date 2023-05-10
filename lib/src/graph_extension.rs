@@ -299,13 +299,6 @@ mod tests {
     }
 
     #[test]
-    fn init_env_logger() {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Warn)
-            .init();
-    }
-
-    #[test]
     fn test_get_critical_paths_single() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
