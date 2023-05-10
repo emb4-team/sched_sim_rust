@@ -60,13 +60,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn init_env_logger() {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Warn)
-            .init();
-    }
-
-    #[test]
     fn test_core_default_params() {
         let core = Core::default();
         assert!(core.is_idle);
