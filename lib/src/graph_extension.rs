@@ -548,8 +548,12 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
 
-        let path = vec![n0, n1];
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        let path = vec![n1, n2];
         dag.get_path_wcet(&path);
     }
 
