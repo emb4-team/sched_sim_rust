@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_total_wcet_from_nodes_any_given_path() {
+    fn test_get_total_wcet_from_nodes_any_given_nodes() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
@@ -523,21 +523,6 @@ mod tests {
         let path0 = vec![n0];
 
         assert_eq!(dag.get_total_wcet_from_nodes(&path0), 4.0);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_get_total_wcet_from_nodes_given_path_is_not_connect() {
-        let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
-
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-
-        let path = vec![n1, n2];
-        dag.get_total_wcet_from_nodes(&path);
     }
 
     #[test]
