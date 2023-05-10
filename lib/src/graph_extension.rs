@@ -36,7 +36,7 @@ pub trait GraphExtension {
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_total_wcet(&self) -> f32;
-    fn get_path_wcet(&mut self, path: &[Vec<NodeIndex>]) -> f32;
+    fn get_path_wcet(&mut self, path: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> f32;
 }
 
@@ -258,10 +258,20 @@ impl GraphExtension for Graph<NodeData, f32> {
             .sum()
     }
 
-    fn get_path_wcet(&mut self, path: &[Vec<NodeIndex>]) -> f32 {
+    fn get_path_wcet(&mut self, path: &[NodeIndex]) -> f32 {
+        if let Some((&from, &to)) = path.iter().zip(path.iter().skip(1)).next() {
+            if !petgraph::algo::has_path_connecting(&*self, from, to, None) {
+                panic!(
+                    "There is no path connecting nodes {} and {}",
+                    from.index(),
+                    to.index()
+                );
+            }
+        }
+
         path.iter()
             .map(|node| {
-                self[*node.first().unwrap()]
+                self[*node]
                     .params
                     .get("execution_time")
                     .unwrap_or_else(|| panic!("execution_time not found"))
@@ -283,13 +293,14 @@ impl GraphExtension for Graph<NodeData, f32> {
 mod tests {
     use super::*;
 
+    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
     #[test]
     fn test_get_critical_paths_single() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
@@ -315,11 +326,6 @@ mod tests {
 
     #[test]
     fn test_get_critical_paths_multiple() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -362,11 +368,6 @@ mod tests {
 
     #[test]
     fn test_remove_dummy_node_check_whether_connected_edges_removed() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -386,11 +387,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_remove_dummy_node_no_exist() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -405,11 +401,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_add_dummy_node_duplication() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -425,11 +416,6 @@ mod tests {
 
     #[test]
     fn test_get_source_nodes_normal() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -445,11 +431,6 @@ mod tests {
 
     #[test]
     fn test_get_source_nodes_dummy_node() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -463,11 +444,6 @@ mod tests {
 
     #[test]
     fn test_get_sink_nodes_normal() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -486,11 +462,6 @@ mod tests {
 
     #[test]
     fn test_get_sink_nodes_dummy_node() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -504,11 +475,6 @@ mod tests {
 
     #[test]
     fn test_add_dummy_node_integrity_for_id_and_node_index() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -525,11 +491,6 @@ mod tests {
 
     #[test]
     fn test_get_total_wcet_normal() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -543,11 +504,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_total_wcet_node_no_includes_execution_time() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "weight", 3.0));
         dag.add_node(create_node(1, "execution_time", 6.0));
@@ -557,53 +513,61 @@ mod tests {
     }
 
     #[test]
-    fn test_get_critical_path_wcet_single() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
+    fn test_get_path_wcet_any_given_path() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
         let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 36.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 54.0));
+
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
 
-        let path = vec![vec![n0], vec![n2], vec![n4]];
+        let path0 = vec![n0, n1];
+        let path1 = vec![n0, n2];
 
-        assert_eq!(dag.get_path_wcet(&path), 113.0);
+        assert_eq!(dag.get_path_wcet(&path0), 11.0);
+        assert_eq!(dag.get_path_wcet(&path1), 59.0);
+    }
+
+    #[test]
+    fn test_get_path_wcet_given_one_node() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let path0 = vec![n0];
+
+        assert_eq!(dag.get_path_wcet(&path0), 4.0);
     }
 
     #[test]
     #[should_panic]
-    fn test_get_critical_path_wcet_node_no_includes_execution_time() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
+    fn test_get_path_wcet_given_path_is_not_connect() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
+
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        let path = vec![n1, n2];
+        dag.get_path_wcet(&path);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_path_wcet_node_no_includes_execution_time() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "weight", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
         let n2 = dag.add_node(create_node(2, "execution_time", 5.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        let path = vec![vec![n0], vec![n1], vec![n2]];
+        let path = vec![n0, n1, n2];
         dag.get_path_wcet(&path);
     }
 
     #[test]
     fn test_get_end_to_end_deadline_normal() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -625,11 +589,6 @@ mod tests {
 
     #[test]
     fn test_get_end_to_end_deadline_node_no_includes_end_to_end_deadline() {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 3.0));
         dag.add_node(create_node(1, "execution_time", 6.0));
