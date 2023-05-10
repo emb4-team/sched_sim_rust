@@ -1,6 +1,7 @@
 //! This module implements the federated scheduling algorithm.
 use lib::graph_extension::GraphExtension;
 use lib::graph_extension::NodeData;
+use log::warn;
 use petgraph::graph::Graph;
 
 fn is_high_utilization_task(sum_wect: f32, deadline: f32) -> bool {
@@ -18,10 +19,10 @@ fn finalize_task_set_allocation(
     core_num: usize,
 ) -> bool {
     if remaining_cores as f32 > 2.0 * low_utilizations {
-        println!("Can allocate task set to {} cores.", core_num);
+        warn!("Can allocate task set to {} cores.", core_num);
         true
     } else {
-        println!("Cannot allocate task set to {} cores.", core_num);
+        warn!("Cannot allocate task set to {} cores.", core_num);
         false
     }
 }
@@ -77,14 +78,14 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, core_num: usize) -> bool {
         let critical_path_wect = dag.get_total_wcet_from_nodes(&critical_path[0]);
 
         if critical_path_wect > deadline {
-            println!("unsuited task {:#?} ", dag);
+            warn!("unsuited task {:#?} ", dag);
             return false;
         }
 
         if is_high_utilization_task(sum_wect, deadline) {
             let using_cores = calculate_cores(sum_wect, critical_path_wect, deadline);
             if using_cores > remaining_cores {
-                println!("Insufficient number of cores for the task set.");
+                warn!("Insufficient number of cores for the task set.");
                 return false;
             } else {
                 remaining_cores -= using_cores;
@@ -111,49 +112,27 @@ mod tests {
     fn create_high_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 9.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 6.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 4.0));
-        let n5 = dag.add_node(create_node(5, "execution_time", 3.0));
-        let n6 = dag.add_node(create_node(6, "execution_time", 5.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 3.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 4.0));
         let mut params = HashMap::new();
-        params.insert("execution_time".to_owned(), 10.0);
-        params.insert("end_to_end_deadline".to_owned(), 35.0);
-        let n7 = dag.add_node(NodeData { id: 7, params });
+        params.insert("execution_time".to_owned(), 3.0);
+        params.insert("end_to_end_deadline".to_owned(), 10.0);
+        let n3 = dag.add_node(NodeData { id: 3, params });
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
-        dag.add_edge(n2, n5, 1.0);
-        dag.add_edge(n3, n6, 1.0);
-        dag.add_edge(n4, n6, 1.0);
-        dag.add_edge(n5, n6, 1.0);
-        dag.add_edge(n6, n7, 1.0);
+        dag.add_edge(n0, n3, 1.0);
         dag
     }
     fn create_low_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 9.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 6.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 4.0));
-        let n5 = dag.add_node(create_node(5, "execution_time", 3.0));
-        let n6 = dag.add_node(create_node(6, "execution_time", 5.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
         let mut params = HashMap::new();
-        params.insert("execution_time".to_owned(), 10.0);
-        params.insert("end_to_end_deadline".to_owned(), 135.0);
-        let n7 = dag.add_node(NodeData { id: 7, params });
+        params.insert("execution_time".to_owned(), 3.0);
+        params.insert("end_to_end_deadline".to_owned(), 20.0);
+        let n2 = dag.add_node(NodeData { id: 2, params });
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
-        dag.add_edge(n2, n5, 1.0);
-        dag.add_edge(n3, n6, 1.0);
-        dag.add_edge(n4, n6, 1.0);
-        dag.add_edge(n5, n6, 1.0);
-        dag.add_edge(n6, n7, 1.0);
         dag
     }
     fn create_unsuited_dag() -> Graph<NodeData, f32> {
@@ -196,7 +175,7 @@ mod tests {
         let dag1 = create_low_dag();
         let dag2 = create_low_dag();
         let dag_set = vec![dag0, dag1, dag2];
-        let core_num = 5;
+        let core_num = 2;
         let can_schedule = federated(dag_set, core_num);
         assert!(can_schedule);
     }
