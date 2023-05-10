@@ -29,12 +29,13 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
-    pub fn allocate(&mut self, node_i: Option<NodeIndex>, exec_time: i32) -> bool {
+    pub fn allocate(&mut self, node_i: NodeIndex, exec_time: i32) -> bool {
         if !self.is_idle {
+            println!("Core is already allocated to a node");
             return false;
         }
         self.is_idle = false;
-        self.processing_node = node_i;
+        self.processing_node = Some(node_i);
         self.remain_proc_time = exec_time;
         true
     }
@@ -68,7 +69,7 @@ mod tests {
     #[test]
     fn test_core_allocate_normal() {
         let mut core = Core::default();
-        core.allocate(Some(NodeIndex::new(0)), 10);
+        core.allocate(NodeIndex::new(0), 10);
         assert!(!core.is_idle);
         assert_eq!(core.processing_node, Some(NodeIndex::new(0)));
         assert_eq!(core.remain_proc_time, 10);
@@ -77,14 +78,14 @@ mod tests {
     #[test]
     fn test_core_allocate_already_allocated() {
         let mut core = Core::default();
-        core.allocate(Some(NodeIndex::new(0)), 10);
-        assert!(!core.allocate(Some(NodeIndex::new(1)), 10));
+        core.allocate(NodeIndex::new(0), 10);
+        assert!(!core.allocate(NodeIndex::new(1), 10));
     }
 
     #[test]
     fn test_core_process_normal() {
         let mut core = Core::default();
-        core.allocate(Some(NodeIndex::new(0)), 10);
+        core.allocate(NodeIndex::new(0), 10);
         assert_eq!(core.process(), Continue);
         assert_eq!(core.remain_proc_time, 9);
         core.process();
@@ -100,7 +101,7 @@ mod tests {
     #[test]
     fn test_core_process_when_finished() {
         let mut core = Core::default();
-        core.allocate(Some(NodeIndex::new(0)), 2);
+        core.allocate(NodeIndex::new(0), 2);
         core.process();
         assert_eq!(core.process(), Done);
         assert!(core.is_idle);
