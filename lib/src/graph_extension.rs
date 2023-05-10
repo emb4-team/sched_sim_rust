@@ -35,7 +35,7 @@ pub trait GraphExtension {
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_total_wcet(&self) -> f32;
     fn get_critical_path_wcet(&mut self) -> f32;
-    fn get_deadline(&mut self) -> f32;
+    fn get_end_to_end_deadline(&mut self) -> f32;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -269,10 +269,10 @@ impl GraphExtension for Graph<NodeData, f32> {
             .sum()
     }
 
-    fn get_deadline(&mut self) -> f32 {
+    fn get_end_to_end_deadline(&mut self) -> f32 {
         self.node_indices()
             .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .unwrap_or_else(|| panic!("The deadline does not exist."))
+            .unwrap_or_else(|| panic!("The end-to-end deadline does not exist."))
     }
 }
 
@@ -624,7 +624,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_deadline_normal() {
+    fn test_get_end_to_end_deadline_normal() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
             params.insert(key.to_string(), value);
@@ -646,12 +646,12 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n1, n2, 1.0);
 
-        assert_eq!(dag.get_deadline(), 25.0);
+        assert_eq!(dag.get_end_to_end_deadline(), 25.0);
     }
 
     #[test]
     #[should_panic]
-    fn test_get_deadline_node_no_includes_end_to_end_deadline() {
+    fn test_get_end_to_end_deadline_node_no_includes_end_to_end_deadline() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
             params.insert(key.to_string(), value);
@@ -663,6 +663,6 @@ mod tests {
         let n2 = dag.add_node(create_node(8, "execution_time", 143.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n1, n2, 1.0);
-        dag.get_deadline();
+        dag.get_end_to_end_deadline();
     }
 }
