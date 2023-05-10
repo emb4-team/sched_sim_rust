@@ -1,6 +1,9 @@
+//! This module contains the definition of the core and the process result enum
 use crate::core::ProcessResult::*;
 use petgraph::graph::NodeIndex;
 
+///enum to represent three types of states
+///execution not possible because not allocate, execution in progress, execution finished
 #[derive(Debug, PartialEq)]
 pub enum ProcessResult {
     False,
@@ -24,6 +27,7 @@ impl Default for Core {
     }
 }
 
+///return bool since "panic!" would terminate
 impl Core {
     pub fn allocate(&mut self, node_i: Option<NodeIndex>, exec_time: i32) -> bool {
         if !self.idle {
@@ -54,6 +58,14 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_core_default_params() {
+        let core = Core::default();
+        assert!(core.idle);
+        assert_eq!(core.process_node, None);
+        assert_eq!(core.remain_proc_time, 0);
+    }
+
+    #[test]
     fn test_core_allocate_normal() {
         let mut core = Core::default();
         core.allocate(Some(NodeIndex::new(0)), 10);
@@ -76,9 +88,7 @@ mod tests {
         assert_eq!(core.process(), Continue);
         assert_eq!(core.remain_proc_time, 9);
         core.process();
-        core.process();
-        core.process();
-        assert_eq!(core.remain_proc_time, 6);
+        assert_eq!(core.remain_proc_time, 8);
     }
 
     #[test]
@@ -95,5 +105,6 @@ mod tests {
         assert_eq!(core.process(), Done);
         assert!(core.idle);
         assert_eq!(core.process_node, None);
+        assert_eq!(core.remain_proc_time, 0);
     }
 }
