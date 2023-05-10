@@ -509,20 +509,20 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
 
-        let path0 = vec![n0, n1];
-        let path1 = vec![n0, n2];
+        let nodes0 = vec![n0, n1];
+        let nodes1 = vec![n0, n2];
 
-        assert_eq!(dag.get_total_wcet_from_nodes(&path0), 11.0);
-        assert_eq!(dag.get_total_wcet_from_nodes(&path1), 59.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&nodes0), 11.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&nodes1), 59.0);
     }
 
     #[test]
     fn test_get_total_wcet_from_nodes_given_one_node() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
-        let path0 = vec![n0];
+        let nodes0 = vec![n0];
 
-        assert_eq!(dag.get_total_wcet_from_nodes(&path0), 4.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&nodes0), 4.0);
     }
 
     #[test]
@@ -530,12 +530,9 @@ mod tests {
     fn test_get_total_wcet_from_nodes_node_no_includes_execution_time() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "weight", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
 
-        dag.add_edge(n0, n1, 1.0);
-
-        let path = vec![n0, n1];
-        dag.get_total_wcet_from_nodes(&path);
+        let nodes = vec![n0];
+        dag.get_total_wcet_from_nodes(&nodes);
     }
 
     #[test]
