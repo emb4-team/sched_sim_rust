@@ -34,8 +34,8 @@ pub trait GraphExtension {
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
-    fn get_total_wcet(&self) -> f32;
-    fn get_path_wcet(&mut self, path: &[NodeIndex]) -> f32;
+    fn get_volume(&self) -> f32;
+    fn get_total_wcet_from_nodes(&mut self, path: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
 }
 
@@ -246,7 +246,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             .collect::<Vec<_>>()
     }
 
-    fn get_total_wcet(&self) -> f32 {
+    fn get_volume(&self) -> f32 {
         self.node_indices()
             .map(|node| {
                 *self[node]
@@ -257,7 +257,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             .sum()
     }
 
-    fn get_path_wcet(&mut self, path: &[NodeIndex]) -> f32 {
+    fn get_total_wcet_from_nodes(&mut self, path: &[NodeIndex]) -> f32 {
         if let Some((&from, &to)) = path.iter().zip(path.iter().skip(1)).next() {
             if !petgraph::algo::has_path_connecting(&*self, from, to, None) {
                 panic!(
@@ -488,7 +488,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_total_wcet_normal() {
+    fn test_get_volume_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -496,20 +496,20 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
 
-        assert_eq!(dag.get_total_wcet(), 14.0);
+        assert_eq!(dag.get_volume(), 14.0);
     }
 
     #[test]
     #[should_panic]
-    fn test_get_total_wcet_node_no_includes_execution_time() {
+    fn test_get_volume_node_no_includes_execution_time() {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "weight", 3.0));
 
-        dag.get_total_wcet();
+        dag.get_volume();
     }
 
     #[test]
-    fn test_get_path_wcet_any_given_path() {
+    fn test_get_total_wcet_from_nodes_any_given_path() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
@@ -521,22 +521,22 @@ mod tests {
         let path0 = vec![n0, n1];
         let path1 = vec![n0, n2];
 
-        assert_eq!(dag.get_path_wcet(&path0), 11.0);
-        assert_eq!(dag.get_path_wcet(&path1), 59.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&path0), 11.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&path1), 59.0);
     }
 
     #[test]
-    fn test_get_path_wcet_given_one_node() {
+    fn test_get_total_wcet_from_nodes_given_one_node() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let path0 = vec![n0];
 
-        assert_eq!(dag.get_path_wcet(&path0), 4.0);
+        assert_eq!(dag.get_total_wcet_from_nodes(&path0), 4.0);
     }
 
     #[test]
     #[should_panic]
-    fn test_get_path_wcet_given_path_is_not_connect() {
+    fn test_get_total_wcet_from_nodes_given_path_is_not_connect() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
@@ -546,12 +546,12 @@ mod tests {
         dag.add_edge(n0, n2, 1.0);
 
         let path = vec![n1, n2];
-        dag.get_path_wcet(&path);
+        dag.get_total_wcet_from_nodes(&path);
     }
 
     #[test]
     #[should_panic]
-    fn test_get_path_wcet_node_no_includes_execution_time() {
+    fn test_get_total_wcet_from_nodes_node_no_includes_execution_time() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "weight", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -559,7 +559,7 @@ mod tests {
         dag.add_edge(n0, n1, 1.0);
 
         let path = vec![n0, n1];
-        dag.get_path_wcet(&path);
+        dag.get_total_wcet_from_nodes(&path);
     }
 
     #[test]
