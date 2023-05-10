@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
 
+use log::warn;
+
 const DUMMY_SOURCE_NODE_FLAG: f32 = -1.0;
 const DUMMY_SINK_NODE_FLAG: f32 = -2.0;
 
@@ -272,7 +274,10 @@ impl GraphExtension for Graph<NodeData, f32> {
     fn get_end_to_end_deadline(&mut self) -> f32 {
         self.node_indices()
             .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .unwrap_or_else(|| panic!("The end-to-end deadline does not exist."))
+            .unwrap_or_else(|| {
+                warn!("The end-to-end deadline does not exist.");
+                0.0
+            })
     }
 }
 
@@ -650,7 +655,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_get_end_to_end_deadline_node_no_includes_end_to_end_deadline() {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
@@ -658,11 +662,10 @@ mod tests {
             NodeData { id, params }
         }
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
-        let n2 = dag.add_node(create_node(8, "execution_time", 143.0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n1, n2, 1.0);
-        dag.get_end_to_end_deadline();
+        dag.add_node(create_node(0, "execution_time", 3.0));
+        dag.add_node(create_node(1, "execution_time", 6.0));
+        dag.add_node(create_node(8, "execution_time", 143.0));
+
+        assert_eq!(dag.get_end_to_end_deadline(), 0.0);
     }
 }
