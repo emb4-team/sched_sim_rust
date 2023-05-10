@@ -59,23 +59,25 @@ mod tests {
     fn test_homogeneous_processor_allocate_normal() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
-        let mut node_indices = dag.node_indices();
-        let n0 = node_indices.next().unwrap();
-        let n1 = node_indices.next().unwrap();
+        let (n0, n1) = (
+            dag.node_indices().next().unwrap(),
+            dag.node_indices().nth(1).unwrap(),
+        );
 
         assert!(processor.allocate(0, n0, dag[n0].params["execution_time"]));
+        assert!(!processor.cores[0].is_idle);
         assert!(processor.cores[1].is_idle);
         assert!(processor.allocate(1, n1, dag[n1].params["execution_time"]));
-        assert!(!processor.cores[0].is_idle);
     }
 
     #[test]
     fn test_homogeneous_processor_allocate_same_core() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
-        let mut node_indices = dag.node_indices();
-        let n0 = node_indices.next().unwrap();
-        let n1 = node_indices.next().unwrap();
+        let (n0, n1) = (
+            dag.node_indices().next().unwrap(),
+            dag.node_indices().nth(1).unwrap(),
+        );
 
         processor.allocate(0, n0, dag[n0].params["execution_time"]);
         assert!(!processor.allocate(0, n1, dag[n1].params["execution_time"]));
@@ -86,8 +88,7 @@ mod tests {
     fn test_homogeneous_processor_allocate_no_exist_core() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
-        let mut node_indices = dag.node_indices();
-        let n0 = node_indices.next().unwrap();
+        let n0 = dag.node_indices().next().unwrap();
 
         processor.allocate(2, n0, dag[n0].params["execution_time"]);
     }
@@ -96,9 +97,10 @@ mod tests {
     fn test_homogeneous_processor_process_normal() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
-        let mut node_indices = dag.node_indices();
-        let n0 = node_indices.next().unwrap();
-        let n1 = node_indices.next().unwrap();
+        let (n0, n1) = (
+            dag.node_indices().next().unwrap(),
+            dag.node_indices().nth(1).unwrap(),
+        );
 
         processor.allocate(0, n0, dag[n0].params["execution_time"]);
         processor.allocate(1, n1, dag[n1].params["execution_time"]);
@@ -115,8 +117,7 @@ mod tests {
     fn test_homogeneous_processor_process_when_one_core_no_allocated() {
         let mut processor = HomogeneousProcessor::new(2);
         let dag = create_dag();
-        let mut node_indices = dag.node_indices();
-        let n0 = node_indices.next().unwrap();
+        let n0 = dag.node_indices().next().unwrap();
 
         processor.allocate(0, n0, dag[n0].params["execution_time"]);
         let mut result = processor.process();
