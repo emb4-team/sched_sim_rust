@@ -35,7 +35,7 @@ pub trait GraphExtension {
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> f32;
-    fn get_total_wcet_from_nodes(&mut self, path: &[NodeIndex]) -> f32;
+    fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
 }
 
