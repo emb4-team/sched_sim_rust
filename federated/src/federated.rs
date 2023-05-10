@@ -17,11 +17,7 @@ fn count_high_utilization_core(
     ((volume - critical_path_wect) / (end_to_end_deadline - critical_path_wect)).ceil() as usize
 }
 
-fn finalize_task_set_allocation(
-    remaining_cores: usize,
-    low_utilizations: f32,
-    core_num: usize,
-) -> bool {
+fn is_task_set_allocatable(remaining_cores: usize, low_utilizations: f32, core_num: usize) -> bool {
     if remaining_cores as f32 > 2.0 * low_utilizations {
         warn!("Can allocate task set to {} cores.", core_num);
         true
@@ -100,7 +96,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, core_num: usize) -> bool {
             low_utilizations += volume / end_to_end_deadline;
         }
     }
-    finalize_task_set_allocation(remaining_cores, low_utilizations, core_num)
+    is_task_set_allocatable(remaining_cores, low_utilizations, core_num)
 }
 
 #[cfg(test)]
