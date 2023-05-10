@@ -13,7 +13,7 @@ pub enum ProcessResult {
 
 pub struct Core {
     is_idle: bool,
-    process_node: Option<NodeIndex>,
+    processing_node: Option<NodeIndex>,
     remain_proc_time: i32,
 }
 
@@ -21,7 +21,7 @@ impl Default for Core {
     fn default() -> Self {
         Self {
             is_idle: true,
-            process_node: None,
+            processing_node: None,
             remain_proc_time: 0,
         }
     }
@@ -34,7 +34,7 @@ impl Core {
             return false;
         }
         self.is_idle = false;
-        self.process_node = node_i;
+        self.processing_node = node_i;
         self.remain_proc_time = exec_time;
         true
     }
@@ -46,7 +46,7 @@ impl Core {
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
-            self.process_node = None;
+            self.processing_node = None;
             return Done;
         }
         Continue
@@ -61,7 +61,7 @@ mod tests {
     fn test_core_default_params() {
         let core = Core::default();
         assert!(core.is_idle);
-        assert_eq!(core.process_node, None);
+        assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);
     }
 
@@ -70,7 +70,7 @@ mod tests {
         let mut core = Core::default();
         core.allocate(Some(NodeIndex::new(0)), 10);
         assert!(!core.is_idle);
-        assert_eq!(core.process_node, Some(NodeIndex::new(0)));
+        assert_eq!(core.processing_node, Some(NodeIndex::new(0)));
         assert_eq!(core.remain_proc_time, 10);
     }
 
@@ -104,7 +104,7 @@ mod tests {
         core.process();
         assert_eq!(core.process(), Done);
         assert!(core.is_idle);
-        assert_eq!(core.process_node, None);
+        assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);
     }
 }
