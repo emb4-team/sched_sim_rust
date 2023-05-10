@@ -1,7 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
         "./lib/Cargo.toml",
-        "./sched_sim/Cargo.toml"
+        "./federated/Cargo.toml"
     ],
 
     "cSpell.words": [

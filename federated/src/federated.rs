@@ -1,3 +1,4 @@
+//! This module implements the federated scheduling algorithm.
 use lib::graph_extension::GraphExtension;
 use lib::graph_extension::NodeData;
 use petgraph::graph::Graph;
