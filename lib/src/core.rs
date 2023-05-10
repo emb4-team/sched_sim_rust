@@ -12,7 +12,7 @@ pub enum ProcessResult {
 }
 
 pub struct Core {
-    idle: bool,
+    is_idle: bool,
     process_node: Option<NodeIndex>,
     remain_proc_time: i32,
 }
@@ -20,7 +20,7 @@ pub struct Core {
 impl Default for Core {
     fn default() -> Self {
         Self {
-            idle: true,
+            is_idle: true,
             process_node: None,
             remain_proc_time: 0,
         }
@@ -30,22 +30,22 @@ impl Default for Core {
 ///return bool since "panic!" would terminate
 impl Core {
     pub fn allocate(&mut self, node_i: Option<NodeIndex>, exec_time: i32) -> bool {
-        if !self.idle {
+        if !self.is_idle {
             return false;
         }
-        self.idle = false;
+        self.is_idle = false;
         self.process_node = node_i;
         self.remain_proc_time = exec_time;
         true
     }
 
     pub fn process(&mut self) -> ProcessResult {
-        if self.idle {
+        if self.is_idle {
             return False;
         }
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
-            self.idle = true;
+            self.is_idle = true;
             self.process_node = None;
             return Done;
         }
@@ -60,7 +60,7 @@ mod tests {
     #[test]
     fn test_core_default_params() {
         let core = Core::default();
-        assert!(core.idle);
+        assert!(core.is_idle);
         assert_eq!(core.process_node, None);
         assert_eq!(core.remain_proc_time, 0);
     }
@@ -69,7 +69,7 @@ mod tests {
     fn test_core_allocate_normal() {
         let mut core = Core::default();
         core.allocate(Some(NodeIndex::new(0)), 10);
-        assert!(!core.idle);
+        assert!(!core.is_idle);
         assert_eq!(core.process_node, Some(NodeIndex::new(0)));
         assert_eq!(core.remain_proc_time, 10);
     }
@@ -103,7 +103,7 @@ mod tests {
         core.allocate(Some(NodeIndex::new(0)), 2);
         core.process();
         assert_eq!(core.process(), Done);
-        assert!(core.idle);
+        assert!(core.is_idle);
         assert_eq!(core.process_node, None);
         assert_eq!(core.remain_proc_time, 0);
     }
