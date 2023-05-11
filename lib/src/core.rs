@@ -11,10 +11,12 @@ pub enum ProcessResult {
     Done,
 }
 
+#[derive(Clone)]
 pub struct Core {
-    is_idle: bool,
-    processing_node: Option<i32>,
-    remain_proc_time: i32,
+    pub is_idle: bool,
+    pub processing_node: Option<i32>,
+    pub remain_proc_time: f32,
+    pub time_unit: f32,
 }
 
 impl Default for Core {
@@ -22,7 +24,8 @@ impl Default for Core {
         Self {
             is_idle: true,
             processing_node: None,
-            remain_proc_time: 0,
+            remain_proc_time: 0.0,
+            time_unit: 1.0,
         }
     }
 }
@@ -37,7 +40,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if node_data.params.contains_key("execution_time") {
-            let exec_time = node_data.params["execution_time"] as i32;
+            let exec_time = node_data.params["execution_time"];
             self.remain_proc_time = exec_time;
             true
         } else {
@@ -50,8 +53,8 @@ impl Core {
         if self.is_idle {
             return Idle;
         }
-        self.remain_proc_time -= 1;
-        if self.remain_proc_time == 0 {
+        self.remain_proc_time -= self.time_unit;
+        if self.remain_proc_time == 0.0 {
             self.is_idle = true;
             self.processing_node = None;
             return Done;
@@ -75,7 +78,7 @@ mod tests {
         let core = Core::default();
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
-        assert_eq!(core.remain_proc_time, 0);
+        assert_eq!(core.remain_proc_time, 0.0);
     }
 
     #[test]
@@ -84,7 +87,7 @@ mod tests {
         core.allocate(create_node(0, "execution_time", 10.0));
         assert!(!core.is_idle);
         assert_eq!(core.processing_node, Some(0));
-        assert_eq!(core.remain_proc_time, 10);
+        assert_eq!(core.remain_proc_time, 10.0);
     }
 
     #[test]
@@ -105,9 +108,9 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 10.0));
         assert_eq!(core.process(), Continue);
-        assert_eq!(core.remain_proc_time, 9);
+        assert_eq!(core.remain_proc_time, 9.0);
         core.process();
-        assert_eq!(core.remain_proc_time, 8);
+        assert_eq!(core.remain_proc_time, 8.0);
     }
 
     #[test]
@@ -124,6 +127,6 @@ mod tests {
         assert_eq!(core.process(), Done);
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
-        assert_eq!(core.remain_proc_time, 0);
+        assert_eq!(core.remain_proc_time, 0.0);
     }
 }
