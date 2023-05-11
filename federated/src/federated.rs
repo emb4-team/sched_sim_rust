@@ -220,7 +220,7 @@ mod tests {
         assert_eq!(
             federated(vec![create_period_exceeding_dag()], 5),
             Unschedulable {
-                reason: (String::from("Critical path WCET is greater than period."))
+                reason: (String::from("Critical path WCET is greater than deadline."))
             }
         );
     }
