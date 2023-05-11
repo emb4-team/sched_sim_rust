@@ -268,6 +268,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
             .sum()
     }
+
     fn get_end_to_end_deadline(&mut self) -> Option<f32> {
         self.node_indices()
             .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
