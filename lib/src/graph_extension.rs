@@ -639,4 +639,43 @@ mod tests {
 
         assert_eq!(dag.get_pre_nodes(invalid_node), None);
     }
+
+    #[test]
+    fn test_get_suc_nodes_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        assert_eq!(dag.get_suc_nodes(n0), Some(vec![n2, n1]));
+    }
+
+    #[test]
+    fn test_get_suc_nodes_single() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+
+        assert_eq!(dag.get_suc_nodes(n0), Some(vec![n1]));
+    }
+
+    #[test]
+    fn test_get_suc_nodes_no_exist_suc_nodes() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+
+        assert_eq!(dag.get_suc_nodes(n0), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_suc_nodes_no_exist_target_node() {
+        let dag = Graph::<NodeData, f32>::new();
+        let invalid_node = NodeIndex::new(999);
+
+        assert_eq!(dag.get_suc_nodes(invalid_node), None);
+    }
 }
