@@ -8,10 +8,8 @@ use FederateResult::*;
 /// For determination of federates
 #[derive(Debug, PartialEq)]
 pub enum FederateResult {
-    Unsuitable,
-    InsufficientCoresHigh,
-    InsufficientCoresLow,
-    Successful,
+    Unschedulable { reason: String },
+    Schedulable,
 }
 
 /// This function attempts to apply federated scheduling to a set of directed acyclic graphs
@@ -67,8 +65,10 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
-            warn!("Task set is not suitable for Federated scheduling.");
-            return Unsuitable;
+            warn!("Critical path WCET is greater than end-to-end deadline.");
+            return Unschedulable {
+                reason: "Critical path WCET is greater than end-to-end deadline.".to_string(),
+            };
         }
 
         if volume / end_to_end_deadline > 1.0 {
@@ -76,8 +76,11 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
                 / (end_to_end_deadline - critical_path_wcet))
                 .ceil() as usize;
             if using_cores > remaining_cores {
-                warn!("Insufficient number of cores for the task set.");
-                return InsufficientCoresHigh;
+                warn!("Insufficient number of high-utilization cores for the task set.");
+                return Unschedulable {
+                    reason: "Insufficient number of high-utilization cores for the task set."
+                        .to_string(),
+                };
             } else {
                 remaining_cores -= using_cores;
             }
@@ -86,9 +89,12 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
         }
     }
     if remaining_cores as f32 > 2.0 * low_utilizations {
-        Successful
+        Schedulable
     } else {
-        InsufficientCoresLow
+        warn!("Insufficient number of low-utilization cores for the task set.");
+        Unschedulable {
+            reason: "Insufficient number of low-utilization cores for the task set.".to_string(),
+        }
     }
 }
 
@@ -151,7 +157,7 @@ mod tests {
             create_low_utilization_dag(),
         ];
 
-        assert_eq!(federated(dag_set, 40), Successful);
+        assert_eq!(federated(dag_set, 40), Schedulable);
     }
 
     #[test]
@@ -162,7 +168,14 @@ mod tests {
             create_low_utilization_dag(),
         ];
 
-        assert_eq!(federated(dag_set, 1), InsufficientCoresHigh);
+        assert_eq!(
+            federated(dag_set, 1),
+            Unschedulable {
+                reason: (String::from(
+                    "Insufficient number of high-utilization cores for the task set."
+                ))
+            }
+        );
     }
 
     #[test]
@@ -173,14 +186,23 @@ mod tests {
             create_low_utilization_dag(),
         ];
 
-        assert_eq!(federated(dag_set, 2), InsufficientCoresLow);
+        assert_eq!(
+            federated(dag_set, 2),
+            Unschedulable {
+                reason: (String::from(
+                    "Insufficient number of low-utilization cores for the task set."
+                ))
+            }
+        );
     }
 
     #[test]
     fn test_federated_unsuited_tasks() {
         assert_eq!(
             federated(vec![create_deadline_exceeding_dag()], 5),
-            Unsuitable
+            Unschedulable {
+                reason: (String::from("Critical path WCET is greater than end-to-end deadline."))
+            }
         );
     }
 }
