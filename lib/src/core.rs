@@ -3,7 +3,7 @@ use crate::{core::ProcessResult::*, graph_extension::NodeData};
 use log::warn;
 use petgraph::{graph::NodeIndex, Graph};
 
-pub fn get_time_unit_from_dag_set(dag_set: Vec<Graph<NodeData, f32>>) -> f32 {
+pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -> f32 {
     // Initial value is set to 1.0 and returned as is if no decimal point is found.
     let mut time_unit = 1.0;
     for dag in dag_set {
@@ -91,30 +91,30 @@ mod tests {
     }
 
     #[test]
-    fn test_get_time_unit_from_dag_set() {
+    fn test_get_minimum_time_unit_from_dag_set() {
         let mut dag0 = Graph::<NodeData, f32>::new();
         dag0.add_node(create_node(0, "execution_time", 30.0));
 
         let mut dag_set = vec![dag0];
-        assert_eq!(get_time_unit_from_dag_set(dag_set.clone()), 1.0);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 1.0);
 
         let mut dag1 = Graph::<NodeData, f32>::new();
         dag1.add_node(create_node(1, "execution_time", 3.0));
         dag_set.push(dag1);
 
-        assert_eq!(get_time_unit_from_dag_set(dag_set.clone()), 1.0);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 1.0);
 
         let mut dag2 = Graph::<NodeData, f32>::new();
         dag2.add_node(create_node(2, "execution_time", 0.3));
         dag_set.push(dag2);
 
-        assert_eq!(get_time_unit_from_dag_set(dag_set.clone()), 0.1);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 0.1);
 
         let mut dag3 = Graph::<NodeData, f32>::new();
         dag3.add_node(create_node(3, "execution_time", 0.03));
         dag_set.push(dag3);
 
-        assert_eq!(get_time_unit_from_dag_set(dag_set), 0.01);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 0.01);
     }
 
     #[test]
