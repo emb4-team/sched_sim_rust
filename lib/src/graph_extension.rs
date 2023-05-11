@@ -37,6 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
+    fn get_index_from_id(&self, id: i32) -> Option<NodeIndex>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -276,6 +277,13 @@ impl GraphExtension for Graph<NodeData, f32> {
                 warn!("The end-to-end deadline does not exist.");
                 None
             })
+    }
+
+    fn get_index_from_id(&self, id: i32) -> Option<NodeIndex> {
+        self.node_indices().find(|&i| self[i].id == id).or_else(|| {
+            warn!("The node with id {} does not exist.", id);
+            None
+        })
     }
 }
 
@@ -561,5 +569,20 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3.0));
 
         assert_eq!(dag.get_end_to_end_deadline(), None);
+    }
+
+    #[test]
+    fn test_get_index_from_id_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(1, "execution_time", 0.0));
+
+        assert_eq!(dag.get_index_from_id(1), Some(n0));
+    }
+
+    #[test]
+    fn test_get_index_from_id_no_node_with_id() {
+        let dag = Graph::<NodeData, f32>::new();
+
+        assert_eq!(dag.get_index_from_id(0), None);
     }
 }
