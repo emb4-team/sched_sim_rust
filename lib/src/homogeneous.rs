@@ -12,6 +12,12 @@ impl HomogeneousProcessor {
         Self { cores }
     }
 
+    pub fn set_time_unit(&mut self, time_unit: f32) {
+        for core in &mut self.cores {
+            core.time_unit = time_unit;
+        }
+    }
+
     pub fn allocate(&mut self, core_id: usize, node_i: NodeIndex, exec_time: f32) -> bool {
         self.cores[core_id].allocate(node_i, exec_time)
     }
@@ -49,6 +55,15 @@ mod tests {
             assert!(core.is_idle);
             assert_eq!(core.processing_node, None);
             assert_eq!(core.remain_proc_time, 0.0);
+        }
+    }
+
+    #[test]
+    fn test_set_time_unit_normal() {
+        let mut processor = HomogeneousProcessor::new(2);
+        processor.set_time_unit(0.1);
+        for core in &processor.cores {
+            assert_eq!(core.time_unit, 0.1);
         }
     }
 
