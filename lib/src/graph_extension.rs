@@ -37,7 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
-    fn get_pre_nodes(&self, nodes: &[NodeIndex]) -> Vec<NodeIndex>;
+    fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -279,12 +279,22 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
     }
 
-    fn get_pre_nodes(&self, nodes: &[NodeIndex]) -> Vec<NodeIndex> {
-        nodes
-            .iter()
-            .flat_map(|node| self.edges_directed(*node, Incoming))
-            .map(|edge| edge.source())
-            .collect::<Vec<_>>()
+    fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
+        if node_i.index() < self.node_count() {
+            let pre_nodes = self
+                .edges_directed(node_i, Incoming)
+                .map(|edge| edge.source())
+                .collect::<Vec<_>>();
+
+            if pre_nodes.is_empty() {
+                None
+            } else {
+                Some(pre_nodes)
+            }
+        } else {
+            panic!("Node {:?} does not exist!", node_i);
+        }
     }
 }
 
@@ -570,5 +580,44 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3.0));
 
         assert_eq!(dag.get_end_to_end_deadline(), None);
+    }
+
+    #[test]
+    fn test_get_pre_nodes_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        dag.add_edge(n1, n2, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+
+        assert_eq!(dag.get_pre_nodes(n2), Some(vec![n0, n1]));
+    }
+
+    #[test]
+    fn test_get_pre_nodes_single() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+
+        assert_eq!(dag.get_pre_nodes(n1), Some(vec![n0]));
+    }
+
+    #[test]
+    fn test_get_pre_nodes_no_exist_pre_nodes() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+
+        assert_eq!(dag.get_pre_nodes(n0), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_pre_nodes_no_exist_target_node() {
+        let dag = Graph::<NodeData, f32>::new();
+        let invalid_node = NodeIndex::new(999);
+
+        assert_eq!(dag.get_pre_nodes(invalid_node), None);
     }
 }
