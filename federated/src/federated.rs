@@ -58,7 +58,14 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
-        let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
+        let end_to_end_deadline = match dag.get_end_to_end_deadline() {
+            Some(deadline) => deadline,
+            None => {
+                return Unschedulable {
+                    reason: String::from("End-to-end deadline could not be obtained."),
+                }
+            }
+        };
         let volume = dag.get_volume();
         let critical_paths = dag.get_critical_paths();
         let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
@@ -126,6 +133,7 @@ mod tests {
         dag.add_edge(n0, n3, 1.0);
         dag
     }
+
     fn create_low_utilization_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
@@ -140,11 +148,20 @@ mod tests {
         dag.add_edge(n0, n2, 1.0);
         dag
     }
+
     fn create_deadline_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
         params.insert("execution_time".to_owned(), 20.0);
         params.insert("end_to_end_deadline".to_owned(), 10.0);
+        dag.add_node(NodeData { id: 0, params });
+        dag
+    }
+
+    fn create_no_has_end_to_end_deadline_dag() -> Graph<NodeData, f32> {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let mut params = HashMap::new();
+        params.insert("execution_time".to_owned(), 3.0);
         dag.add_node(NodeData { id: 0, params });
         dag
     }
@@ -202,6 +219,17 @@ mod tests {
             federated(vec![create_deadline_exceeding_dag()], 5),
             Unschedulable {
                 reason: (String::from("Critical path WCET is greater than end-to-end deadline."))
+            }
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_federated_no_has_end_to_end_deadline() {
+        assert_eq!(
+            federated(vec![create_no_has_end_to_end_deadline_dag()], 1),
+            Unschedulable {
+                reason: (String::from("End-to-end deadline is not specified."))
             }
         );
     }
