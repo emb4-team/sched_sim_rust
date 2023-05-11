@@ -576,8 +576,7 @@ mod tests {
     #[test]
     fn test_get_period_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(NodeData {
+        let n0 = dag.add_node(NodeData {
             id: 1,
             params: {
                 let mut params = HashMap::new();
@@ -586,6 +585,7 @@ mod tests {
                 params
             },
         });
+        let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
 
         dag.add_edge(n0, n1, 1.0);
 
