@@ -37,6 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
+    fn get_pre_nodes(&self, nodes: &[NodeIndex]) -> Vec<NodeIndex>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -268,6 +269,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
             .sum()
     }
+
     fn get_end_to_end_deadline(&mut self) -> Option<f32> {
         self.node_indices()
             .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
@@ -275,6 +277,14 @@ impl GraphExtension for Graph<NodeData, f32> {
                 warn!("The end-to-end deadline does not exist.");
                 None
             })
+    }
+
+    fn get_pre_nodes(&self, nodes: &[NodeIndex]) -> Vec<NodeIndex> {
+        nodes
+            .iter()
+            .flat_map(|node| self.edges_directed(*node, Incoming))
+            .map(|edge| edge.source())
+            .collect::<Vec<_>>()
     }
 }
 
