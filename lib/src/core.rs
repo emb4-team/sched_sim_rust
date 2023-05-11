@@ -17,6 +17,7 @@ pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<NodeIndex>,
     pub remain_proc_time: f32,
+    pub time_unit: f32,
 }
 
 impl Default for Core {
@@ -25,6 +26,7 @@ impl Default for Core {
             is_idle: true,
             processing_node: None,
             remain_proc_time: 0.0,
+            time_unit: 1.0,
         }
     }
 }
@@ -46,7 +48,7 @@ impl Core {
         if self.is_idle {
             return Idle;
         }
-        self.remain_proc_time -= 1.0;
+        self.remain_proc_time -= self.time_unit;
         if self.remain_proc_time == 0.0 {
             self.is_idle = true;
             self.processing_node = None;
