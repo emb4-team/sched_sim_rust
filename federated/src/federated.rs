@@ -13,13 +13,13 @@ pub enum FederateResult {
 }
 
 /// This function attempts to apply federated scheduling to a set of directed acyclic graphs
-/// (DAGs), each representing a task with a certain end-to-end end_to_end_deadline and a worst-case
+/// (DAGs), each representing a task with a certain period (equal end_to_end_deadline) and a worst-case
 /// execution time (WCET). It also considers a given number of available processing cores.
 ///
 /// # Arguments
 ///
 /// * `dag_set` - A vector of Graphs. Each Graph represents a task with nodes of type `NodeData`
-///   and edges of type `f32`. Each task has an "end_to_end_end_to_end_deadline" parameter and a WCET.
+///   and edges of type `f32`. Each task has an "end_to_end_deadline" parameter and a WCET.
 /// * `total_cores` - The total number of available processing cores.
 ///
 /// # Returns
@@ -44,7 +44,7 @@ pub enum FederateResult {
 /// let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
 /// let mut params = HashMap::new();
 /// params.insert("execution_time".to_owned(), 2.0);
-/// params.insert("end_to_end_end_to_end_deadline".to_owned(), 143.0);
+/// params.insert("end_to_end_deadline".to_owned(), 143.0);
 /// let n2 = dag.add_node(NodeData { id: 2, params });
 /// dag.add_edge(n0, n1, 1.0);
 /// dag.add_edge(n1, n2, 1.0);
@@ -58,7 +58,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
-        let end_to_end_deadline = match dag.get_end_to_end_deadline() {
+        let period = match dag.get_end_to_end_deadline() {
             Some(deadline) => deadline,
             None => {
                 return Unschedulable {
@@ -71,17 +71,16 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
         let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
-        if critical_path_wcet > end_to_end_deadline {
+        if critical_path_wcet > period {
             warn!("Critical path WCET is greater than end-to-end deadline.");
             return Unschedulable {
                 reason: "Critical path WCET is greater than end-to-end deadline.".to_string(),
             };
         }
 
-        if volume / end_to_end_deadline > 1.0 {
-            let using_cores = ((volume - critical_path_wcet)
-                / (end_to_end_deadline - critical_path_wcet))
-                .ceil() as usize;
+        if volume / period > 1.0 {
+            let using_cores =
+                ((volume - critical_path_wcet) / (period - critical_path_wcet)).ceil() as usize;
             if using_cores > remaining_cores {
                 warn!("Insufficient number of high-utilization cores for the task set.");
                 return Unschedulable {
@@ -92,7 +91,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
                 remaining_cores -= using_cores;
             }
         } else {
-            low_utilizations += volume / end_to_end_deadline;
+            low_utilizations += volume / period;
         }
     }
     if remaining_cores as f32 > 2.0 * low_utilizations {
