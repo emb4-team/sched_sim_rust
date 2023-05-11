@@ -38,6 +38,7 @@ pub trait GraphExtension {
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -291,6 +292,24 @@ impl GraphExtension for Graph<NodeData, f32> {
                 None
             } else {
                 Some(pre_nodes)
+            }
+        } else {
+            panic!("Node {:?} does not exist!", node_i);
+        }
+    }
+
+    fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
+        if node_i.index() < self.node_count() {
+            let suc_nodes = self
+                .edges_directed(node_i, Outgoing)
+                .map(|edge| edge.target())
+                .collect::<Vec<_>>();
+
+            if suc_nodes.is_empty() {
+                None
+            } else {
+                Some(suc_nodes)
             }
         } else {
             panic!("Node {:?} does not exist!", node_i);
