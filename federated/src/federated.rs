@@ -66,7 +66,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
                 }
             }
         };
-        // deadline is equal to period
+        // Conforms to the definition in the original paper
         let deadline = period;
         let volume = dag.get_volume();
         let critical_paths = dag.get_critical_paths();
