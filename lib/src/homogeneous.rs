@@ -40,7 +40,7 @@ mod tests {
         NodeData { id, params }
     }
 
-    fn create_dag() -> Graph<NodeData, f32> {
+    fn create_sample_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 2.0));
         dag.add_node(create_node(1, "execution_time", 3.0));
@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn test_homogeneous_processor_allocate_normal() {
         let mut processor = HomogeneousProcessor::new(2);
-        let dag = create_dag();
+        let dag = create_sample_dag();
         let n0 = dag.node_indices().next().unwrap();
         let n1 = dag.node_indices().nth(1).unwrap();
 
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_homogeneous_processor_allocate_same_core() {
         let mut processor = HomogeneousProcessor::new(2);
-        let dag = create_dag();
+        let dag = create_sample_dag();
         let n0 = dag.node_indices().next().unwrap();
         let n1 = dag.node_indices().nth(1).unwrap();
 
@@ -95,7 +95,7 @@ mod tests {
     #[should_panic]
     fn test_homogeneous_processor_allocate_no_exist_core() {
         let mut processor = HomogeneousProcessor::new(2);
-        let dag = create_dag();
+        let dag = create_sample_dag();
         let n0 = dag.node_indices().next().unwrap();
 
         processor.allocate(2, n0, dag[n0].params["execution_time"]);
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn test_homogeneous_processor_process_normal() {
         let mut processor = HomogeneousProcessor::new(2);
-        let dag = create_dag();
+        let dag = create_sample_dag();
         let n0 = dag.node_indices().next().unwrap();
         let n1 = dag.node_indices().nth(1).unwrap();
 
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_homogeneous_processor_process_when_one_core_no_allocated() {
         let mut processor = HomogeneousProcessor::new(2);
-        let dag = create_dag();
+        let dag = create_sample_dag();
         let n0 = dag.node_indices().next().unwrap();
 
         processor.allocate(0, n0, dag[n0].params["execution_time"]);
