@@ -13,13 +13,13 @@ pub enum FederateResult {
 }
 
 /// This function attempts to apply federated scheduling to a set of directed acyclic graphs
-/// (DAGs), each representing a task with a certain period (equal end_to_end_deadline) and a worst-case
+/// (DAGs), each representing a task with a certain period and a worst-case
 /// execution time (WCET). It also considers a given number of available processing cores.
 ///
 /// # Arguments
 ///
 /// * `dag_set` - A vector of Graphs. Each Graph represents a task with nodes of type `NodeData`
-///   and edges of type `f32`. Each task has an "end_to_end_deadline" parameter and a WCET.
+///   and edges of type `f32`. Each task has an "period" parameter and a WCET.
 /// * `total_cores` - The total number of available processing cores.
 ///
 /// # Returns
@@ -40,12 +40,12 @@ pub enum FederateResult {
 ///  NodeData { id, params }
 /// }
 /// let mut dag = Graph::<NodeData, f32>::new();
-/// let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-/// let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
 /// let mut params = HashMap::new();
 /// params.insert("execution_time".to_owned(), 2.0);
-/// params.insert("end_to_end_deadline".to_owned(), 143.0);
-/// let n2 = dag.add_node(NodeData { id: 2, params });
+/// params.insert("period".to_owned(), 143.0);
+/// let n0 = dag.add_node(NodeData { id: 2, params });
+/// let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
+/// let n2 = dag.add_node(create_node(1, "execution_time", 6.0));
 /// dag.add_edge(n0, n1, 1.0);
 /// dag.add_edge(n1, n2, 1.0);
 /// let dag_set = vec![dag];
@@ -58,11 +58,11 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
-        let period = match dag.get_end_to_end_deadline() {
-            Some(deadline) => deadline,
+        let period = match dag.get_period() {
+            Some(period) => period,
             None => {
                 return Unschedulable {
-                    reason: String::from("End-to-end deadline could not be obtained."),
+                    reason: String::from("period could not be obtained."),
                 }
             }
         };
@@ -72,13 +72,14 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > period {
-            warn!("Critical path WCET is greater than end-to-end deadline.");
+            warn!("Critical path WCET is greater than period.");
             return Unschedulable {
-                reason: "Critical path WCET is greater than end-to-end deadline.".to_string(),
+                reason: "Critical path WCET is greater than period.".to_string(),
             };
         }
 
         if volume / period > 1.0 {
+            // deadline is equal to period
             let using_cores =
                 ((volume - critical_path_wcet) / (period - critical_path_wcet)).ceil() as usize;
             if using_cores > remaining_cores {
@@ -124,7 +125,7 @@ mod tests {
         let n3 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
-            params.insert("end_to_end_deadline".to_owned(), 10.0);
+            params.insert("period".to_owned(), 10.0);
             dag.add_node(NodeData { id: 3, params })
         };
         dag.add_edge(n0, n1, 1.0);
@@ -140,7 +141,7 @@ mod tests {
         let n2 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
-            params.insert("end_to_end_deadline".to_owned(), 30.0);
+            params.insert("period".to_owned(), 30.0);
             dag.add_node(NodeData { id: 2, params })
         };
         dag.add_edge(n0, n1, 1.0);
@@ -152,12 +153,12 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
         params.insert("execution_time".to_owned(), 20.0);
-        params.insert("end_to_end_deadline".to_owned(), 10.0);
+        params.insert("period".to_owned(), 10.0);
         dag.add_node(NodeData { id: 0, params });
         dag
     }
 
-    fn create_no_has_end_to_end_deadline_dag() -> Graph<NodeData, f32> {
+    fn create_no_has_period_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
         params.insert("execution_time".to_owned(), 3.0);
@@ -224,9 +225,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_federated_no_has_end_to_end_deadline() {
+    fn test_federated_no_has_period() {
         assert_eq!(
-            federated(vec![create_no_has_end_to_end_deadline_dag()], 1),
+            federated(vec![create_no_has_period_dag()], 1),
             Unschedulable {
                 reason: (String::from("End-to-end deadline is not specified."))
             }
