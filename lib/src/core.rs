@@ -3,7 +3,6 @@ use crate::{core::ProcessResult::*, graph_extension::NodeData};
 use log::warn;
 use petgraph::{graph::NodeIndex, Graph};
 
-///
 pub fn get_time_unit_from_dag_set(dag_set: Vec<Graph<NodeData, f32>>) -> f32 {
     // Initial value is set to 1.0 and returned as is if no decimal point is found.
     let mut time_unit = 1.0;
