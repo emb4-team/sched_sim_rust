@@ -66,22 +66,23 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> Fede
                 }
             }
         };
+        // deadline is equal to period
+        let deadline = period;
         let volume = dag.get_volume();
         let critical_paths = dag.get_critical_paths();
         let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
-        if critical_path_wcet > period {
-            warn!("Critical path WCET is greater than period.");
+        if critical_path_wcet > deadline {
+            warn!("Critical path WCET is greater than deadline.");
             return Unschedulable {
-                reason: "Critical path WCET is greater than period.".to_string(),
+                reason: "Critical path WCET is greater than deadline.".to_string(),
             };
         }
 
         if volume / period > 1.0 {
-            // deadline is equal to period
             let using_cores =
-                ((volume - critical_path_wcet) / (period - critical_path_wcet)).ceil() as usize;
+                ((volume - critical_path_wcet) / (deadline - critical_path_wcet)).ceil() as usize;
             if using_cores > remaining_cores {
                 warn!("Insufficient number of high-utilization cores for the task set.");
                 return Unschedulable {
@@ -119,15 +120,15 @@ mod tests {
 
     fn create_high_utilization_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 3.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 4.0));
-        let n3 = {
+        let n0 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
             params.insert("period".to_owned(), 10.0);
             dag.add_node(NodeData { id: 3, params })
         };
+        let n1 = dag.add_node(create_node(1, "execution_time", 3.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
+        let n3 = dag.add_node(create_node(0, "execution_time", 4.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
         dag.add_edge(n0, n3, 1.0);
@@ -136,20 +137,21 @@ mod tests {
 
     fn create_low_utilization_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
-        let n2 = {
+        let n0 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 3.0);
             params.insert("period".to_owned(), 30.0);
             dag.add_node(NodeData { id: 2, params })
         };
+        let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n2 = dag.add_node(create_node(1, "execution_time", 4.0));
+
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
         dag
     }
 
-    fn create_deadline_exceeding_dag() -> Graph<NodeData, f32> {
+    fn create_period_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
         params.insert("execution_time".to_owned(), 20.0);
@@ -216,9 +218,9 @@ mod tests {
     #[test]
     fn test_federated_unsuited_tasks() {
         assert_eq!(
-            federated(vec![create_deadline_exceeding_dag()], 5),
+            federated(vec![create_period_exceeding_dag()], 5),
             Unschedulable {
-                reason: (String::from("Critical path WCET is greater than end-to-end deadline."))
+                reason: (String::from("Critical path WCET is greater than period."))
             }
         );
     }
@@ -229,7 +231,7 @@ mod tests {
         assert_eq!(
             federated(vec![create_no_has_period_dag()], 1),
             Unschedulable {
-                reason: (String::from("End-to-end deadline is not specified."))
+                reason: (String::from("Period is not specified."))
             }
         );
     }
