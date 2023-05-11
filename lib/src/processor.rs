@@ -26,6 +26,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    #[allow(dead_code)]
     fn create_node(id: i32, key: &str, value: f32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
