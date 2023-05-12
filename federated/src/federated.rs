@@ -68,7 +68,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
             return Unschedulable {
-                reason: "Critical path WCET is greater than end_to_end_deadline.".to_string(),
+                reason: "The critical path length is greater than end_to_end_deadline.".to_string(),
             };
         }
 
@@ -206,7 +206,9 @@ mod tests {
         assert_eq!(
             federated(vec![create_period_exceeding_dag()], 5),
             Unschedulable {
-                reason: (String::from("Critical path WCET is greater than end_to_end_deadline."))
+                reason: (String::from(
+                    "The critical path length is greater than end_to_end_deadline."
+                ))
             }
         );
     }
