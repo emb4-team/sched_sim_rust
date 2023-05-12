@@ -41,7 +41,7 @@ pub trait GraphExtension {
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
-    fn add_node_check_duplicated_id(&mut self, node: NodeData) -> NodeIndex;
+    fn add_node_check_consistency_id(&mut self, node: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -353,12 +353,20 @@ impl GraphExtension for Graph<NodeData, f32> {
         Some(des_nodes).filter(|des| !des.is_empty())
     }
 
-    fn add_node_check_duplicated_id(&mut self, node: NodeData) -> NodeIndex {
+    fn add_node_check_consistency_id(&mut self, node: NodeData) -> NodeIndex {
         let node_index = self.add_node(node);
         let node_id = self[node_index].id;
 
         for existing_node_index in self.node_indices() {
-            if existing_node_index != node_index {
+            if self[existing_node_index].id != node_id {
+                assert_ne!(
+                    self[existing_node_index].id,
+                    node_id,
+                    "Node id is different from node index. id: {}, index: {}",
+                    node_id,
+                    existing_node_index.index()
+                );
+            } else if existing_node_index != node_index {
                 let existing_node_id = self[existing_node_index].id;
                 assert_ne!(
                     existing_node_id, node_id,
@@ -820,8 +828,8 @@ mod tests {
     fn test_add_node_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
 
-        let n0 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_check_duplicated_id(create_node(1, "execution_time", 3.0));
+        let n0 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_check_consistency_id(create_node(1, "execution_time", 3.0));
 
         assert_eq!(dag[n0].id, 0);
         assert_eq!(dag[n1].id, 1);
@@ -829,10 +837,10 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_add_node_duplicated_id() {
+    fn test_add_node_consistency_id() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
+        let n0 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
 
         assert_eq!(dag[n0].id, 1);
         assert_eq!(dag[n1].id, 1);
