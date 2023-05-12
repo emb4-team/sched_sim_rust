@@ -69,7 +69,6 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
-            warn!("Critical path WCET is greater than end_to_end_deadline.");
             return Unschedulable {
                 reason: "Critical path WCET is greater than end_to_end_deadline.".to_string(),
             };
@@ -80,7 +79,6 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
                 / (end_to_end_deadline - critical_path_wcet))
                 .ceil() as usize;
             if using_cores > remaining_cores {
-                warn!("Insufficient number of high-utilization cores for the task set.");
                 return Unschedulable {
                     reason: "Insufficient number of high-utilization cores for the task set."
                         .to_string(),
@@ -95,7 +93,6 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
     if remaining_cores as f32 > 2.0 * low_utilizations {
         Schedulable
     } else {
-        warn!("Insufficient number of low-utilization cores for the task set.");
         Unschedulable {
             reason: "Insufficient number of low-utilization cores for the task set.".to_string(),
         }
