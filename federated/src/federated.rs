@@ -20,7 +20,7 @@ pub enum FederateResult {
 ///
 /// * `dag_set` - A vector of Graphs. Each Graph represents a task with nodes of type `NodeData`
 ///   and edges of type `f32`. Each task has an "period" parameter and a WCET.
-/// * `total_cores` - The total number of available processing cores.
+/// * `number_of_cores` - The total number of available processing cores.
 ///
 /// # Returns
 ///
@@ -49,12 +49,12 @@ pub enum FederateResult {
 /// dag.add_edge(n0, n1, 1.0);
 /// dag.add_edge(n1, n2, 1.0);
 /// let dag_set = vec![dag];
-/// let total_cores = 4;
-/// let can_schedule = federated(dag_set, total_cores);
+/// let number_of_cores = 4;
+/// let can_schedule = federated(dag_set, number_of_cores);
 /// ```
 ///
-pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, total_cores: usize) -> FederateResult {
-    let mut remaining_cores = total_cores;
+pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> FederateResult {
+    let mut remaining_cores = number_of_cores;
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
