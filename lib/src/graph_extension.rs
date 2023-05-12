@@ -334,11 +334,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 }
             }
         }
-        if anc_nodes.is_empty() {
-            None
-        } else {
-            Some(anc_nodes)
-        }
+        Some(anc_nodes).filter(|anc| !anc.is_empty())
     }
 
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
@@ -357,11 +353,7 @@ impl GraphExtension for Graph<NodeData, f32> {
                 }
             }
         }
-        if des_nodes.is_empty() {
-            None
-        } else {
-            Some(des_nodes)
-        }
+        Some(des_nodes).filter(|des| !des.is_empty())
     }
 }
 
