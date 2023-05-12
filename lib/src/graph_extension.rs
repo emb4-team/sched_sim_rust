@@ -297,19 +297,15 @@ impl GraphExtension for Graph<NodeData, f32> {
 
     fn get_all_period(&mut self) -> Option<HashMap<NodeIndex, f32>> {
         let mut period_map = HashMap::new();
-        let mut has_period = false;
-
         for node in self.node_indices() {
             if let Some(period) = self[node].params.get("period") {
                 period_map.insert(node, *period);
-                has_period = true;
             }
         }
-
-        if has_period {
-            Some(period_map)
-        } else {
+        if period_map.is_empty() {
             None
+        } else {
+            Some(period_map)
         }
     }
 
