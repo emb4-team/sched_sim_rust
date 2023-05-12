@@ -58,14 +58,9 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
-        let period = match dag.get_period() {
-            Some(period) => period,
-            None => {
-                return Unschedulable {
-                    reason: String::from("period could not be obtained."),
-                }
-            }
-        };
+        let period = dag
+            .get_period()
+            .unwrap_or_else(|| panic!("Period is not defined for the tasks."));
         // Conforms to the definition in the original paper
         let deadline = period;
         let volume = dag.get_volume();
