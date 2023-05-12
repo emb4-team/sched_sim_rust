@@ -37,6 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
+    fn get_head_period(&mut self) -> Option<f32>;
     fn get_dag_period(&mut self) -> Option<HashMap<NodeIndex, f32>>;
 }
 
@@ -277,6 +278,17 @@ impl GraphExtension for Graph<NodeData, f32> {
                 warn!("The end-to-end deadline does not exist.");
                 None
             })
+    }
+
+    fn get_head_period(&mut self) -> Option<f32> {
+        self.get_source_nodes()
+            .iter()
+            .filter_map(|node| {
+                self.node_weight(*node)
+                    .and_then(|node_data| node_data.params.get("period"))
+                    .copied()
+            })
+            .next()
     }
 
     fn get_dag_period(&mut self) -> Option<HashMap<NodeIndex, f32>> {
