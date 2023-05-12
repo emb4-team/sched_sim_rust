@@ -79,8 +79,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
                 .ceil() as usize;
             if using_cores > remaining_cores {
                 return Unschedulable {
-                    reason: "Insufficient number of high-utilization cores for the task set."
-                        .to_string(),
+                    reason: "Insufficient number of cores for high-utilization tasks.".to_string(),
                 };
             } else {
                 remaining_cores -= using_cores;
@@ -93,7 +92,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         Schedulable
     } else {
         Unschedulable {
-            reason: "Insufficient number of low-utilization cores for the task set.".to_string(),
+            reason: "Insufficient number of cores for low-utilization tasks.".to_string(),
         }
     }
 }
