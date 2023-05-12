@@ -285,14 +285,23 @@ impl GraphExtension for Graph<NodeData, f32> {
     }
 
     fn get_head_period(&mut self) -> Option<f32> {
-        self.get_source_nodes()
+        let source_nodes = self.get_source_nodes();
+        let periods: Vec<f32> = source_nodes
             .iter()
-            .filter_map(|node| {
-                self.node_weight(*node)
-                    .and_then(|node_data| node_data.params.get("period"))
-                    .copied()
+            .filter_map(|&node| {
+                self.node_weight(node)
+                    .and_then(|node_data| node_data.params.get("period").cloned())
             })
-            .next()
+            .collect();
+
+        if source_nodes.len() > 1 {
+            warn!("Multiple source nodes found.");
+        }
+        if periods.len() > 1 {
+            warn!("Multiple periods found.");
+        }
+
+        periods.first().cloned()
     }
 
     fn get_all_period(&mut self) -> Option<HashMap<NodeIndex, f32>> {
