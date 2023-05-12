@@ -58,6 +58,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
 
     for mut dag in dag_set {
         let period = dag.get_head_period().unwrap();
+        println!("period: {}", period);
 
         // Conforms to the definition in the original paper
         let end_to_end_deadline = period; // implicit deadline
@@ -72,7 +73,8 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             };
         }
 
-        let utilization = critical_path_wcet / period;
+        let utilization = volume / period;
+        println!("utilization: {}", utilization);
         if utilization > 1.0 {
             let using_cores = ((volume - critical_path_wcet)
                 / (end_to_end_deadline - critical_path_wcet))
@@ -113,16 +115,17 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
             let mut params = HashMap::new();
-            params.insert("execution_time".to_owned(), 3.0);
+            params.insert("execution_time".to_owned(), 4.0);
             params.insert("period".to_owned(), 10.0);
             dag.add_node(NodeData { id: 3, params })
         };
-        let n1 = dag.add_node(create_node(1, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
         let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
-        let n3 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
         dag.add_edge(n0, n3, 1.0);
+
         dag
     }
 
@@ -195,7 +198,7 @@ mod tests {
         ];
 
         assert_eq!(
-            federated(dag_set, 2),
+            federated(dag_set, 3),
             Unschedulable {
                 reason: (String::from("Insufficient number of cores for low-utilization tasks."))
             }
