@@ -357,10 +357,11 @@ impl GraphExtension for Graph<NodeData, f32> {
         let parallel_process_nodes: Vec<_> = self
             .node_indices()
             .filter(|&node| {
-                !self
-                    .get_anc_nodes(node)
-                    .unwrap_or_default()
-                    .contains(&node_i)
+                node != node_i
+                    && !self
+                        .get_anc_nodes(node)
+                        .unwrap_or_default()
+                        .contains(&node_i)
                     && !self
                         .get_des_nodes(node)
                         .unwrap_or_default()
@@ -828,5 +829,8 @@ mod tests {
         dag.add_edge(n1, n3, 1.0);
 
         assert_eq!(dag.get_parallel_process_nodes(n2), Some(vec![n1, n3]));
+        println!("{:?}", dag.get_anc_nodes(n3));
+        println!("{:?}", dag.get_des_nodes(n3));
+        assert_eq!(dag.get_parallel_process_nodes(n3), Some(vec![n2]));
     }
 }
