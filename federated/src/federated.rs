@@ -182,9 +182,7 @@ mod tests {
         assert_eq!(
             federated(dag_set, 1),
             Unschedulable {
-                reason: (String::from(
-                    "Insufficient number of high-utilization cores for the task set."
-                ))
+                reason: (String::from("Insufficient number of cores for high-utilization tasks."))
             }
         );
     }
@@ -200,9 +198,7 @@ mod tests {
         assert_eq!(
             federated(dag_set, 2),
             Unschedulable {
-                reason: (String::from(
-                    "Insufficient number of low-utilization cores for the task set."
-                ))
+                reason: (String::from("Insufficient number of cores for low-utilization tasks."))
             }
         );
     }
