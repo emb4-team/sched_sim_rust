@@ -41,6 +41,7 @@ pub trait GraphExtension {
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -350,6 +351,24 @@ impl GraphExtension for Graph<NodeData, f32> {
             }
         }
         Some(des_nodes).filter(|des| !des.is_empty())
+    }
+
+    fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        let parallel_process_nodes: Vec<_> = self
+            .node_indices()
+            .filter(|&node| {
+                !self
+                    .get_anc_nodes(node)
+                    .unwrap_or_default()
+                    .contains(&node_i)
+                    && !self
+                        .get_des_nodes(node)
+                        .unwrap_or_default()
+                        .contains(&node_i)
+            })
+            .collect();
+
+        Some(parallel_process_nodes).filter(|par| par.len() > 1)
     }
 }
 
