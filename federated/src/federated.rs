@@ -62,7 +62,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             .get_period()
             .unwrap_or_else(|| panic!("Period is not defined for the tasks."));
         // Conforms to the definition in the original paper
-        let end_to_end_deadline = period;
+        let end_to_end_deadline = period; // implicit deadline
         let volume = dag.get_volume();
         let critical_paths = dag.get_critical_paths();
         let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
