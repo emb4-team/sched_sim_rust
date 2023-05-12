@@ -62,22 +62,23 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             .get_period()
             .unwrap_or_else(|| panic!("Period is not defined for the tasks."));
         // Conforms to the definition in the original paper
-        let deadline = period;
+        let end_to_end_deadline = period;
         let volume = dag.get_volume();
         let critical_paths = dag.get_critical_paths();
         let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
-        if critical_path_wcet > deadline {
-            warn!("Critical path WCET is greater than deadline.");
+        if critical_path_wcet > end_to_end_deadline {
+            warn!("Critical path WCET is greater than end_to_end_deadline.");
             return Unschedulable {
-                reason: "Critical path WCET is greater than deadline.".to_string(),
+                reason: "Critical path WCET is greater than end_to_end_deadline.".to_string(),
             };
         }
 
         if volume / period > 1.0 {
-            let using_cores =
-                ((volume - critical_path_wcet) / (deadline - critical_path_wcet)).ceil() as usize;
+            let using_cores = ((volume - critical_path_wcet)
+                / (end_to_end_deadline - critical_path_wcet))
+                .ceil() as usize;
             if using_cores > remaining_cores {
                 warn!("Insufficient number of high-utilization cores for the task set.");
                 return Unschedulable {
@@ -215,7 +216,7 @@ mod tests {
         assert_eq!(
             federated(vec![create_period_exceeding_dag()], 5),
             Unschedulable {
-                reason: (String::from("Critical path WCET is greater than deadline."))
+                reason: (String::from("Critical path WCET is greater than end_to_end_deadline."))
             }
         );
     }
