@@ -319,20 +319,12 @@ impl GraphExtension for Graph<NodeData, f32> {
     }
 
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
-        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
-        if node_i.index() < self.node_count() {
-            let mut anc_nodes = Vec::new();
-            let mut search_queue = VecDeque::new();
-            search_queue.push_back(node_i);
+        let mut anc_nodes = Vec::new();
+        let mut search_queue = VecDeque::new();
+        search_queue.push_back(node_i);
 
-            while let Some(node) = search_queue.pop_front() {
-                let pre_nodes = self.get_pre_nodes(node).unwrap_or_else(|| {
-                    panic!(
-                        "The node {:?} does not have any predecessors.",
-                        self[node].id
-                    )
-                });
-
+        while let Some(node) = search_queue.pop_front() {
+            if let Some(pre_nodes) = self.get_pre_nodes(node) {
                 for pre_node in pre_nodes {
                     if !anc_nodes.contains(&pre_node) {
                         anc_nodes.push(pre_node);
@@ -340,25 +332,21 @@ impl GraphExtension for Graph<NodeData, f32> {
                     }
                 }
             }
-
-            Some(anc_nodes)
+        }
+        if anc_nodes.is_empty() {
+            None
         } else {
-            panic!("Node {:?} does not exist!", node_i);
+            Some(anc_nodes)
         }
     }
 
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
-        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
-        if node_i.index() < self.node_count() {
-            let mut des_nodes = Vec::new();
-            let mut search_queue = VecDeque::new();
-            search_queue.push_back(node_i);
+        let mut des_nodes = Vec::new();
+        let mut search_queue = VecDeque::new();
+        search_queue.push_back(node_i);
 
-            while let Some(node) = search_queue.pop_front() {
-                let suc_nodes = self.get_suc_nodes(node).unwrap_or_else(|| {
-                    panic!("The node {:?} does not have any successors.", self[node].id)
-                });
-
+        while let Some(node) = search_queue.pop_front() {
+            if let Some(suc_nodes) = self.get_suc_nodes(node) {
                 for suc_node in suc_nodes {
                     if !des_nodes.contains(&suc_node) {
                         des_nodes.push(suc_node);
@@ -366,10 +354,11 @@ impl GraphExtension for Graph<NodeData, f32> {
                     }
                 }
             }
-
-            Some(des_nodes)
+        }
+        if des_nodes.is_empty() {
+            None
         } else {
-            panic!("Node {:?} does not exist!", node_i);
+            Some(des_nodes)
         }
     }
 }
@@ -734,5 +723,46 @@ mod tests {
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_suc_nodes(invalid_node), None);
+    }
+
+    #[test]
+    fn test_get_anc_nodes_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 0.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n2, n3, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+
+        assert_eq!(dag.get_anc_nodes(n3), Some(vec![n1, n2, n0]));
+    }
+
+    #[test]
+    fn test_get_anc_nodes_single() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+
+        assert_eq!(dag.get_anc_nodes(n1), Some(vec![n0]));
+    }
+
+    #[test]
+    fn test_get_anc_nodes_no_exist_anc_nodes() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+
+        assert_eq!(dag.get_anc_nodes(n0), None);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_anc_nodes_no_exist_target_node() {
+        let dag = Graph::<NodeData, f32>::new();
+        let invalid_node = NodeIndex::new(999);
+
+        assert_eq!(dag.get_anc_nodes(invalid_node), None);
     }
 }
