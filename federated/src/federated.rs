@@ -223,11 +223,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_federated_no_has_period() {
-        assert_eq!(
-            federated(vec![create_no_has_period_dag()], 1),
-            Unschedulable {
-                reason: (String::from("Period is not specified."))
-            }
-        );
+        federated(vec![create_no_has_period_dag()], 1);
     }
 }
