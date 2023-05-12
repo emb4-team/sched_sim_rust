@@ -37,7 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
-    fn get_dag_period(&mut self) -> Option<f32>;
+    fn get_dag_period(&mut self) -> Option<HashMap<NodeIndex, f32>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -279,13 +279,22 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
     }
 
-    fn get_dag_period(&mut self) -> Option<f32> {
-        self.node_indices()
-            .find_map(|i| self[i].params.get("period").cloned())
-            .or_else(|| {
-                warn!("The period does not exist.");
-                None
-            })
+    fn get_dag_period(&mut self) -> Option<HashMap<NodeIndex, f32>> {
+        let mut period_map = HashMap::new();
+        let mut has_period = false;
+
+        for node in self.node_indices() {
+            if let Some(period) = self[node].params.get("period") {
+                period_map.insert(node, *period);
+                has_period = true;
+            }
+        }
+
+        if has_period {
+            Some(period_map)
+        } else {
+            None
+        }
     }
 }
 
@@ -576,20 +585,15 @@ mod tests {
     #[test]
     fn test_get_dag_period_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node(NodeData {
-            id: 1,
-            params: {
-                let mut params = HashMap::new();
-                params.insert("execution_time".to_string(), 11.0);
-                params.insert("period".to_string(), 25.0);
-                params
-            },
-        });
-        let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n0 = dag.add_node(create_node(0, "period", 3.0));
+        let n1 = dag.add_node(create_node(0, "period", 4.0));
 
         dag.add_edge(n0, n1, 1.0);
 
-        assert_eq!(dag.get_dag_period(), Some(25.0));
+        let mut expected_period_map = HashMap::new();
+        expected_period_map.insert(n0, 3.0);
+        expected_period_map.insert(n1, 4.0);
+        assert_eq!(dag.get_dag_period(), Some(expected_period_map));
     }
 
     #[test]
