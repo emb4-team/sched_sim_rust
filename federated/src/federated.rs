@@ -72,7 +72,8 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             };
         }
 
-        if volume / period > 1.0 {
+        let utilization = critical_path_wcet / period;
+        if utilization > 1.0 {
             let using_cores = ((volume - critical_path_wcet)
                 / (end_to_end_deadline - critical_path_wcet))
                 .ceil() as usize;
@@ -84,7 +85,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
                 remaining_cores -= using_cores;
             }
         } else {
-            low_utilizations += volume / period;
+            low_utilizations += utilization;
         }
     }
     if remaining_cores as f32 > 2.0 * low_utilizations {
