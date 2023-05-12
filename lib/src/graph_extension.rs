@@ -369,7 +369,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
             .collect();
 
-        Some(parallel_process_nodes).filter(|par| par.len() > 1)
+        Some(parallel_process_nodes).filter(|par| !par.is_empty())
     }
 }
 
@@ -829,8 +829,14 @@ mod tests {
         dag.add_edge(n1, n3, 1.0);
 
         assert_eq!(dag.get_parallel_process_nodes(n2), Some(vec![n1, n3]));
-        println!("{:?}", dag.get_anc_nodes(n3));
-        println!("{:?}", dag.get_des_nodes(n3));
         assert_eq!(dag.get_parallel_process_nodes(n3), Some(vec![n2]));
+    }
+
+    #[test]
+    fn get_parallel_process_nodes_no_exist_parallel_process_nodes() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "parallel_process", 0.0));
+
+        assert_eq!(dag.get_parallel_process_nodes(n0), None);
     }
 }
