@@ -37,7 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
-    fn get_period(&mut self) -> Option<f32>;
+    fn get_dag_period(&mut self) -> Option<f32>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -279,7 +279,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
     }
 
-    fn get_period(&mut self) -> Option<f32> {
+    fn get_dag_period(&mut self) -> Option<f32> {
         self.node_indices()
             .find_map(|i| self[i].params.get("period").cloned())
             .or_else(|| {
@@ -574,7 +574,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_period_normal() {
+    fn test_get_dag_period_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(NodeData {
             id: 1,
@@ -589,14 +589,14 @@ mod tests {
 
         dag.add_edge(n0, n1, 1.0);
 
-        assert_eq!(dag.get_period(), Some(25.0));
+        assert_eq!(dag.get_dag_period(), Some(25.0));
     }
 
     #[test]
-    fn test_get_period_node_no_includes_period() {
+    fn test_get_dag_period_node_no_includes_period() {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 3.0));
 
-        assert_eq!(dag.get_period(), None);
+        assert_eq!(dag.get_dag_period(), None);
     }
 }
