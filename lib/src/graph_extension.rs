@@ -37,6 +37,7 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
+    fn add_node_check_duplicated_id(&mut self, node: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -276,6 +277,24 @@ impl GraphExtension for Graph<NodeData, f32> {
                 warn!("The end-to-end deadline does not exist.");
                 None
             })
+    }
+
+    fn add_node_check_duplicated_id(&mut self, node: NodeData) -> NodeIndex {
+        let node_index = self.add_node(node);
+        let node_id = self[node_index].id;
+
+        for existing_node_index in self.node_indices() {
+            if existing_node_index != node_index {
+                let existing_node_id = self[existing_node_index].id;
+                assert_ne!(
+                    existing_node_id, node_id,
+                    "Node id is duplicated. id: {}",
+                    node_id
+                );
+            }
+        }
+
+        node_index
     }
 }
 
@@ -561,5 +580,27 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3.0));
 
         assert_eq!(dag.get_end_to_end_deadline(), None);
+    }
+
+    #[test]
+    fn test_add_node_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+
+        let n0 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_check_duplicated_id(create_node(1, "execution_time", 3.0));
+
+        assert_eq!(dag[n0].id, 0);
+        assert_eq!(dag[n1].id, 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_node_duplicated_id() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_check_duplicated_id(create_node(0, "execution_time", 3.0));
+
+        assert_eq!(dag[n0].id, 1);
+        assert_eq!(dag[n1].id, 1);
     }
 }
