@@ -57,10 +57,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
     let mut low_utilizations = 0.0;
 
     for mut dag in dag_set {
-        let period = dag
-            .get_dag_period()
-            .map(|period_map| period_map[&dag.node_indices().next().unwrap()])
-            .unwrap_or_else(|| panic!("Period is not defined for the tasks."));
+        let period = dag.get_head_period().unwrap();
 
         // Conforms to the definition in the original paper
         let end_to_end_deadline = period; // implicit deadline
