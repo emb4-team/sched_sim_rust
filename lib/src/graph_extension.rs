@@ -669,6 +669,25 @@ mod tests {
     }
 
     #[test]
+    fn test_get_head_period_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "period", 3.0));
+        let n1 = dag.add_node(create_node(0, "period", 4.0));
+
+        dag.add_edge(n0, n1, 1.0);
+
+        assert_eq!(dag.get_head_period(), Some(3.0));
+    }
+
+    #[test]
+    fn test_get_head_period_node_no_includes_period() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        dag.add_node(create_node(0, "weight", 3.0));
+
+        assert_eq!(dag.get_head_period(), None);
+    }
+
+    #[test]
     fn test_get_all_period_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "period", 3.0));
