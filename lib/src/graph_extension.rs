@@ -815,4 +815,18 @@ mod tests {
 
         assert_eq!(dag.get_des_nodes(invalid_node), None);
     }
+
+    #[test]
+    fn get_parallel_process_nodes_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "parallel_process", 0.0));
+        let n1 = dag.add_node(create_node(1, "parallel_process", 0.0));
+        let n2 = dag.add_node(create_node(2, "parallel_process", 0.0));
+        let n3 = dag.add_node(create_node(3, "parallel_process", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+
+        assert_eq!(dag.get_parallel_process_nodes(n2), Some(vec![n1, n3]));
+    }
 }
