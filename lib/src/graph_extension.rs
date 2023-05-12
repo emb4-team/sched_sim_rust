@@ -39,6 +39,8 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -311,6 +313,61 @@ impl GraphExtension for Graph<NodeData, f32> {
             } else {
                 Some(suc_nodes)
             }
+        } else {
+            panic!("Node {:?} does not exist!", node_i);
+        }
+    }
+
+    fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
+        if node_i.index() < self.node_count() {
+            let mut anc_nodes = Vec::new();
+            let mut search_queue = VecDeque::new();
+            search_queue.push_back(node_i);
+
+            while let Some(node) = search_queue.pop_front() {
+                let pre_nodes = self.get_pre_nodes(node).unwrap_or_else(|| {
+                    panic!(
+                        "The node {:?} does not have any predecessors.",
+                        self[node].id
+                    )
+                });
+
+                for pre_node in pre_nodes {
+                    if !anc_nodes.contains(&pre_node) {
+                        anc_nodes.push(pre_node);
+                        search_queue.push_back(pre_node);
+                    }
+                }
+            }
+
+            Some(anc_nodes)
+        } else {
+            panic!("Node {:?} does not exist!", node_i);
+        }
+    }
+
+    fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        //Since node indices are sequentially numbered, this is used to determine whether a node exists or not.
+        if node_i.index() < self.node_count() {
+            let mut des_nodes = Vec::new();
+            let mut search_queue = VecDeque::new();
+            search_queue.push_back(node_i);
+
+            while let Some(node) = search_queue.pop_front() {
+                let suc_nodes = self.get_suc_nodes(node).unwrap_or_else(|| {
+                    panic!("The node {:?} does not have any successors.", self[node].id)
+                });
+
+                for suc_node in suc_nodes {
+                    if !des_nodes.contains(&suc_node) {
+                        des_nodes.push(suc_node);
+                        search_queue.push_back(suc_node);
+                    }
+                }
+            }
+
+            Some(des_nodes)
         } else {
             panic!("Node {:?} does not exist!", node_i);
         }
