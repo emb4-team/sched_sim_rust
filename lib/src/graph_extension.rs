@@ -324,6 +324,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         search_queue.push_back(node_i);
 
         while let Some(node) = search_queue.pop_front() {
+            //If the target node does not exist, get_pre_node causes panic!
             if let Some(pre_nodes) = self.get_pre_nodes(node) {
                 for pre_node in pre_nodes {
                     if !anc_nodes.contains(&pre_node) {
@@ -346,6 +347,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         search_queue.push_back(node_i);
 
         while let Some(node) = search_queue.pop_front() {
+            //If the target node does not exist, get_pre_node causes panic!
             if let Some(suc_nodes) = self.get_suc_nodes(node) {
                 for suc_node in suc_nodes {
                     if !des_nodes.contains(&suc_node) {
