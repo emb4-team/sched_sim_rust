@@ -771,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_desc_nodes_single() {
+    fn test_get_des_nodes_single() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0.0));
@@ -781,7 +781,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_desc_nodes_no_exist_desc_nodes() {
+    fn test_get_des_nodes_no_exist_des_nodes() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
 
@@ -790,7 +790,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_get_desc_nodes_no_exist_target_node() {
+    fn test_get_des_nodes_no_exist_target_node() {
         let dag = Graph::<NodeData, f32>::new();
         let invalid_node = NodeIndex::new(999);
 
