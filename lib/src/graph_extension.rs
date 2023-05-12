@@ -366,13 +366,6 @@ impl GraphExtension for Graph<NodeData, f32> {
                     node_id,
                     existing_node_index.index()
                 );
-            } else if existing_node_index != node_index {
-                let existing_node_id = self[existing_node_index].id;
-                assert_ne!(
-                    existing_node_id, node_id,
-                    "Node id is duplicated. id: {}",
-                    node_id
-                );
             }
         }
 
