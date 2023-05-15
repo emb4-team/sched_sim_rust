@@ -58,7 +58,6 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
 
     for mut dag in dag_set {
         let period = dag.get_head_period().unwrap();
-        println!("period: {}", period);
 
         // Conforms to the definition in the original paper
         let end_to_end_deadline = period; // implicit deadline
@@ -74,7 +73,6 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         }
 
         let utilization = volume / period;
-        println!("utilization: {}", utilization);
         if utilization > 1.0 {
             let using_cores = ((volume - critical_path_wcet)
                 / (end_to_end_deadline - critical_path_wcet))
