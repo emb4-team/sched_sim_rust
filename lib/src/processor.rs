@@ -7,25 +7,10 @@ pub struct Processor {
 }
 
 pub trait ProcessorBase {
+    fn new(num_cores: usize) -> Self;
     fn set_time_unit(&mut self, time_unit: f32);
     fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool;
     fn process(&mut self) -> Vec<ProcessResult>;
-}
-
-impl ProcessorBase for Processor {
-    fn set_time_unit(&mut self, time_unit: f32) {
-        for core in &mut self.cores {
-            core.time_unit = time_unit;
-        }
-    }
-
-    fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool {
-        self.cores[core_id].allocate(node_data)
-    }
-
-    fn process(&mut self) -> Vec<ProcessResult> {
-        self.cores.iter_mut().map(|core| core.process()).collect()
-    }
 }
 
 pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -> f32 {
