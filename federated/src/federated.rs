@@ -74,15 +74,15 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
 
         let utilization = volume / period;
         if utilization > 1.0 {
-            let using_cores = ((volume - critical_path_wcet)
+            let high_dedicated_cores = ((volume - critical_path_wcet)
                 / (end_to_end_deadline - critical_path_wcet))
                 .ceil() as usize;
-            if using_cores > remaining_cores {
+            if high_dedicated_cores > remaining_cores {
                 return Unschedulable {
                     reason: "Insufficient number of cores for high-utilization tasks.".to_string(),
                 };
             } else {
-                remaining_cores -= using_cores;
+                remaining_cores -= high_dedicated_cores;
             }
         } else {
             low_utilizations += utilization;
