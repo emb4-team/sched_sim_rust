@@ -73,6 +73,5 @@ mod tests {
         dag.add_edge(n0, n2, 1.0);
         dag.add_edge(n1, n3, 1.0);
         dag.add_edge(n2, n4, 1.0);
-        create_yaml_file("tests/result", "test");
     }
 }
