@@ -37,8 +37,8 @@ pub trait GraphExtension {
     fn get_volume(&self) -> f32;
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
-    fn get_head_period(&mut self) -> Option<f32>;
-    fn get_all_periods(&mut self) -> Option<HashMap<NodeIndex, f32>>;
+    fn get_head_period(&self) -> Option<f32>;
+    fn get_all_periods(&self) -> Option<HashMap<NodeIndex, f32>>;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -284,7 +284,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
     }
 
-    fn get_head_period(&mut self) -> Option<f32> {
+    fn get_head_period(&self) -> Option<f32> {
         let source_nodes = self.get_source_nodes();
         let periods: Vec<f32> = source_nodes
             .iter()
@@ -307,7 +307,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         periods.first().cloned()
     }
 
-    fn get_all_periods(&mut self) -> Option<HashMap<NodeIndex, f32>> {
+    fn get_all_periods(&self) -> Option<HashMap<NodeIndex, f32>> {
         let mut period_map = HashMap::new();
         for node in self.node_indices() {
             if let Some(period) = self[node].params.get("period") {
