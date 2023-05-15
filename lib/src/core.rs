@@ -39,9 +39,8 @@ impl Core {
         }
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
-        if node_data.params.contains_key("execution_time") {
-            let exec_time = node_data.params["execution_time"];
-            self.remain_proc_time = exec_time;
+        if let Some(exec_time) = node_data.params.get("execution_time") {
+            self.remain_proc_time = *exec_time;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
