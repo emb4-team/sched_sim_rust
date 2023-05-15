@@ -355,19 +355,12 @@ impl GraphExtension for Graph<NodeData, f32> {
 
     fn add_node_check_consistency_id(&mut self, node: NodeData) -> NodeIndex {
         let node_index = self.add_node(node);
-        let node_id = self[node_index].id;
 
-        for existing_node_index in self.node_indices() {
-            if self[existing_node_index].id != node_id {
-                assert_ne!(
-                    self[existing_node_index].id,
-                    node_id,
-                    "Node id is different from node index. id: {}, index: {}",
-                    node_id,
-                    existing_node_index.index()
-                );
-            }
-        }
+        assert_eq!(
+            node_index.index() as i32,
+            self[node_index].id,
+            "Add node id is different from node index."
+        );
 
         node_index
     }
