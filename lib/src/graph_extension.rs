@@ -3,6 +3,7 @@ use petgraph::algo::toposort;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction::{Incoming, Outgoing};
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::f32;
@@ -11,7 +12,7 @@ const DUMMY_SOURCE_NODE_FLAG: f32 = -1.0;
 const DUMMY_SINK_NODE_FLAG: f32 = -2.0;
 
 /// custom node data structure for dag nodes (petgraph)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeData {
     pub id: i32,
     pub params: HashMap<String, f32>,
