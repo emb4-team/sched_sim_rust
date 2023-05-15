@@ -1,6 +1,7 @@
 use clap::Parser;
 use lib::dag_creator::*;
 mod federated;
+use lib::output::*;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
@@ -24,6 +25,7 @@ struct AppArg {
 /// Application main function
 fn main() {
     let arg: AppArg = AppArg::parse();
+    create_yaml_file("../outputs", "federated");
     if let Some(dag_dir_path) = arg.dag_dir_path {
         let dag_set = create_dag_set_from_dir(&dag_dir_path);
         federated::federated(dag_set, arg.number_of_cores);
