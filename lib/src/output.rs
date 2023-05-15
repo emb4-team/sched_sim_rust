@@ -10,7 +10,14 @@ use crate::graph_extension::NodeData;
 #[derive(Serialize)]
 struct SerializableGraph {
     nodes: Vec<NodeData>,
-    edges: Vec<(usize, usize, f32)>,
+    edges: Vec<EdgeData>,
+}
+
+#[derive(Serialize)]
+struct EdgeData {
+    communication_time: f32,
+    source: usize,
+    target: usize,
 }
 
 fn graph_to_yaml(graph: &Graph<NodeData, f32>) -> Result<String, serde_yaml::Error> {
@@ -23,11 +30,11 @@ fn graph_to_yaml(graph: &Graph<NodeData, f32>) -> Result<String, serde_yaml::Err
             .edge_indices()
             .map(|index| {
                 let edge = graph.edge_endpoints(index).unwrap();
-                (
-                    edge.0.index(),
-                    edge.1.index(),
-                    *graph.edge_weight(index).unwrap(),
-                )
+                EdgeData {
+                    communication_time: *graph.edge_weight(index).unwrap(),
+                    source: edge.0.index(),
+                    target: edge.1.index(),
+                }
             })
             .collect(),
     };
@@ -67,14 +74,9 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 36.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 54.0));
         dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
 
-        create_yaml_file("../outputs", "test");
+        let file_path = create_yaml_file("../outputs", "test");
+        let _ = graph_to_yaml_file(&dag, &file_path);
     }
 }

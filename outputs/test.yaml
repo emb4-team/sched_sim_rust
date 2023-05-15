@@ -1,0 +1,8 @@
+nodes:
+- id: 0
+  params:
+    execution_time: 4.0
+edges:
+- communication_time: 1.0
+  source: 0
+  target: 1
