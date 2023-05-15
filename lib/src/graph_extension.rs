@@ -32,7 +32,7 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
-    fn get_no_critical_paths_nodes(&mut self) -> Option<Vec<NodeIndex>>;
+    fn get_non_critical_nodes(&mut self) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> f32;
@@ -242,7 +242,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         critical_paths
     }
 
-    fn get_no_critical_paths_nodes(&mut self) -> Option<Vec<NodeIndex>> {
+    fn get_non_critical_nodes(&mut self) -> Option<Vec<NodeIndex>> {
         let critical_paths = self.get_critical_paths();
         let mut no_critical_paths_nodes = Vec::new();
         let mut critical_paths_nodes = Vec::new();
@@ -519,7 +519,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_no_critical_paths_nodes_when_critical_paths_single() {
+    fn test_get_non_critical_nodes_when_critical_paths_single() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
@@ -531,7 +531,7 @@ mod tests {
         dag.add_edge(n1, n3, 1.0);
         dag.add_edge(n2, n4, 1.0);
 
-        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes().unwrap();
+        let no_critical_paths_nodes = dag.get_non_critical_nodes().unwrap();
         assert_eq!(no_critical_paths_nodes.len(), 2);
 
         assert_eq!(
@@ -544,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_no_critical_paths_nodes_when_critical_paths_multiple() {
+    fn test_get_non_critical_nodes_when_critical_paths_multiple() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
@@ -566,7 +566,7 @@ mod tests {
         dag.add_edge(n6, n8, 1.0);
         dag.add_edge(n7, n8, 1.0);
 
-        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes().unwrap();
+        let no_critical_paths_nodes = dag.get_non_critical_nodes().unwrap();
         assert_eq!(no_critical_paths_nodes.len(), 2);
         assert_eq!(
             no_critical_paths_nodes
@@ -578,9 +578,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_no_critical_paths_nodes_no_exist() {
+    fn test_get_non_critical_nodes_no_exist() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes();
+        let no_critical_paths_nodes = dag.get_non_critical_nodes();
         assert_eq!(no_critical_paths_nodes, None);
     }
 
