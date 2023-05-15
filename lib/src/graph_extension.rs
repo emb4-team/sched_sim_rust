@@ -32,6 +32,7 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_paths(&mut self) -> Vec<Vec<NodeIndex>>;
+    fn get_no_critical_paths_nodes(&mut self) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> f32;
@@ -239,6 +240,30 @@ impl GraphExtension for Graph<NodeData, f32> {
         self.remove_dummy_source_node();
         self.remove_dummy_sink_node();
         critical_paths
+    }
+
+    fn get_no_critical_paths_nodes(&mut self) -> Option<Vec<NodeIndex>> {
+        let critical_paths = self.get_critical_paths();
+        let mut no_critical_paths_nodes = Vec::new();
+        let mut critical_paths_nodes = Vec::new();
+
+        for path in critical_paths {
+            for node in path {
+                critical_paths_nodes.push(node);
+            }
+        }
+
+        for node in self.node_indices() {
+            if !critical_paths_nodes.contains(&node) {
+                no_critical_paths_nodes.push(node);
+            }
+        }
+
+        if no_critical_paths_nodes.is_empty() {
+            None
+        } else {
+            Some(no_critical_paths_nodes)
+        }
     }
 
     fn get_source_nodes(&self) -> Vec<NodeIndex> {
@@ -491,6 +516,72 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![0_usize, 1_usize, 2_usize, 5_usize, 8_usize]
         );
+    }
+
+    #[test]
+    fn test_get_no_critical_paths_nodes_when_critical_paths_single() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n2, n4, 1.0);
+
+        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes().unwrap();
+        assert_eq!(no_critical_paths_nodes.len(), 2);
+
+        assert_eq!(
+            no_critical_paths_nodes
+                .iter()
+                .map(|node_index| node_index.index())
+                .collect::<Vec<_>>(),
+            vec![1_usize, 3_usize]
+        );
+    }
+
+    #[test]
+    fn test_get_no_critical_paths_nodes_when_critical_paths_multiple() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 26.0));
+        let n4 = dag.add_node(create_node(4, "execution_time", 44.0));
+        let n5 = dag.add_node(create_node(5, "execution_time", 26.0));
+        let n6 = dag.add_node(create_node(6, "execution_time", 26.0));
+        let n7 = dag.add_node(create_node(7, "execution_time", 27.0));
+        let n8 = dag.add_node(create_node(8, "execution_time", 43.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n1, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n1, n4, 1.0);
+        dag.add_edge(n2, n5, 1.0);
+        dag.add_edge(n3, n6, 1.0);
+        dag.add_edge(n4, n7, 1.0);
+        dag.add_edge(n5, n8, 1.0);
+        dag.add_edge(n6, n8, 1.0);
+        dag.add_edge(n7, n8, 1.0);
+
+        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes().unwrap();
+        assert_eq!(no_critical_paths_nodes.len(), 2);
+        assert_eq!(
+            no_critical_paths_nodes
+                .iter()
+                .map(|node_index| node_index.index())
+                .collect::<Vec<_>>(),
+            vec![3_usize, 6_usize]
+        );
+    }
+
+    #[test]
+    fn test_get_no_critical_paths_nodes_no_exist() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let no_critical_paths_nodes = dag.get_no_critical_paths_nodes();
+        assert_eq!(no_critical_paths_nodes, None);
     }
 
     #[test]
