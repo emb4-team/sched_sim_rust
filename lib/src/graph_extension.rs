@@ -45,6 +45,7 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -414,6 +415,18 @@ impl GraphExtension for Graph<NodeData, f32> {
         } else {
             Some(parallel_process_nodes)
         }
+    }
+
+    fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex {
+        let node_index = self.add_node(node);
+
+        assert_eq!(
+            node_index.index() as i32,
+            self[node_index].id,
+            "The add node id is different from NodeIndex."
+        );
+
+        node_index
     }
 }
 
@@ -923,5 +936,24 @@ mod tests {
         let n0 = dag.add_node(create_node(0, "parallel_process", 0.0));
 
         assert_eq!(dag.get_parallel_process_nodes(n0), None);
+    }
+
+    #[test]
+    fn test_add_node_with_id_consistency_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+
+        let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_with_id_consistency(create_node(1, "execution_time", 3.0));
+
+        assert_eq!(dag[n0].id, 0);
+        assert_eq!(dag[n1].id, 1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_add_node_with_id_consistency_id_duplication() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
+        dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
     }
 }
