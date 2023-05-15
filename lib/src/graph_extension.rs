@@ -300,6 +300,9 @@ impl GraphExtension for Graph<NodeData, f32> {
         if periods.len() > 1 {
             warn!("Multiple periods found.");
         }
+        if periods.is_empty() {
+            warn!("No period found.");
+        }
 
         periods.first().cloned()
     }
