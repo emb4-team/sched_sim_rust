@@ -811,7 +811,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_node_normal() {
+    fn test_add_node_with_id_consistency_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
 
         let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
@@ -823,7 +823,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_add_node_consistency_id() {
+    fn test_add_node_with_id_consistency_id_consistency() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
         let n1 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
