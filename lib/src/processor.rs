@@ -1,6 +1,5 @@
-use petgraph::Graph;
-
 use crate::{core::*, graph_extension::NodeData};
+use petgraph::Graph;
 
 pub struct Processor {
     pub cores: Vec<Core>,
