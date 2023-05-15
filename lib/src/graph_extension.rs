@@ -38,7 +38,7 @@ pub trait GraphExtension {
     fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> f32;
     fn get_end_to_end_deadline(&mut self) -> Option<f32>;
     fn get_head_period(&mut self) -> Option<f32>;
-    fn get_all_period(&mut self) -> Option<HashMap<NodeIndex, f32>>;
+    fn get_all_periods(&mut self) -> Option<HashMap<NodeIndex, f32>>;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -304,7 +304,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         periods.first().cloned()
     }
 
-    fn get_all_period(&mut self) -> Option<HashMap<NodeIndex, f32>> {
+    fn get_all_periods(&mut self) -> Option<HashMap<NodeIndex, f32>> {
         let mut period_map = HashMap::new();
         for node in self.node_indices() {
             if let Some(period) = self[node].params.get("period") {
@@ -693,7 +693,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_all_period_normal() {
+    fn test_get_all_periods_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = dag.add_node(create_node(0, "period", 3.0));
         let n1 = dag.add_node(create_node(0, "period", 4.0));
@@ -703,15 +703,15 @@ mod tests {
         let mut expected_period_map = HashMap::new();
         expected_period_map.insert(n0, 3.0);
         expected_period_map.insert(n1, 4.0);
-        assert_eq!(dag.get_all_period(), Some(expected_period_map));
+        assert_eq!(dag.get_all_periods(), Some(expected_period_map));
     }
 
     #[test]
-    fn test_get_all_period_node_no_includes_period() {
+    fn test_get_all_periods_node_no_includes_period() {
         let mut dag = Graph::<NodeData, f32>::new();
         dag.add_node(create_node(0, "execution_time", 3.0));
 
-        assert_eq!(dag.get_all_period(), None);
+        assert_eq!(dag.get_all_periods(), None);
     }
 
     #[test]
