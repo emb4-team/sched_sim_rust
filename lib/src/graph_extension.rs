@@ -41,6 +41,7 @@ pub trait GraphExtension {
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -350,6 +351,29 @@ impl GraphExtension for Graph<NodeData, f32> {
             }
         }
         Some(des_nodes).filter(|des| !des.is_empty())
+    }
+
+    fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
+        let parallel_process_nodes: Vec<_> = self
+            .node_indices()
+            .filter(|&node| {
+                node != node_i
+                    && !self
+                        .get_anc_nodes(node)
+                        .unwrap_or_default()
+                        .contains(&node_i)
+                    && !self
+                        .get_des_nodes(node)
+                        .unwrap_or_default()
+                        .contains(&node_i)
+            })
+            .collect();
+
+        if parallel_process_nodes.is_empty() {
+            None
+        } else {
+            Some(parallel_process_nodes)
+        }
     }
 }
 
@@ -795,5 +819,28 @@ mod tests {
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_des_nodes(invalid_node), None);
+    }
+
+    #[test]
+    fn get_parallel_process_nodes_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "parallel_process", 0.0));
+        let n1 = dag.add_node(create_node(1, "parallel_process", 0.0));
+        let n2 = dag.add_node(create_node(2, "parallel_process", 0.0));
+        let n3 = dag.add_node(create_node(3, "parallel_process", 0.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n3, 1.0);
+
+        assert_eq!(dag.get_parallel_process_nodes(n2), Some(vec![n1, n3]));
+        assert_eq!(dag.get_parallel_process_nodes(n3), Some(vec![n2]));
+    }
+
+    #[test]
+    fn get_parallel_process_nodes_no_exist_parallel_process_nodes() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "parallel_process", 0.0));
+
+        assert_eq!(dag.get_parallel_process_nodes(n0), None);
     }
 }
