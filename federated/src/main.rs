@@ -1,5 +1,6 @@
 use clap::Parser;
 use lib::dag_creator::*;
+mod federated;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
@@ -16,14 +17,15 @@ struct AppArg {
     dag_file_path: Option<String>,
     #[clap(short = 'd', long = "dag_dir_path", required = false)]
     dag_dir_path: Option<String>,
+    #[clap(short = 'c', long = "number_of_cores", required = true)]
+    number_of_cores: usize,
 }
 
 /// Application main function
 fn main() {
     let arg: AppArg = AppArg::parse();
-    if let Some(dag_file_path) = arg.dag_file_path {
-        let _dag = create_dag_from_yaml(&dag_file_path);
-    } else if let Some(dag_dir_path) = arg.dag_dir_path {
-        let _dag_set = create_dag_set_from_dir(&dag_dir_path);
+    if let Some(dag_dir_path) = arg.dag_dir_path {
+        let dag_set = create_dag_set_from_dir(&dag_dir_path);
+        federated::federated(dag_set, arg.number_of_cores);
     }
 }
