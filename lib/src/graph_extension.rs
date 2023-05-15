@@ -223,7 +223,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             if outgoing_edges.clone().count() == 0 {
                 current_critical_path.pop(); // Remove the dummy sink node
                 current_critical_path.remove(0); // Remove the dummy source node
-                critical_path = current_critical_path;
+                critical_path.push(current_critical_path);
             } else {
                 for edge in outgoing_edges {
                     let target_node = edge.target();
@@ -240,7 +240,10 @@ impl GraphExtension for Graph<NodeData, f32> {
 
         self.remove_dummy_source_node();
         self.remove_dummy_sink_node();
-        critical_path
+        if critical_path.len() > 1 {
+            warn!("There are more than one critical paths.");
+        }
+        critical_path[0].clone()
     }
 
     fn get_non_critical_nodes(&mut self) -> Option<Vec<NodeIndex>> {
