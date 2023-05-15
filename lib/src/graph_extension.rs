@@ -41,7 +41,7 @@ pub trait GraphExtension {
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
-    fn add_node_check_consistency_id(&mut self, node: NodeData) -> NodeIndex;
+    fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
 }
 
 impl GraphExtension for Graph<NodeData, f32> {
@@ -353,7 +353,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         Some(des_nodes).filter(|des| !des.is_empty())
     }
 
-    fn add_node_check_consistency_id(&mut self, node: NodeData) -> NodeIndex {
+    fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex {
         let node_index = self.add_node(node);
 
         assert_eq!(
@@ -814,8 +814,8 @@ mod tests {
     fn test_add_node_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
 
-        let n0 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_check_consistency_id(create_node(1, "execution_time", 3.0));
+        let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_with_id_consistency(create_node(1, "execution_time", 3.0));
 
         assert_eq!(dag[n0].id, 0);
         assert_eq!(dag[n1].id, 1);
@@ -825,8 +825,8 @@ mod tests {
     #[should_panic]
     fn test_add_node_consistency_id() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_check_consistency_id(create_node(0, "execution_time", 3.0));
+        let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
+        let n1 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
 
         assert_eq!(dag[n0].id, 1);
         assert_eq!(dag[n1].id, 1);
