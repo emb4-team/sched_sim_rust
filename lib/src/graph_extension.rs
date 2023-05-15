@@ -383,7 +383,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         assert_eq!(
             node_index.index() as i32,
             self[node_index].id,
-            "Add node id is different from node index."
+            "The add node id is different from NodeIndex."
         );
 
         node_index
@@ -870,12 +870,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_add_node_with_id_consistency_id_consistency() {
+    fn test_add_node_with_id_consistency_id_duplication() {
         let mut dag = Graph::<NodeData, f32>::new();
-        let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
-        let n1 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
-
-        assert_eq!(dag[n0].id, 1);
-        assert_eq!(dag[n1].id, 1);
+        dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
+        dag.add_node_with_id_consistency(create_node(0, "execution_time", 3.0));
     }
 }

@@ -1,10 +1,6 @@
 use crate::{core::*, graph_extension::NodeData};
 use petgraph::Graph;
 
-pub struct Processor {
-    pub cores: Vec<Core>,
-}
-
 pub trait ProcessorBase {
     fn new(num_cores: usize) -> Self;
     fn set_time_unit(&mut self, time_unit: f32);
