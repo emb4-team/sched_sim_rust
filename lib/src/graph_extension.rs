@@ -369,7 +369,11 @@ impl GraphExtension for Graph<NodeData, f32> {
             })
             .collect();
 
-        Some(parallel_process_nodes).filter(|par| !par.is_empty())
+        if parallel_process_nodes.is_empty() {
+            None
+        } else {
+            Some(parallel_process_nodes)
+        }
     }
 }
 
