@@ -249,14 +249,8 @@ impl GraphExtension for Graph<NodeData, f32> {
     fn get_non_critical_nodes(&mut self) -> Option<Vec<NodeIndex>> {
         let critical_path = self.get_critical_path();
         let mut no_critical_path_nodes = Vec::new();
-        let mut critical_path_nodes = Vec::new();
-
-        for node in critical_path {
-            critical_path_nodes.push(node);
-        }
-
         for node in self.node_indices() {
-            if !critical_path_nodes.contains(&node) {
+            if !critical_path.contains(&node) {
                 no_critical_path_nodes.push(node);
             }
         }
