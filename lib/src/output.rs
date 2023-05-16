@@ -1,4 +1,4 @@
-use log::warn;
+use log::{info, warn};
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml;
@@ -21,6 +21,10 @@ struct DAG {
 }
 
 pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
+    if fs::metadata(folder_path).is_err() {
+        let _ = fs::create_dir_all(folder_path);
+        info!("Created folder: {}", folder_path);
+    }
     let file_path = format!("{}/{}.yaml", folder_path, file_name);
     if let Err(err) = fs::File::create(&file_path) {
         warn!("Failed to create file: {}", err);
