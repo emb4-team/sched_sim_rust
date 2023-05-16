@@ -7,14 +7,14 @@ use std::fs;
 use crate::graph_extension::{GraphExtension, NodeData};
 
 #[derive(Serialize, Deserialize)]
-struct DAGSet {
+struct DAGSetInfo {
     total_utilization: f32,
-    dag_set: Vec<DAG>,
+    dag_set: Vec<DAGInfo>,
 }
 
 #[derive(Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
-struct DAG {
+struct DAGInfo {
     critical_path_length: f32,
     end_to_end_deadline: f32,
     volume: f32,
@@ -34,7 +34,7 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
 
 pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
     let mut total_utilization = 0.0;
-    let mut dag_instances = Vec::new();
+    let mut each_dag_info = Vec::new();
 
     for dag in dag_set.iter_mut() {
         let volume = dag.get_volume();
@@ -43,21 +43,22 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
         let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
         total_utilization += volume / period;
 
-        let dag_instance = DAG {
+        let dag_info = DAGInfo {
             critical_path_length,
             end_to_end_deadline: period,
             volume,
         };
 
-        dag_instances.push(dag_instance);
+        each_dag_info.push(dag_info);
     }
 
-    let dag_set = DAGSet {
+    let dag_set_info = DAGSetInfo {
         total_utilization,
-        dag_set: dag_instances,
+        dag_set: each_dag_info,
     };
 
-    let yaml = serde_yaml::to_string(&dag_set).expect("Failed to serialize DAGSet to YAML");
+    let yaml =
+        serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
     std::fs::write(file_path, yaml).expect("Failed to write YAML file");
 }
@@ -98,7 +99,7 @@ mod tests {
         dump_dag_set_info_to_yaml(dag_set, &file_path);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let dag_set: DAGSet = serde_yaml::from_str(&file_contents).unwrap();
+        let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
 
         assert_eq!(dag_set.total_utilization, 2.8);
         assert_eq!(dag_set.dag_set.len(), 2);
