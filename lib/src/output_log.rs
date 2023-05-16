@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
-        let file_path = create_yaml_file("../outputs", "test");
+        let file_path = create_yaml_file("../outputs", "tests");
         dump_dag_set_info_to_yaml(dag_set, &file_path);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
