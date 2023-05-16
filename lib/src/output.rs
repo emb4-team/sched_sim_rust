@@ -22,7 +22,6 @@ struct DAG {
 
 pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     let file_path = format!("{}/{}.yaml", folder_path, file_name);
-    print!("Create file: {}", file_path);
     if let Err(err) = fs::File::create(&file_path) {
         warn!("Failed to create file: {}", err);
     }
