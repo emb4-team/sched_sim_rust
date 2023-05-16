@@ -32,7 +32,7 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     file_path
 }
 
-pub fn dag_set_info_to_yaml_file(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
+pub fn dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
     let mut total_utilization = 0.0;
     let mut dag_instances = Vec::new();
 
@@ -92,10 +92,10 @@ mod tests {
     }
 
     #[test]
-    fn test() {
+    fn test_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
         let file_path = create_yaml_file("../outputs", "test");
-        dag_set_info_to_yaml_file(dag_set, &file_path);
+        dag_set_info_to_yaml(dag_set, &file_path);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let dag_set: DAGSet = serde_yaml::from_str(&file_contents).unwrap();
