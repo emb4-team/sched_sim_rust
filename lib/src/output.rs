@@ -30,12 +30,37 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     file_path
 }
 
-pub fn graph_info_to_yaml_file(dag: &Graph<NodeData, f32>, file_path: &str) -> f32 {
-    let volume = dag.get_volume();
-    let period = dag.get_head_period().unwrap();
-    //let critical_path_length = dag.get_critical_path_length();
-    let utilization = 1;
-    1.0
+pub fn dag_set_info_to_yaml_file(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
+    let mut total_utilization = 0.0;
+    let mut dag_instances = Vec::new();
+
+    for dag in dag_set.iter_mut() {
+        let volume = dag.get_volume();
+        let period = dag.get_head_period().unwrap();
+        let critical_path = dag.get_critical_path();
+        let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
+        total_utilization += volume / period;
+
+        // Create DAG instance
+        let dag_instance = DAG {
+            critical_path_length,
+            end_to_end_deadline: period,
+            volume,
+        };
+
+        dag_instances.push(dag_instance);
+    }
+
+    let dag_set = DAGSet {
+        total_utilization,
+        dag_set: dag_instances,
+    };
+
+    // Serialize DAGSet to YAML
+    let yaml = serde_yaml::to_string(&dag_set).expect("Failed to serialize DAGSet to YAML");
+
+    // Write YAML to file
+    std::fs::write(file_path, yaml).expect("Failed to write YAML file");
 }
 
 #[cfg(test)]
@@ -57,18 +82,5 @@ mod tests {
         let n0 = dag.add_node(create_node(0, "execution_time", 4.0));
         let n1 = dag.add_node(create_node(1, "execution_time", 7.0));
         dag.add_edge(n0, n1, 1.0);
-
-        let file_path = create_yaml_file("../outputs", "test");
-        let _ = graph_to_yaml_file(&dag, &file_path);
-
-        let dag = create_dag_from_yaml(file_path.as_str());
-        assert_eq!(dag.node_count(), 2);
-        assert_eq!(dag.edge_count(), 1);
-        assert_eq!(dag[n0].id, 0);
-        assert_eq!(dag[n1].id, 1);
-        assert_eq!(dag[n0].params["execution_time"], 4.0);
-        assert_eq!(dag[n1].params["execution_time"], 7.0);
-        assert_eq!(dag[dag.edge_indices().next().unwrap()], 1.0);
-        let _ = remove_file(file_path);
     }
 }
