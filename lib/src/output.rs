@@ -39,7 +39,6 @@ pub fn dag_set_info_to_yaml_file(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
         let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
         total_utilization += volume / period;
 
-        // Create DAG instance
         let dag_instance = DAG {
             critical_path_length,
             end_to_end_deadline: period,
@@ -54,10 +53,8 @@ pub fn dag_set_info_to_yaml_file(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
         dag_set: dag_instances,
     };
 
-    // Serialize DAGSet to YAML
     let yaml = serde_yaml::to_string(&dag_set).expect("Failed to serialize DAGSet to YAML");
 
-    // Write YAML to file
     std::fs::write(file_path, yaml).expect("Failed to write YAML file");
 }
 
