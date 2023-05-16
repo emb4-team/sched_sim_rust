@@ -62,8 +62,8 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         // Conforms to the definition in the original paper
         let end_to_end_deadline = period; // implicit deadline
         let volume = dag.get_volume();
-        let critical_paths = dag.get_critical_paths();
-        let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_paths[0]);
+        let critical_path = dag.get_critical_path();
+        let critical_path_wcet = dag.get_total_wcet_from_nodes(&critical_path);
 
         // Tasks that do not meet the following conditions are inappropriate for Federated
         if critical_path_wcet > end_to_end_deadline {
