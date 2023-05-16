@@ -96,6 +96,7 @@ mod tests {
         let dag_set = vec![create_dag(), create_dag()];
         let file_path = create_yaml_file("../outputs", "test");
         dag_set_info_to_yaml_file(dag_set, &file_path);
+
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let dag_set: DAGSet = serde_yaml::from_str(&file_contents).unwrap();
 
