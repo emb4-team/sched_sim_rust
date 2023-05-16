@@ -84,9 +84,9 @@ mod tests {
         let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
         let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
         let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n0, n3, 1.0);
+        dag.add_edge(n0, n1, 0.0);
+        dag.add_edge(n0, n2, 0.0);
+        dag.add_edge(n0, n3, 0.0);
 
         dag
     }
