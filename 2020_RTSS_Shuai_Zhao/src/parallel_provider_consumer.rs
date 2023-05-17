@@ -73,7 +73,6 @@ mod tests {
         let dag = create_sample_dag();
         let providers = get_providers(dag);
         assert_eq!(providers.len(), 3);
-        println!("{:?}", providers);
 
         assert_eq!(providers[0][0].index(), 0);
         assert_eq!(providers[0][1].index(), 1);
