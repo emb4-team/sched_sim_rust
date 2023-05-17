@@ -5,33 +5,25 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
+use std::collections::VecDeque;
+
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
 
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
 /// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
-#[allow(dead_code)]
-pub fn identifying_capacity_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
-    let critical_path = dag.get_critical_path();
-    let mut providers = Vec::new();
-    let mut i = 0;
-    while i < critical_path.len() - 1 {
-        let mut provider = Vec::new();
-        provider.push(critical_path[i]);
-        // At least it is not an error since it is a prior node itself.
-        let mut pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
-        while pre_nodes.len() == 1 {
-            provider.push(critical_path[i + 1]);
-            i += 1;
-            pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
+#[allow(dead_code)] // TODO: remove
+pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
+    let mut critical_path: VecDeque<NodeIndex> = dag.get_critical_path().into();
+    let mut providers: Vec<Vec<NodeIndex>> = Vec::new();
+    while !critical_path.is_empty() {
+        let mut provider = vec![critical_path.pop_front().unwrap()];
+        while !critical_path.is_empty() && dag.get_pre_nodes(critical_path[0]).unwrap().len() == 1 {
+            provider.push(critical_path.pop_front().unwrap());
         }
         providers.push(provider);
-        i += 1;
     }
-    //Sink node is processed separately because there is no subsequent node and it causes an error
-    providers.push(vec![critical_path[i]]);
-
     providers
 }
 
@@ -99,10 +91,15 @@ mod tests {
     }
 
     #[test]
-    fn identifying_capacity_providers_normal() {
+    fn get_providers_normal() {
         let dag = create_sample_dag();
-        let providers = identifying_capacity_providers(dag);
-        println!("{:?}", providers);
+        let providers = get_providers(dag);
         assert_eq!(providers.len(), 4);
+
+        assert_eq!(providers[0][0].index(), 0);
+        assert_eq!(providers[0][1].index(), 1);
+        assert_eq!(providers[1][0].index(), 4);
+        assert_eq!(providers[2][0].index(), 8);
+        assert_eq!(providers[3][0].index(), 12);
     }
 }
