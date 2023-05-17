@@ -2,10 +2,11 @@
 use lib::graph_extension::GraphExtension;
 use lib::graph_extension::NodeData;
 use petgraph::graph::Graph;
+use serde_derive::Serialize;
 use FederateResult::*;
 
 /// For determination of federates
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize)]
 pub enum FederateResult {
     Unschedulable { reason: String },
     Schedulable,

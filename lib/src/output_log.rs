@@ -21,6 +21,11 @@ struct DAGInfo {
     volume: f32,
 }
 
+#[derive(Serialize, Deserialize)]
+struct CoreInfo {
+    number_of_cores: usize,
+}
+
 pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     if fs::metadata(folder_path).is_err() {
         let _ = fs::create_dir_all(folder_path);
@@ -33,18 +38,29 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     file_path
 }
 
-fn append_info_to_file(file_path: &str, content: &str) -> std::io::Result<()> {
-    let mut file = OpenOptions::new()
+pub fn append_info_to_yaml(file_path: &str, info: &str) {
+    if let Ok(mut file) = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
-        .open(file_path)?;
-
-    file.write_all(content.as_bytes())?;
-    Ok(())
+        .open(file_path)
+    {
+        if let Err(err) = file.write_all(info.as_bytes()) {
+            eprintln!("Failed to write to file: {}", err);
+        }
+    } else {
+        eprintln!("Failed to open file: {}", file_path);
+    }
 }
 
-pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
+pub fn dump_number_of_cores_to_yaml(file_path: &str, number_of_cores: usize) {
+    let number_of_cores_info = CoreInfo { number_of_cores };
+    let yaml = serde_yaml::to_string(&number_of_cores_info)
+        .expect("Failed to serialize DAGSetInfo to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, f32>>) {
     let mut total_utilization = 0.0;
     let mut each_dag_info = Vec::new();
 
@@ -72,7 +88,7 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
     let yaml =
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
-    append_info_to_file(file_path, &yaml).expect("Failed to write YAML file");
+    append_info_to_yaml(file_path, &yaml);
 }
 
 #[cfg(test)]
@@ -108,7 +124,7 @@ mod tests {
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
         let file_path = create_yaml_file("../outputs", "tests");
-        dump_dag_set_info_to_yaml(dag_set, &file_path);
+        dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
@@ -118,6 +134,19 @@ mod tests {
         assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8.0);
         assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10.0);
         assert_eq!(dag_set.each_dag_info[1].volume, 14.0);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_number_of_cores_info_to_yaml() {
+        let file_path = create_yaml_file("../outputs", "tests");
+        dump_number_of_cores_to_yaml(&file_path, 4);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let number_of_cores: CoreInfo = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(number_of_cores.number_of_cores, 4);
 
         remove_file(file_path).unwrap();
     }
