@@ -2,14 +2,20 @@
 use lib::graph_extension::GraphExtension;
 use lib::graph_extension::NodeData;
 use petgraph::graph::Graph;
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 use FederateResult::*;
 
 /// For determination of federates
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum FederateResult {
-    Unschedulable { reason: String },
-    Schedulable,
+    Unschedulable {
+        reason: String,
+        insufficient_cores: usize,
+    },
+    Schedulable {
+        high_dedicated_cores: usize,
+        low_dedicated_cores: usize,
+    },
 }
 
 /// This function attempts to apply federated scheduling to a set of directed acyclic graphs
@@ -70,6 +76,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         if critical_path_wcet > end_to_end_deadline {
             return Unschedulable {
                 reason: "The critical path length is greater than end_to_end_deadline.".to_string(),
+                insufficient_cores: 0,
             };
         }
 
@@ -81,6 +88,7 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             if high_dedicated_cores > remaining_cores {
                 return Unschedulable {
                     reason: "Insufficient number of cores for high-utilization tasks.".to_string(),
+                    insufficient_cores: high_dedicated_cores - remaining_cores,
                 };
             } else {
                 remaining_cores -= high_dedicated_cores;
@@ -90,10 +98,14 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
         }
     }
     if remaining_cores as f32 > 2.0 * low_utilizations {
-        Schedulable
+        Schedulable {
+            high_dedicated_cores: number_of_cores - remaining_cores,
+            low_dedicated_cores: remaining_cores,
+        }
     } else {
         Unschedulable {
             reason: "Insufficient number of cores for low-utilization tasks.".to_string(),
+            insufficient_cores: (2.0 * low_utilizations - remaining_cores as f32).ceil() as usize,
         }
     }
 }
@@ -169,7 +181,13 @@ mod tests {
             create_low_utilization_dag(),
         ];
 
-        assert_eq!(federated(dag_set, 40), Schedulable);
+        assert_eq!(
+            federated(dag_set, 40),
+            Schedulable {
+                high_dedicated_cores: 6,
+                low_dedicated_cores: 34
+            }
+        );
     }
 
     #[test]
@@ -183,7 +201,8 @@ mod tests {
         assert_eq!(
             federated(dag_set, 1),
             Unschedulable {
-                reason: (String::from("Insufficient number of cores for high-utilization tasks."))
+                reason: (String::from("Insufficient number of cores for high-utilization tasks.")),
+                insufficient_cores: 2
             }
         );
     }
@@ -199,7 +218,8 @@ mod tests {
         assert_eq!(
             federated(dag_set, 3),
             Unschedulable {
-                reason: (String::from("Insufficient number of cores for low-utilization tasks."))
+                reason: (String::from("Insufficient number of cores for low-utilization tasks.")),
+                insufficient_cores: 2
             }
         );
     }
@@ -211,7 +231,8 @@ mod tests {
             Unschedulable {
                 reason: (String::from(
                     "The critical path length is greater than end_to_end_deadline."
-                ))
+                )),
+                insufficient_cores: 0
             }
         );
     }
