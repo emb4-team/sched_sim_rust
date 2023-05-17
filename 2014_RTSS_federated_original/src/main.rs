@@ -7,7 +7,7 @@ use outputs_result::*;
 mod federated;
 mod outputs_result;
 
-/// Application descriptions and arguments definition using clap crate
+/// Application description and arguments definition using clap crate
 #[derive(Parser)]
 #[clap(
     name = "sched_sim",
