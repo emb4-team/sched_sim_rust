@@ -9,20 +9,7 @@ struct ResultInfo<FederateResult> {
 }
 
 pub fn dump_federate_result_to_file(file_path: &str, result: FederateResult) {
-    let result_info = match &result {
-        FederateResult::Unschedulable {
-            reason: _,
-            insufficient_cores: _,
-        } => ResultInfo {
-            result: result.clone(),
-        },
-        FederateResult::Schedulable {
-            high_dedicated_cores: _,
-            low_dedicated_cores: _,
-        } => ResultInfo {
-            result: result.clone(),
-        },
-    };
+    let result_info = ResultInfo { result };
 
     let yaml =
         serde_yaml::to_string(&result_info).expect("Failed to serialize federate result to YAML");
