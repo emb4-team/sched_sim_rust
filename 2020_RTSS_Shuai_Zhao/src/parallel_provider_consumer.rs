@@ -1,6 +1,17 @@
-use crate::graph_extension::{GraphExtension, NodeData};
+//! CPC model construction.
+//! Paper Information
+//! -----------------
+//! Title: DAG Scheduling and Analysis on Multiprocessor Systems: Exploitation of Parallelism and Dependency
+//! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
+//! Conference: RTSS 2020
+//! -----------------
+use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
 
+/// Algorithm 1: Step1 identifying capacity providers.
+/// capacity provider is a sub paths of the critical path
+/// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
+#[allow(dead_code)]
 pub fn identifying_capacity_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let critical_path = dag.get_critical_path();
     let mut providers = Vec::new();
@@ -8,15 +19,16 @@ pub fn identifying_capacity_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<
     while i < critical_path.len() {
         let mut provider = Vec::new();
         provider.push(critical_path[i]);
+        //To prevent an error when trying to find the next of the sink node
         if i < critical_path.len() - 1 {
+            // At least it is not an error since it is a prior node itself.
             let mut pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
-            while pre_nodes.len() == 1 && pre_nodes[0] == critical_path[i] {
+            while pre_nodes.len() == 1 {
                 provider.push(critical_path[i + 1]);
                 i += 1;
                 pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
             }
         }
-
         providers.push(provider);
         i += 1;
     }
