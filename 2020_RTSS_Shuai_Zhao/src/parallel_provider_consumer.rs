@@ -16,22 +16,21 @@ pub fn identifying_capacity_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<
     let critical_path = dag.get_critical_path();
     let mut providers = Vec::new();
     let mut i = 0;
-    while i < critical_path.len() {
+    while i < critical_path.len() - 1 {
         let mut provider = Vec::new();
         provider.push(critical_path[i]);
-        //To prevent an error when trying to find the next of the sink node
-        if i < critical_path.len() - 1 {
-            // At least it is not an error since it is a prior node itself.
-            let mut pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
-            while pre_nodes.len() == 1 {
-                provider.push(critical_path[i + 1]);
-                i += 1;
-                pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
-            }
+        // At least it is not an error since it is a prior node itself.
+        let mut pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
+        while pre_nodes.len() == 1 {
+            provider.push(critical_path[i + 1]);
+            i += 1;
+            pre_nodes = dag.get_pre_nodes(critical_path[i + 1]).unwrap();
         }
         providers.push(provider);
         i += 1;
     }
+    //Sink node is processed separately because there is no subsequent node and it causes an error
+    providers.push(vec![critical_path[i]]);
 
     providers
 }
