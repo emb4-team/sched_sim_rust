@@ -56,7 +56,7 @@ pub fn append_info_to_yaml(file_path: &str, info: &str) {
 pub fn dump_number_of_cores_to_yaml(file_path: &str, number_of_cores: usize) {
     let number_of_cores_info = ProcessorInfo { number_of_cores };
     let yaml = serde_yaml::to_string(&number_of_cores_info)
-        .expect("Failed to serialize DAGSetInfo to YAML");
+        .expect("Failed to serialize ProcessorInfo to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
 
