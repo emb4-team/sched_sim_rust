@@ -30,23 +30,19 @@ pub fn dump_federate_result_to_file(file_path: &str, result: FederateResult) {
     append_info_to_yaml(file_path, &yaml);
 }
 
+#[cfg(test)]
 mod tests {
-    #[allow(unused_imports)]
     use super::*;
-    #[allow(unused_imports)]
     use lib::{graph_extension::NodeData, output_log::create_yaml_file};
     use petgraph::Graph;
-    #[allow(unused_imports)]
     use std::{collections::HashMap, fs::remove_file};
 
-    #[allow(dead_code)]
     fn create_node(id: i32, key: &str, value: f32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }
 
-    #[allow(dead_code)]
     fn create_high_utilization_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
@@ -65,7 +61,6 @@ mod tests {
         dag
     }
 
-    #[allow(dead_code)]
     fn create_low_utilization_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
@@ -82,7 +77,6 @@ mod tests {
         dag
     }
 
-    #[allow(dead_code)]
     fn create_period_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
