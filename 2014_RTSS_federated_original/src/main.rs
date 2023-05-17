@@ -2,7 +2,7 @@ use clap::Parser;
 use lib::dag_creator::*;
 mod federated;
 
-/// Application description and arguments definition using clap crate
+/// Application descriptions and arguments definition using clap crate
 #[derive(Parser)]
 #[clap(
     name = "sched_sim",

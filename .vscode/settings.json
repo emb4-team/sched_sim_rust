@@ -1,7 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
         "./lib/Cargo.toml",
-        "./federated/Cargo.toml"
+        "./2014_RTSS_federated_original/Cargo.toml"
     ],
 
     "cSpell.words": [

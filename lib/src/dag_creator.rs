@@ -68,7 +68,9 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                         Yaml::Real(_r) => {
                             params.insert(key_str.to_owned(), value.as_f64().unwrap() as f32);
                         }
-                        _ => unreachable!(),
+                        _ => {
+                            panic!("Unknown type: {}", std::any::type_name::<Yaml>());
+                        }
                     }
                 }
             }
