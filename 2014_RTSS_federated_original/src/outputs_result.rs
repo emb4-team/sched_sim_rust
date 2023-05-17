@@ -1,0 +1,196 @@
+use lib::output_log::append_info_to_yaml;
+use serde_derive::{Deserialize, Serialize};
+
+use crate::federated::FederateResult;
+
+#[derive(Serialize, Deserialize)]
+struct ResultInfo<FederateResult> {
+    result: FederateResult,
+}
+
+pub fn dump_federate_result_to_file(file_path: &str, result: FederateResult) {
+    let result_info = match &result {
+        FederateResult::Unschedulable {
+            reason: _,
+            insufficient_cores: _,
+        } => ResultInfo {
+            result: result.clone(),
+        },
+        FederateResult::Schedulable {
+            high_dedicated_cores: _,
+            low_dedicated_cores: _,
+        } => ResultInfo {
+            result: result.clone(),
+        },
+    };
+
+    let yaml =
+        serde_yaml::to_string(&result_info).expect("Failed to serialize federate result to YAML");
+
+    append_info_to_yaml(file_path, &yaml);
+}
+
+mod tests {
+    #[allow(unused_imports)]
+    use super::*;
+    #[allow(unused_imports)]
+    use lib::{graph_extension::NodeData, output_log::create_yaml_file};
+    use petgraph::Graph;
+    #[allow(unused_imports)]
+    use std::{collections::HashMap, fs::remove_file};
+
+    #[allow(dead_code)]
+    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
+    #[allow(dead_code)]
+    fn create_high_utilization_dag() -> Graph<NodeData, f32> {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = {
+            let mut params = HashMap::new();
+            params.insert("execution_time".to_owned(), 4.0);
+            params.insert("period".to_owned(), 10.0);
+            dag.add_node(NodeData { id: 3, params })
+        };
+        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
+        let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n3, 1.0);
+
+        dag
+    }
+
+    #[allow(dead_code)]
+    fn create_low_utilization_dag() -> Graph<NodeData, f32> {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = {
+            let mut params = HashMap::new();
+            params.insert("execution_time".to_owned(), 3.0);
+            params.insert("period".to_owned(), 30.0);
+            dag.add_node(NodeData { id: 2, params })
+        };
+        let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let n2 = dag.add_node(create_node(1, "execution_time", 4.0));
+
+        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n2, 1.0);
+        dag
+    }
+
+    #[allow(dead_code)]
+    fn create_period_exceeding_dag() -> Graph<NodeData, f32> {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let mut params = HashMap::new();
+        params.insert("execution_time".to_owned(), 20.0);
+        params.insert("period".to_owned(), 10.0);
+        dag.add_node(NodeData { id: 0, params });
+        dag
+    }
+
+    #[test]
+    fn test_dump_federated_info_normal() {
+        let number_of_cores = 40;
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+        let result = crate::federated::federated(dag_set, number_of_cores);
+        let file_path = create_yaml_file("../outputs", "test_dump_federated_info_normal");
+        dump_federate_result_to_file(&file_path, result);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(
+            result_info.result,
+            FederateResult::Schedulable {
+                high_dedicated_cores: 6,
+                low_dedicated_cores: 34,
+            }
+        );
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_federated_lack_cores_for_high_tasks() {
+        let number_of_cores = 1;
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+        let result = crate::federated::federated(dag_set, number_of_cores);
+        let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_high_tasks");
+        dump_federate_result_to_file(&file_path, result);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(
+            result_info.result,
+            FederateResult::Unschedulable {
+                reason: (String::from("Insufficient number of cores for high-utilization tasks.")),
+                insufficient_cores: 2
+            }
+        );
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_federated_lack_cores_for_low_tasks() {
+        let number_of_cores = 3;
+        let dag_set = vec![
+            create_high_utilization_dag(),
+            create_low_utilization_dag(),
+            create_low_utilization_dag(),
+        ];
+        let result = crate::federated::federated(dag_set, number_of_cores);
+        let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
+        dump_federate_result_to_file(&file_path, result);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(
+            result_info.result,
+            FederateResult::Unschedulable {
+                reason: (String::from("Insufficient number of cores for low-utilization tasks.")),
+                insufficient_cores: 2
+            }
+        );
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_federated_unsuited_tasks() {
+        let number_of_cores = 1;
+        let dag_set = vec![create_period_exceeding_dag()];
+        let result = crate::federated::federated(dag_set, number_of_cores);
+        let file_path = create_yaml_file("../outputs", "test_federated_unsuited_tasks");
+        dump_federate_result_to_file(&file_path, result);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(
+            result_info.result,
+            FederateResult::Unschedulable {
+                reason: (String::from(
+                    "The critical path length is greater than end_to_end_deadline."
+                )),
+                insufficient_cores: 0
+            }
+        );
+
+        remove_file(file_path).unwrap();
+    }
+}
