@@ -2,7 +2,8 @@ use log::{info, warn};
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
 
@@ -61,6 +62,17 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
     std::fs::write(file_path, yaml).expect("Failed to write YAML file");
+}
+
+pub fn add_core_count_to_yaml(file_path: &str, core_count: usize) -> std::io::Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(file_path)?;
+
+    writeln!(file, "core_count: {}", core_count)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
