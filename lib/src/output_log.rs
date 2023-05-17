@@ -9,7 +9,7 @@ use crate::graph_extension::{GraphExtension, NodeData};
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
     total_utilization: f32,
-    dag_set: Vec<DAGInfo>,
+    each_dag_info: Vec<DAGInfo>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -54,7 +54,7 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
 
     let dag_set_info = DAGSetInfo {
         total_utilization,
-        dag_set: each_dag_info,
+        each_dag_info,
     };
 
     let yaml =
@@ -102,10 +102,10 @@ mod tests {
         let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
 
         assert_eq!(dag_set.total_utilization, 2.8);
-        assert_eq!(dag_set.dag_set.len(), 2);
-        assert_eq!(dag_set.dag_set[1].critical_path_length, 8.0);
-        assert_eq!(dag_set.dag_set[1].end_to_end_deadline, 10.0);
-        assert_eq!(dag_set.dag_set[1].volume, 14.0);
+        assert_eq!(dag_set.each_dag_info.len(), 2);
+        assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8.0);
+        assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10.0);
+        assert_eq!(dag_set.each_dag_info[1].volume, 14.0);
 
         remove_file(file_path).unwrap();
     }
