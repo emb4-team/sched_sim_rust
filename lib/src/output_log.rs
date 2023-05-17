@@ -33,6 +33,17 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     file_path
 }
 
+fn append_info_to_file(file_path: &str, content: &str) -> std::io::Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(file_path)?;
+
+    file.write_all(content.as_bytes())?;
+    Ok(())
+}
+
 pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
     let mut total_utilization = 0.0;
     let mut each_dag_info = Vec::new();
@@ -61,18 +72,7 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
     let yaml =
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
-    std::fs::write(file_path, yaml).expect("Failed to write YAML file");
-}
-
-pub fn add_core_count_to_yaml(file_path: &str, core_count: usize) -> std::io::Result<()> {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .open(file_path)?;
-
-    writeln!(file, "core_count: {}", core_count)?;
-
-    Ok(())
+    append_info_to_file(file_path, &yaml).expect("Failed to write YAML file");
 }
 
 #[cfg(test)]
