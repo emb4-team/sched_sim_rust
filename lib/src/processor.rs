@@ -6,6 +6,7 @@ pub trait ProcessorBase {
     fn set_time_unit(&mut self, time_unit: f32);
     fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool;
     fn process(&mut self) -> Vec<ProcessResult>;
+    fn get_number_of_cores(&self) -> usize;
 }
 
 pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -> f32 {

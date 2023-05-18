@@ -6,6 +6,7 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
+use crate::processor::ProcessorBase;
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -53,10 +54,11 @@ pub fn append_info_to_yaml(file_path: &str, info: &str) {
     }
 }
 
-pub fn dump_processor_info_to_yaml(file_path: &str, number_of_cores: usize) {
-    let number_of_cores_info = ProcessorInfo { number_of_cores };
-    let yaml = serde_yaml::to_string(&number_of_cores_info)
-        .expect("Failed to serialize ProcessorInfo to YAML");
+pub fn dump_processor_info_to_yaml(file_path: &str, processor: impl ProcessorBase) {
+    let number_of_cores = processor.get_number_of_cores();
+    let processor_info = ProcessorInfo { number_of_cores };
+    let yaml =
+        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
 
@@ -93,6 +95,8 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
 
 #[cfg(test)]
 mod tests {
+    use crate::homogeneous;
+
     use super::*;
     use std::{collections::HashMap, fs::remove_file};
 
@@ -141,7 +145,8 @@ mod tests {
     #[test]
     fn test_dump_number_of_cores_info_to_yaml() {
         let file_path = create_yaml_file("../outputs", "tests");
-        dump_processor_info_to_yaml(&file_path, 4);
+        let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
+        dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
