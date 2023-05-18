@@ -13,7 +13,6 @@ use petgraph::graph::{Graph, NodeIndex};
 /// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
-#[allow(dead_code)] // TODO: remove
 pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut critical_path: VecDeque<NodeIndex> = dag.get_critical_path().into();
     let mut providers: Vec<Vec<NodeIndex>> = Vec::new();
