@@ -2,9 +2,11 @@ use log::{info, warn};
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 use serde_yaml;
-use std::fs;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
+use crate::processor::ProcessorBase;
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -20,6 +22,11 @@ struct DAGInfo {
     volume: f32,
 }
 
+#[derive(Serialize, Deserialize)]
+struct ProcessorInfo {
+    number_of_cores: usize,
+}
+
 pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     if fs::metadata(folder_path).is_err() {
         let _ = fs::create_dir_all(folder_path);
@@ -32,7 +39,30 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
     file_path
 }
 
-pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_path: &str) {
+pub fn append_info_to_yaml(file_path: &str, info: &str) {
+    if let Ok(mut file) = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(file_path)
+    {
+        if let Err(err) = file.write_all(info.as_bytes()) {
+            eprintln!("Failed to write to file: {}", err);
+        }
+    } else {
+        eprintln!("Failed to open file: {}", file_path);
+    }
+}
+
+pub fn dump_processor_info_to_yaml(file_path: &str, processor: impl ProcessorBase) {
+    let number_of_cores = processor.get_number_of_cores();
+    let processor_info = ProcessorInfo { number_of_cores };
+    let yaml =
+        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, f32>>) {
     let mut total_utilization = 0.0;
     let mut each_dag_info = Vec::new();
 
@@ -60,11 +90,13 @@ pub fn dump_dag_set_info_to_yaml(mut dag_set: Vec<Graph<NodeData, f32>>, file_pa
     let yaml =
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
-    std::fs::write(file_path, yaml).expect("Failed to write YAML file");
+    append_info_to_yaml(file_path, &yaml);
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::homogeneous;
+
     use super::*;
     use std::{collections::HashMap, fs::remove_file};
 
@@ -96,7 +128,7 @@ mod tests {
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
         let file_path = create_yaml_file("../outputs", "tests");
-        dump_dag_set_info_to_yaml(dag_set, &file_path);
+        dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
@@ -106,6 +138,20 @@ mod tests {
         assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8.0);
         assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10.0);
         assert_eq!(dag_set.each_dag_info[1].volume, 14.0);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_processor_info_to_yaml() {
+        let file_path = create_yaml_file("../outputs", "tests");
+        let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
+        dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(number_of_cores.number_of_cores, 4);
 
         remove_file(file_path).unwrap();
     }
