@@ -8,9 +8,8 @@ struct ResultInfo<FederateResult> {
     result: FederateResult,
 }
 
-pub fn dump_federate_result_to_file(file_path: &str, result: FederateResult) {
+pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
     let result_info = ResultInfo { result };
-
     let yaml =
         serde_yaml::to_string(&result_info).expect("Failed to serialize federate result to YAML");
 
@@ -74,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_federated_info_normal() {
+    fn test_dump_federated_result_to_file_normal() {
         let number_of_cores = 40;
         let dag_set = vec![
             create_high_utilization_dag(),
@@ -83,7 +82,7 @@ mod tests {
         ];
         let result = crate::federated::federated(dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_dump_federated_info_normal");
-        dump_federate_result_to_file(&file_path, result);
+        dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
@@ -100,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_federated_lack_cores_for_high_tasks() {
+    fn test_dump_federated_result_to_file_lack_cores_for_high_tasks() {
         let number_of_cores = 1;
         let dag_set = vec![
             create_high_utilization_dag(),
@@ -109,7 +108,7 @@ mod tests {
         ];
         let result = crate::federated::federated(dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_high_tasks");
-        dump_federate_result_to_file(&file_path, result);
+        dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
@@ -126,7 +125,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_federated_lack_cores_for_low_tasks() {
+    fn test_dump_federated_result_to_file_lack_cores_for_low_tasks() {
         let number_of_cores = 3;
         let dag_set = vec![
             create_high_utilization_dag(),
@@ -135,7 +134,7 @@ mod tests {
         ];
         let result = crate::federated::federated(dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
-        dump_federate_result_to_file(&file_path, result);
+        dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
@@ -152,12 +151,12 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_federated_unsuited_tasks() {
+    fn test_dump_federated_result_to_file_unsuited_tasks() {
         let number_of_cores = 1;
         let dag_set = vec![create_period_exceeding_dag()];
         let result = crate::federated::federated(dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_unsuited_tasks");
-        dump_federate_result_to_file(&file_path, result);
+        dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();

@@ -44,6 +44,6 @@ fn main() {
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(number_of_cores);
         dump_dag_set_info_to_yaml(&file_path, dag_set);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);
-        dump_federate_result_to_file(&file_path, result);
+        dump_federated_result_to_file(&file_path, result);
     }
 }
