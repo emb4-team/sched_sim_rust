@@ -60,7 +60,7 @@ pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let f_consumers = get_f_consumers(dag.clone());
     let mut g_consumers: Vec<Vec<NodeIndex>> = Vec::new();
-    let non_critical_nodes = dag.get_non_critical_nodes().unwrap();
+    let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
     let mut idx = 0;
     while !providers.is_empty() {
         let provider = providers.remove(0);
@@ -76,8 +76,9 @@ pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
             .filter(|&node_index| non_critical_nodes.contains(node_index))
             .cloned()
             .collect();
-        idx += 1;
         g_consumers.push(filtered_nodes);
+        non_critical_nodes.retain(|&node_index| !f_consumers[idx].contains(&node_index));
+        idx += 1;
     }
 
     g_consumers
