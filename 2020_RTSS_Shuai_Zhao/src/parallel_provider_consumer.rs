@@ -29,23 +29,31 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
-/// F is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
-/// G is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
+/// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
+/// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 #[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let mut f_consumers: Vec<Vec<NodeIndex>> = Vec::new();
-    let non_critical_nodes = dag.get_non_critical_nodes();
-    let mut anc_nodes = Vec::new();
+    let non_critical_nodes = dag.get_non_critical_nodes().unwrap();
     providers.remove(0);
     while !providers.is_empty() {
         let next_provider = providers.remove(0);
-        for next_provider_node in next_provider {
-            anc_nodes.push(dag.get_anc_nodes(next_provider_node).unwrap());
-        }
         let mut f_consumer = Vec::new();
-        f_consumer = anc_nodes.clone()
+
+        for next_provider_node in next_provider {
+            let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
+
+            for anc_node in anc_nodes {
+                if non_critical_nodes.contains(&anc_node) {
+                    f_consumer.push(anc_node);
+                }
+            }
+        }
+
+        f_consumers.push(f_consumer);
     }
+
     f_consumers
 }
 
