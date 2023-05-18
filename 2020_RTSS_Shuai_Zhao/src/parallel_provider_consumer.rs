@@ -29,12 +29,11 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
-/// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 #[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let mut f_consumers: Vec<Vec<NodeIndex>> = Vec::new();
-    let non_critical_nodes = dag.get_non_critical_nodes().unwrap();
+    let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
     providers.remove(0);
     while !providers.is_empty() {
         let next_provider = providers.remove(0);
@@ -49,11 +48,38 @@ pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
                 }
             }
         }
-
-        f_consumers.push(f_consumer);
+        f_consumers.push(f_consumer.clone());
+        non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
     }
 
     f_consumers
+}
+
+/// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
+#[allow(dead_code)] // TODO: remove
+pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
+    let mut providers = get_providers(dag.clone());
+    let mut g_consumers: Vec<Vec<NodeIndex>> = Vec::new();
+    let non_critical_nodes = dag.get_non_critical_nodes().unwrap();
+    providers.remove(0);
+    while !providers.is_empty() {
+        let next_provider = providers.remove(0);
+        let mut g_consumer = Vec::new();
+
+        for next_provider_node in next_provider {
+            let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
+
+            for anc_node in anc_nodes {
+                if non_critical_nodes.contains(&anc_node) {
+                    g_consumer.push(anc_node);
+                }
+            }
+        }
+
+        g_consumers.push(g_consumer);
+    }
+
+    g_consumers
 }
 
 #[cfg(test)]
@@ -63,6 +89,7 @@ mod tests {
 
     use super::*;
 
+    ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, f32> {
         fn create_node(id: i32, key: &str, value: f32) -> NodeData {
             let mut params = HashMap::new();
@@ -76,27 +103,39 @@ mod tests {
         let c2 = dag.add_node(create_node(2, "execution_time", 1.0));
         let c3 = dag.add_node(create_node(3, "execution_time", 1.0));
         let c4 = dag.add_node(create_node(4, "execution_time", 1.0));
-        let c5 = dag.add_node(create_node(5, "execution_time", 1.0));
         //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(6, "execution_time", 0.0));
-        let n0_5 = dag.add_node(create_node(7, "execution_time", 0.0));
-        //aZ_X is the Zth ancestor node of cX.
-        let a0_2 = dag.add_node(create_node(8, "execution_time", 0.0));
+        let n0_2 = dag.add_node(create_node(5, "execution_time", 0.0));
+        let n1_2 = dag.add_node(create_node(6, "execution_time", 0.0));
+        let n0_3 = dag.add_node(create_node(7, "execution_time", 0.0));
+        let n1_3 = dag.add_node(create_node(8, "execution_time", 0.0));
+        let n2_3 = dag.add_node(create_node(9, "execution_time", 0.0));
+        let n0_4 = dag.add_node(create_node(10, "execution_time", 0.0));
+        let n1_4 = dag.add_node(create_node(11, "execution_time", 0.0));
+        let n2_4 = dag.add_node(create_node(12, "execution_time", 0.0));
 
         //create critical path edges
         dag.add_edge(c0, c1, 1.0);
         dag.add_edge(c1, c2, 1.0);
         dag.add_edge(c2, c3, 1.0);
         dag.add_edge(c3, c4, 1.0);
-        dag.add_edge(c4, c5, 1.0);
 
         //create non-critical path edges
         dag.add_edge(c0, n0_2, 1.0);
         dag.add_edge(n0_2, c2, 1.0);
-        dag.add_edge(c0, a0_2, 1.0);
-        dag.add_edge(a0_2, c2, 1.0);
-        dag.add_edge(c3, n0_5, 1.0);
-        dag.add_edge(n0_5, c5, 1.0);
+        dag.add_edge(c0, n1_2, 1.0);
+        dag.add_edge(n1_2, c2, 1.0);
+        dag.add_edge(c0, n0_3, 1.0);
+        dag.add_edge(n0_3, c3, 1.0);
+        dag.add_edge(c1, n1_3, 1.0);
+        dag.add_edge(n1_3, c3, 1.0);
+        dag.add_edge(c1, n2_3, 1.0);
+        dag.add_edge(n2_3, c3, 1.0);
+        dag.add_edge(n0_3, n0_4, 1.0);
+        dag.add_edge(n0_4, c4, 1.0);
+        dag.add_edge(n1_3, n1_4, 1.0);
+        dag.add_edge(n1_4, c4, 1.0);
+        dag.add_edge(n2_3, n2_4, 1.0);
+        dag.add_edge(n2_4, c4, 1.0);
 
         dag
     }
@@ -110,19 +149,26 @@ mod tests {
         assert_eq!(providers[0][0].index(), 0);
         assert_eq!(providers[0][1].index(), 1);
         assert_eq!(providers[1][0].index(), 2);
-        assert_eq!(providers[1][1].index(), 3);
-        assert_eq!(providers[1][2].index(), 4);
-        assert_eq!(providers[2][0].index(), 5);
+        assert_eq!(providers[2][0].index(), 3);
+        assert_eq!(providers[3][0].index(), 4);
     }
 
     #[test]
     fn get_f_consumers_normal() {
         let dag = create_sample_dag();
         let f_consumers = get_f_consumers(dag);
-        assert_eq!(f_consumers.len(), 2);
 
-        assert_eq!(f_consumers[0][0].index(), 8);
-        assert_eq!(f_consumers[0][1].index(), 6);
-        assert_eq!(f_consumers[1][0].index(), 7);
+        assert_eq!(f_consumers.len(), 3);
+        assert_eq!(f_consumers[0].len(), 2);
+        assert_eq!(f_consumers[1].len(), 3);
+        assert_eq!(f_consumers[2].len(), 3);
+        assert_eq!(f_consumers[0][0].index(), 6);
+        assert_eq!(f_consumers[0][1].index(), 5);
+        assert_eq!(f_consumers[1][0].index(), 9);
+        assert_eq!(f_consumers[1][1].index(), 8);
+        assert_eq!(f_consumers[1][2].index(), 7);
+        assert_eq!(f_consumers[2][0].index(), 12);
+        assert_eq!(f_consumers[2][1].index(), 11);
+        assert_eq!(f_consumers[2][2].index(), 10);
     }
 }
