@@ -31,6 +31,9 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 /// Capacity consumers represent specific non-critical nodes.
 /// F is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
 /// G is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
+#[allow(dead_code)] // TODO: remove
+pub fn get_consumers() {}
+
 #[cfg(test)]
 
 mod tests {
