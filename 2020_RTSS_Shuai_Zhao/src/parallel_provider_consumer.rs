@@ -81,6 +81,8 @@ mod tests {
         //nY_X is the Yth preceding node of cX.
         let n0_2 = dag.add_node(create_node(6, "execution_time", 0.0));
         let n0_5 = dag.add_node(create_node(7, "execution_time", 0.0));
+        //aZ_X is the Zth ancestor node of cX.
+        let a0_2 = dag.add_node(create_node(8, "execution_time", 0.0));
 
         //create critical path edges
         dag.add_edge(c0, c1, 1.0);
@@ -92,6 +94,8 @@ mod tests {
         //create non-critical path edges
         dag.add_edge(c0, n0_2, 1.0);
         dag.add_edge(n0_2, c2, 1.0);
+        dag.add_edge(c0, a0_2, 1.0);
+        dag.add_edge(a0_2, c2, 1.0);
         dag.add_edge(c3, n0_5, 1.0);
         dag.add_edge(n0_5, c5, 1.0);
 
@@ -110,5 +114,16 @@ mod tests {
         assert_eq!(providers[1][1].index(), 3);
         assert_eq!(providers[1][2].index(), 4);
         assert_eq!(providers[2][0].index(), 5);
+    }
+
+    #[test]
+    fn get_f_consumers_normal() {
+        let dag = create_sample_dag();
+        let f_consumers = get_f_consumers(dag);
+        assert_eq!(f_consumers.len(), 2);
+
+        assert_eq!(f_consumers[0][0].index(), 8);
+        assert_eq!(f_consumers[0][1].index(), 6);
+        assert_eq!(f_consumers[1][0].index(), 7);
     }
 }
