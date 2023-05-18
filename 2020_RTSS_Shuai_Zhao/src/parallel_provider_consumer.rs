@@ -10,9 +10,9 @@ use std::collections::VecDeque;
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
 
+/// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
-/// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
 #[allow(dead_code)] // TODO: remove
 pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut critical_path: VecDeque<NodeIndex> = dag.get_critical_path().into();
@@ -27,6 +27,10 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     providers
 }
 
+/// Algorithm 1: Step2 identifying capacity consumers.
+/// Capacity consumers represent specific non-critical nodes.
+/// F is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
+/// G is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 #[cfg(test)]
 
 mod tests {
