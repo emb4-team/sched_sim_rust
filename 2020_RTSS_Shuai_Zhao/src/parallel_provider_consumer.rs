@@ -85,9 +85,8 @@ pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
+    use std::collections::HashMap;
 
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, f32> {
