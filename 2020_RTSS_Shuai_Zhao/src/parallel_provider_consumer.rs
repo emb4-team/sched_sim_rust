@@ -29,7 +29,6 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
-#[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let mut f_consumers: Vec<Vec<NodeIndex>> = Vec::new();
@@ -59,31 +58,32 @@ pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 #[allow(dead_code)] // TODO: remove
 pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
+    let f_consumers = get_f_consumers(dag.clone());
     let mut g_consumers: Vec<Vec<NodeIndex>> = Vec::new();
     let non_critical_nodes = dag.get_non_critical_nodes().unwrap();
-    providers.remove(0);
+    let mut idx = 0;
     while !providers.is_empty() {
-        let next_provider = providers.remove(0);
-        let mut g_consumer = Vec::new();
-
-        for next_provider_node in next_provider {
-            let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
-
-            for anc_node in anc_nodes {
-                if non_critical_nodes.contains(&anc_node) {
-                    g_consumer.push(anc_node);
-                }
-            }
-        }
-
-        g_consumers.push(g_consumer);
+        let provider = providers.remove(0);
+        //Influenced by concurrency availability only from the last critical node
+        let latest_critical_node = provider.last().unwrap();
+        let parallel_process_node = dag
+            .get_parallel_process_nodes(*latest_critical_node)
+            .unwrap_or(vec![]);
+        //A non-critical node not belonging to the current consumer that can run concurrently with the last critical node
+        let filtered_nodes: Vec<NodeIndex> = parallel_process_node
+            .iter()
+            .filter(|&node_index| !f_consumers[idx].contains(node_index))
+            .filter(|&node_index| non_critical_nodes.contains(node_index))
+            .cloned()
+            .collect();
+        idx += 1;
+        g_consumers.push(filtered_nodes);
     }
 
     g_consumers
 }
 
 #[cfg(test)]
-
 mod tests {
     use std::collections::HashMap;
 
@@ -144,7 +144,7 @@ mod tests {
     fn get_providers_normal() {
         let dag = create_sample_dag();
         let providers = get_providers(dag);
-        assert_eq!(providers.len(), 3);
+        assert_eq!(providers.len(), 4);
 
         assert_eq!(providers[0][0].index(), 0);
         assert_eq!(providers[0][1].index(), 1);
@@ -162,6 +162,7 @@ mod tests {
         assert_eq!(f_consumers[0].len(), 2);
         assert_eq!(f_consumers[1].len(), 3);
         assert_eq!(f_consumers[2].len(), 3);
+
         assert_eq!(f_consumers[0][0].index(), 6);
         assert_eq!(f_consumers[0][1].index(), 5);
         assert_eq!(f_consumers[1][0].index(), 9);
@@ -170,5 +171,23 @@ mod tests {
         assert_eq!(f_consumers[2][0].index(), 12);
         assert_eq!(f_consumers[2][1].index(), 11);
         assert_eq!(f_consumers[2][2].index(), 10);
+    }
+
+    #[test]
+    fn get_g_consumers_normal() {
+        let dag = create_sample_dag();
+        let g_consumers = get_g_consumers(dag);
+
+        assert_eq!(g_consumers.len(), 4);
+        assert_eq!(g_consumers[0].len(), 2);
+        assert_eq!(g_consumers[1].len(), 3);
+        assert_eq!(g_consumers[2].len(), 0);
+        assert_eq!(g_consumers[3].len(), 0);
+
+        assert_eq!(g_consumers[0][0].index(), 7);
+        assert_eq!(g_consumers[0][1].index(), 10);
+        assert_eq!(g_consumers[1][0].index(), 10);
+        assert_eq!(g_consumers[1][1].index(), 11);
+        assert_eq!(g_consumers[1][2].index(), 12);
     }
 }
