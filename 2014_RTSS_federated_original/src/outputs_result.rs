@@ -11,7 +11,7 @@ struct ResultInfo<FederateResult> {
 pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
     let result_info = ResultInfo { result };
     let yaml =
-        serde_yaml::to_string(&result_info).expect("Failed to serialize federate result to YAML");
+        serde_yaml::to_string(&result_info).expect("Failed to serialize federated result to YAML");
 
     append_info_to_yaml(file_path, &yaml);
 }
