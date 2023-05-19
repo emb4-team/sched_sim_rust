@@ -8,15 +8,15 @@ use log::warn;
 pub enum ProcessResult {
     Idle,
     Continue,
-    Done,
+    Done(i32),
 }
 
 #[derive(Clone)]
 pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<i32>,
-    pub remain_proc_time: f32,
-    pub time_unit: f32,
+    pub remain_proc_time: i32,
+    pub time_unit: i32,
 }
 
 impl Default for Core {
@@ -24,8 +24,8 @@ impl Default for Core {
         Self {
             is_idle: true,
             processing_node: None,
-            remain_proc_time: 0.0,
-            time_unit: 1.0,
+            remain_proc_time: 0,
+            time_unit: 1,
         }
     }
 }
@@ -40,7 +40,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if let Some(exec_time) = node_data.params.get("execution_time") {
-            self.remain_proc_time = *exec_time * self.time_unit;
+            self.remain_proc_time = (*exec_time * self.time_unit as f32) as i32;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
@@ -52,12 +52,12 @@ impl Core {
         if self.is_idle {
             return Idle;
         }
-        self.remain_proc_time -= 1.0;
-        println!("remain_proc_time: {}", self.remain_proc_time);
-        if self.remain_proc_time == 0.0 {
+        self.remain_proc_time -= 1;
+        if self.remain_proc_time == 0 {
             self.is_idle = true;
+            let finis_node_id = self.processing_node.unwrap();
             self.processing_node = None;
-            return Done;
+            return Done(finis_node_id);
         }
         Continue
     }
@@ -79,7 +79,7 @@ mod tests {
         let core = Core::default();
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
-        assert_eq!(core.remain_proc_time, 0.0);
+        assert_eq!(core.remain_proc_time, 0);
     }
 
     #[test]
@@ -88,7 +88,7 @@ mod tests {
         core.allocate(create_node(0, "execution_time", 10.0));
         assert!(!core.is_idle);
         assert_eq!(core.processing_node, Some(0));
-        assert_eq!(core.remain_proc_time, 10.0);
+        assert_eq!(core.remain_proc_time, 10);
     }
 
     #[test]
@@ -109,9 +109,9 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 10.0));
         assert_eq!(core.process(), Continue);
-        assert_eq!(core.remain_proc_time, 9.0);
+        assert_eq!(core.remain_proc_time, 9);
         core.process();
-        assert_eq!(core.remain_proc_time, 8.0);
+        assert_eq!(core.remain_proc_time, 8);
     }
 
     #[test]
@@ -125,9 +125,9 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 2.0));
         core.process();
-        assert_eq!(core.process(), Done);
+        assert_eq!(core.process(), Done(0));
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
-        assert_eq!(core.remain_proc_time, 0.0);
+        assert_eq!(core.remain_proc_time, 0);
     }
 }

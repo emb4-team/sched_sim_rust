@@ -2,65 +2,87 @@ use std::{collections::VecDeque, vec};
 
 use crate::{
     core::ProcessResult,
-    graph_extension::NodeData,
+    graph_extension::{GraphExtension, NodeData},
     processor::{get_minimum_time_unit_from_dag_set, ProcessorBase},
 };
-use petgraph::{graph::NodeIndex, Direction::Incoming, Graph};
+use petgraph::{graph::NodeIndex, Graph};
 
 pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
-    task_list: Vec<NodeIndex>,
-    dag: &Graph<NodeData, f32>,
+    task_list: &mut Vec<NodeIndex>,
+    dag: &mut Graph<NodeData, f32>,
 ) -> f32 {
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
+    let mut processing_tasks: Vec<NodeIndex> = vec![];
     let mut time = 0.0;
 
     // Set the time unit of the processor.
     let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
     processor.set_time_unit(time_unit);
+    while !task_list.is_empty() || !ready_queue.is_empty() {
+        println!("task_list: {:?}", task_list);
+        // Set the ready queue.
+        for task in task_list.clone() {
+            if dag.get_pre_nodes(task).is_none() {
+                ready_queue.push_back(task);
+                task_list.retain(|&node| node != task);
+                continue;
+            }
 
-    // Set the ready queue.
-    for &task in &task_list {
-        if dag.neighbors_directed(task, Incoming).count() == 0 {
-            ready_queue.push_back(task);
+            let pre_nodes = dag.get_pre_nodes(task).unwrap();
+            let mut found = false;
+            for pre_node in pre_nodes {
+                if task_list.contains(&pre_node) || ready_queue.contains(&pre_node) {
+                    found = true;
+                    break;
+                }
+                if processing_tasks.contains(&pre_node) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if !found {
+                ready_queue.push_back(task);
+                task_list.retain(|&node| node != task);
+            }
         }
-    }
 
-    // Add newly ready processes to the ready queue.
-    while let Some(task) = ready_queue.pop_front() {
-        println!("task: {}", task.index());
-        if let Some(core_index) = processor.get_idle_core_index() {
-            println!("core_index: {}", core_index);
-            processor.allocate(core_index, dag[task].clone());
-        } else {
-            // No idle cores available, break the loop
-            println!("No idle cores");
-            ready_queue.push_front(task);
-            break;
+        println!("ready_queue: {:?}", ready_queue);
+
+        // Add newly ready processes to the ready queue.
+        while let Some(task) = ready_queue.pop_front() {
+            if let Some(core_index) = processor.get_idle_core_index() {
+                processor.allocate(core_index, dag[task].clone());
+                processing_tasks.push(task);
+                println!("allocated: {:?}", dag[task]);
+            } else {
+                // No idle cores available, break the loop
+                ready_queue.push_front(task);
+                break;
+            }
         }
+        println!("after_ready_queue: {:?}", ready_queue);
+        // Run the processes
+        let mut process_result = processor.process();
+        time += 1.0;
+
+        while !process_result
+            .iter()
+            .any(|result| matches!(result, ProcessResult::Done(_)))
+        {
+            process_result = processor.process();
+            time += 1.0;
+        }
+        processing_tasks.retain(|&task| {
+            !process_result.iter().any(
+                |result| matches!(result, ProcessResult::Done(id) if *id == task.index() as i32),
+            )
+        });
+        println!("Time: {}", time / time_unit as f32);
     }
-
-    // Run the processes
-    let mut process_result = processor.process();
-    time += 1.0;
-
-    //while !process_result.contains(&ProcessResult::Done) {
-    //    process_result = processor.process();
-    //    time += time_unit;
-    //}
-
-    println!("time: {}", time);
-
-    // If the running process is done, remove it.
-
-    // If there is no running process, choose one from the ready queue.
-
-    // If there is a running process, run it for one time unit.
-
-    // If there are no processes left, we are done.
-
-    // Advance the time.
-    time
+    println!("Time: {}", time / time_unit as f32);
+    time / time_unit as f32
 }
 
 #[cfg(test)]
@@ -103,8 +125,8 @@ mod tests {
         dag.add_edge(c3, n0_5, 1.0);
         dag.add_edge(n0_5, c5, 1.0);
 
-        let task_list = vec![c0, c1, c2, c3, c4, c5, n0_2, n0_5];
-        let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        fixed_priority_scheduler(&mut homogeneous_processor, task_list, &dag);
+        let mut task_list = vec![c0, c1, c2, c3, c4, c5, n0_2, n0_5];
+        let mut homogeneous_processor = HomogeneousProcessor::new(1);
+        fixed_priority_scheduler(&mut homogeneous_processor, &mut task_list, &mut dag);
     }
 }

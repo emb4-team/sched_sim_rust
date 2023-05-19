@@ -12,7 +12,7 @@ impl ProcessorBase for HomogeneousProcessor {
         }
     }
 
-    fn set_time_unit(&mut self, time_unit: f32) {
+    fn set_time_unit(&mut self, time_unit: i32) {
         for core in &mut self.cores {
             core.time_unit = time_unit;
         }
@@ -59,16 +59,16 @@ mod tests {
         for core in &homogeneous_processor.cores {
             assert!(core.is_idle);
             assert_eq!(core.processing_node, None);
-            assert_eq!(core.remain_proc_time, 0.0);
+            assert_eq!(core.remain_proc_time, 0);
         }
     }
 
     #[test]
     fn test_set_time_unit_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.set_time_unit(0.1);
+        homogeneous_processor.set_time_unit(10);
         for core in &homogeneous_processor.cores {
-            assert_eq!(core.time_unit, 0.1);
+            assert_eq!(core.time_unit, 10);
         }
     }
 
@@ -108,8 +108,8 @@ mod tests {
             homogeneous_processor.process(),
             vec![ProcessResult::Continue, ProcessResult::Continue]
         );
-        assert_eq!(homogeneous_processor.cores[0].remain_proc_time, 1.0);
-        assert_eq!(homogeneous_processor.cores[1].remain_proc_time, 2.0);
+        assert_eq!(homogeneous_processor.cores[0].remain_proc_time, 1);
+        assert_eq!(homogeneous_processor.cores[1].remain_proc_time, 2);
     }
 
     #[test]
@@ -123,7 +123,7 @@ mod tests {
         );
         assert_eq!(
             homogeneous_processor.process(),
-            vec![ProcessResult::Done, ProcessResult::Idle]
+            vec![ProcessResult::Done(0), ProcessResult::Idle]
         );
         assert_eq!(
             homogeneous_processor.process(),
