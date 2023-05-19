@@ -3,7 +3,7 @@ use std::{collections::VecDeque, vec};
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
-    processor::{get_minimum_time_unit_from_dag_set, ProcessorBase},
+    processor::{get_minimum_multiplier_from_dag_set, ProcessorBase},
 };
 use petgraph::{graph::NodeIndex, Graph};
 
@@ -16,8 +16,8 @@ pub fn fixed_priority_scheduler(
     let mut processing_tasks: Vec<NodeIndex> = vec![];
     let mut time = 0.0;
 
-    let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
-    processor.set_time_unit(time_unit);
+    let minimum_multiplier = get_minimum_multiplier_from_dag_set(&vec![dag.clone()]);
+    processor.set_minimum_multiplier(minimum_multiplier);
 
     while !task_list.is_empty() || !ready_queue.is_empty() || !processing_tasks.is_empty() {
         // Set the ready queue.
@@ -70,9 +70,7 @@ pub fn fixed_priority_scheduler(
             )
         });
     }
-
-    println!("time: {}", time / time_unit as f32);
-    time / time_unit as f32
+    time / minimum_multiplier as f32
 }
 
 #[cfg(test)]
@@ -94,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fixed_priority_scheduler_checked() {
+    fn test_fixed_priority_scheduler_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 5.1));
@@ -116,6 +114,9 @@ mod tests {
 
         let mut task_list = vec![c0, c1, n0_2, n1_2];
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        fixed_priority_scheduler(&mut homogeneous_processor, &mut task_list, &mut dag);
+        assert_eq!(
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut task_list, &mut dag),
+            9.1
+        );
     }
 }

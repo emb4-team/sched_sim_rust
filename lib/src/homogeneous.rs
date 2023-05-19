@@ -12,9 +12,9 @@ impl ProcessorBase for HomogeneousProcessor {
         }
     }
 
-    fn set_time_unit(&mut self, time_unit: i32) {
+    fn set_minimum_multiplier(&mut self, minimum_multiplier: i32) {
         for core in &mut self.cores {
-            core.time_unit = time_unit;
+            core.minimum_multiplier = minimum_multiplier;
         }
     }
 
@@ -64,11 +64,11 @@ mod tests {
     }
 
     #[test]
-    fn test_set_time_unit_normal() {
+    fn test_set_minimum_multiplier_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.set_time_unit(10);
+        homogeneous_processor.set_minimum_multiplier(10);
         for core in &homogeneous_processor.cores {
-            assert_eq!(core.time_unit, 10);
+            assert_eq!(core.minimum_multiplier, 10);
         }
     }
 

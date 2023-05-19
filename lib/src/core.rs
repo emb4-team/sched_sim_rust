@@ -16,7 +16,7 @@ pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<i32>,
     pub remain_proc_time: i32,
-    pub time_unit: i32,
+    pub minimum_multiplier: i32,
 }
 
 impl Default for Core {
@@ -25,7 +25,7 @@ impl Default for Core {
             is_idle: true,
             processing_node: None,
             remain_proc_time: 0,
-            time_unit: 1,
+            minimum_multiplier: 1,
         }
     }
 }
@@ -40,7 +40,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if let Some(exec_time) = node_data.params.get("execution_time") {
-            self.remain_proc_time = (*exec_time * self.time_unit as f32) as i32;
+            self.remain_proc_time = (*exec_time * self.minimum_multiplier as f32) as i32;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
