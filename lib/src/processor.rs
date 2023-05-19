@@ -9,7 +9,12 @@ pub trait ProcessorBase {
     fn get_number_of_cores(&self) -> usize;
 }
 
+///Correspondence up to the 4th decimal point.
 pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -> f32 {
+    fn round_fraction(num: f32, decimal_places: u32) -> f32 {
+        let multiplier = 10_f32.powi(decimal_places as i32);
+        (num * multiplier).round() / multiplier
+    }
     // Initial value is set to 1.0 and returned as is if no decimal point is found.
     let mut time_unit = 1.0;
     for dag in dag_set {
@@ -18,8 +23,14 @@ pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -
             // Check all nodes in dag_set because we need to use the same unit time in the processor
             if exec_time.fract() != 0.0 {
                 // -2 to remove "0." from the string
-                let decimal_count =
-                    10u32.pow((exec_time.fract().abs().to_string().chars().count() - 2) as u32);
+                let decimal_count = 10u32.pow(
+                    (round_fraction(exec_time.fract(), 4)
+                        .abs()
+                        .to_string()
+                        .chars()
+                        .count()
+                        - 2) as u32,
+                );
                 let new_time_unit = 1.0 / decimal_count as f32;
                 if new_time_unit < time_unit {
                     time_unit = new_time_unit;
@@ -57,7 +68,7 @@ mod tests {
         assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 1.0);
 
         let mut dag2 = Graph::<NodeData, f32>::new();
-        dag2.add_node(create_node(2, "execution_time", 0.3));
+        dag2.add_node(create_node(2, "execution_time", 50.2));
         dag_set.push(dag2);
 
         assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 0.1);
