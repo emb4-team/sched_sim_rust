@@ -20,7 +20,9 @@ pub fn fixed_priority_scheduler(
     let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
     processor.set_time_unit(time_unit);
     while !task_list.is_empty() || !ready_queue.is_empty() {
-        println!("task_list: {:?}", task_list);
+        println!("in_task_list: {:?}", task_list);
+        println!("in_processing_tasks: {:?}", processing_tasks);
+        println!("in_ready_queue: {:?}", ready_queue);
         // Set the ready queue.
         for task in task_list.clone() {
             if dag.get_pre_nodes(task).is_none() {
@@ -48,6 +50,15 @@ pub fn fixed_priority_scheduler(
             }
         }
 
+        // Sort the ready queue.
+        ready_queue.make_contiguous().sort_by(|a, b| {
+            let a_node = dag.node_weight(*a).unwrap();
+            let b_node = dag.node_weight(*b).unwrap();
+            let a_priority = a_node.params.get("priority").unwrap();
+            let b_priority = b_node.params.get("priority").unwrap();
+            a_priority.partial_cmp(b_priority).unwrap()
+        });
+
         println!("ready_queue: {:?}", ready_queue);
 
         // Add newly ready processes to the ready queue.
@@ -55,13 +66,14 @@ pub fn fixed_priority_scheduler(
             if let Some(core_index) = processor.get_idle_core_index() {
                 processor.allocate(core_index, dag[task].clone());
                 processing_tasks.push(task);
-                println!("allocated: {:?}", dag[task]);
+                println!("task: {:?}", task);
             } else {
                 // No idle cores available, break the loop
                 ready_queue.push_front(task);
                 break;
             }
         }
+
         println!("after_ready_queue: {:?}", ready_queue);
         // Run the processes
         let mut process_result = processor.process();
@@ -79,9 +91,8 @@ pub fn fixed_priority_scheduler(
                 |result| matches!(result, ProcessResult::Done(id) if *id == task.index() as i32),
             )
         });
-        println!("Time: {}", time / time_unit as f32);
     }
-    println!("Time: {}", time / time_unit as f32);
+    println!("time: {}", time / time_unit as f32);
     time / time_unit as f32
 }
 
@@ -98,6 +109,11 @@ mod tests {
         NodeData { id, params }
     }
 
+    fn add_params(dag: &mut Graph<NodeData, f32>, node: NodeIndex, key: &str, value: f32) {
+        let node_added = dag.node_weight_mut(node).unwrap();
+        node_added.params.insert(key.to_string(), value);
+    }
+
     #[test]
     fn test_fixed_priority_scheduler_checked() {
         let mut dag = Graph::<NodeData, f32>::new();
@@ -108,9 +124,19 @@ mod tests {
         let c3 = dag.add_node(create_node(3, "execution_time", 2.0));
         let c4 = dag.add_node(create_node(4, "execution_time", 3.0));
         let c5 = dag.add_node(create_node(5, "execution_time", 2.0));
+        add_params(&mut dag, c0, "priority", 0.0);
+        add_params(&mut dag, c1, "priority", 0.0);
+        add_params(&mut dag, c2, "priority", 0.0);
+        add_params(&mut dag, c3, "priority", 0.0);
+        add_params(&mut dag, c4, "priority", 0.0);
+        add_params(&mut dag, c5, "priority", 0.0);
         //nY_X is the Yth preceding node of cX.
         let n0_2 = dag.add_node(create_node(6, "execution_time", 1.0));
-        let n0_5 = dag.add_node(create_node(7, "execution_time", 1.0));
+        let n1_2 = dag.add_node(create_node(7, "execution_time", 1.0));
+        let n0_5 = dag.add_node(create_node(8, "execution_time", 1.0));
+        add_params(&mut dag, n0_2, "priority", 2.0);
+        add_params(&mut dag, n1_2, "priority", 1.0);
+        add_params(&mut dag, n0_5, "priority", 1.0);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1.0);
@@ -122,11 +148,13 @@ mod tests {
         //create non-critical path edges
         dag.add_edge(c0, n0_2, 1.0);
         dag.add_edge(n0_2, c2, 1.0);
+        dag.add_edge(c0, n1_2, 1.0);
+        dag.add_edge(n1_2, c2, 1.0);
         dag.add_edge(c3, n0_5, 1.0);
         dag.add_edge(n0_5, c5, 1.0);
 
-        let mut task_list = vec![c0, c1, c2, c3, c4, c5, n0_2, n0_5];
-        let mut homogeneous_processor = HomogeneousProcessor::new(1);
+        let mut task_list = vec![c0, c1, c2, c3, c4, c5, n0_2, n1_2, n0_5];
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
         fixed_priority_scheduler(&mut homogeneous_processor, &mut task_list, &mut dag);
     }
 }
