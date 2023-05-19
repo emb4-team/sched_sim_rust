@@ -1,25 +1,37 @@
-use core::time;
 use std::vec;
 
 use crate::{
     graph_extension::NodeData,
     processor::{get_minimum_time_unit_from_dag_set, ProcessorBase},
 };
-use petgraph::{graph::NodeIndex, Graph};
+use petgraph::{graph::NodeIndex, Direction::Incoming, Graph};
 
-fn fixed_priority_scheduler(
+pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     task_list: Vec<NodeIndex>,
-    dag: Graph<NodeData, f32>,
+    dag: &Graph<NodeData, f32>,
 ) {
+    let mut ready_queue: Vec<NodeIndex> = Vec::new();
+
     // Set the time unit of the processor.
-    let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag]);
+    let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
     println!("time_unit: {}", time_unit);
     processor.set_time_unit(time_unit);
 
-    // Get the minimum time unit from the dag.
+    // Set the ready queue.
+    for &task in &task_list {
+        if dag.neighbors_directed(task, Incoming).count() == 0 {
+            ready_queue.push(task);
+        }
+    }
 
     // Add newly ready processes to the ready queue.
+    let idle_core_index = processor.get_idle_core_index();
+    if let Some(task) = ready_queue.pop() {
+        if let Some(core_index) = idle_core_index {
+            processor.allocate(core_index, dag[task].clone());
+        }
+    }
 
     // If the running process is done, remove it.
 
@@ -74,6 +86,6 @@ mod tests {
 
         let task_list = vec![c0, c1, c2, c3, c4, c5, n0_2, n0_5];
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        fixed_priority_scheduler(&mut homogeneous_processor, task_list, dag);
+        fixed_priority_scheduler(&mut homogeneous_processor, task_list, &dag);
     }
 }

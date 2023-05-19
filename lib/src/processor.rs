@@ -7,6 +7,7 @@ pub trait ProcessorBase {
     fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool;
     fn process(&mut self) -> Vec<ProcessResult>;
     fn get_number_of_cores(&self) -> usize;
+    fn get_idle_core_index(&mut self) -> Option<usize>;
 }
 
 ///Correspondence up to the 4th decimal point.

@@ -29,6 +29,15 @@ impl ProcessorBase for HomogeneousProcessor {
     fn get_number_of_cores(&self) -> usize {
         self.cores.len()
     }
+
+    fn get_idle_core_index(&mut self) -> Option<usize> {
+        for (index, core) in self.cores.iter_mut().enumerate() {
+            if core.is_idle {
+                return Some(index);
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]
@@ -130,5 +139,22 @@ mod tests {
             homogeneous_processor.process(),
             vec![ProcessResult::Idle, ProcessResult::Idle]
         );
+    }
+
+    #[test]
+    fn test_processor_get_idle_core_index_normal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), Some(0));
+
+        let n1 = create_node(0, "execution_time", 2.0);
+
+        homogeneous_processor.allocate(0, n1.clone());
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), Some(1));
+
+        homogeneous_processor.allocate(1, n1);
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), None);
     }
 }
