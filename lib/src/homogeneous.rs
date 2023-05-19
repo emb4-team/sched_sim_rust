@@ -25,6 +25,10 @@ impl ProcessorBase for HomogeneousProcessor {
     fn process(&mut self) -> Vec<ProcessResult> {
         self.cores.iter_mut().map(|core| core.process()).collect()
     }
+
+    fn get_number_of_cores(&self) -> usize {
+        self.cores.len()
+    }
 }
 
 #[cfg(test)]
