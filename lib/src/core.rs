@@ -52,7 +52,7 @@ impl Core {
         if self.is_idle {
             return Idle;
         }
-        self.remain_proc_time -= self.time_unit;
+        self.remain_proc_time -= 1.0;
         if self.remain_proc_time == 0.0 {
             self.is_idle = true;
             self.processing_node = None;
