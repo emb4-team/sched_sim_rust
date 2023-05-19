@@ -5,7 +5,7 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
@@ -29,16 +29,16 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
-pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
+pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
-    let mut f_consumers: Vec<Vec<NodeIndex>> = Vec::new();
+    let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
-    providers.remove(0);
+    let mut current_provider = providers.remove(0);
     while !providers.is_empty() {
         let next_provider = providers.remove(0);
         let mut f_consumer = Vec::new();
 
-        for next_provider_node in next_provider {
+        for next_provider_node in next_provider.clone() {
             let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
 
             for anc_node in anc_nodes {
@@ -47,7 +47,8 @@ pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
                 }
             }
         }
-        f_consumers.push(f_consumer.clone());
+        f_consumers.insert(current_provider.clone(), f_consumer.clone());
+        current_provider = next_provider;
         non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
     }
 
@@ -56,29 +57,38 @@ pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 
 /// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 #[allow(dead_code)] // TODO: remove
-pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
+pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let f_consumers = get_f_consumers(dag.clone());
-    let mut g_consumers: Vec<Vec<NodeIndex>> = Vec::new();
+    let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
-    let mut idx = 0;
     while !providers.is_empty() {
         let provider = providers.remove(0);
-        //Influenced by concurrency availability only from the last critical node
+        // Influenced by concurrency availability only from the last critical node
         let latest_critical_node = provider.last().unwrap();
         let parallel_process_node = dag
             .get_parallel_process_nodes(*latest_critical_node)
             .unwrap_or(vec![]);
-        //A non-critical node not belonging to the current consumer that can run concurrently with the last critical node
+        // A non-critical node not belonging to the current consumer that can run concurrently with the last critical node
+        let provider_clone = provider.clone(); // Clone the provider here
         let filtered_nodes: Vec<NodeIndex> = parallel_process_node
             .iter()
-            .filter(|&node_index| !f_consumers[idx].contains(node_index))
+            .filter(|&node_index| {
+                !f_consumers
+                    .get(&provider_clone)
+                    .unwrap()
+                    .contains(node_index)
+            })
             .filter(|&node_index| non_critical_nodes.contains(node_index))
             .cloned()
             .collect();
-        g_consumers.push(filtered_nodes);
-        non_critical_nodes.retain(|&node_index| !f_consumers[idx].contains(&node_index));
-        idx += 1;
+        g_consumers.insert(provider, filtered_nodes);
+        non_critical_nodes.retain(|&node_index| {
+            !f_consumers
+                .get(&provider_clone)
+                .unwrap()
+                .contains(&node_index)
+        });
     }
 
     g_consumers
@@ -156,38 +166,40 @@ mod tests {
     #[test]
     fn get_f_consumers_normal() {
         let dag = create_sample_dag();
+        let providers = get_providers(dag.clone());
         let f_consumers = get_f_consumers(dag);
 
         assert_eq!(f_consumers.len(), 3);
-        assert_eq!(f_consumers[0].len(), 2);
-        assert_eq!(f_consumers[1].len(), 3);
-        assert_eq!(f_consumers[2].len(), 3);
+        assert_eq!(f_consumers[&providers[0]].len(), 2);
+        assert_eq!(f_consumers[&providers[1]].len(), 3);
+        assert_eq!(f_consumers[&providers[2]].len(), 3);
 
-        assert_eq!(f_consumers[0][0].index(), 6);
-        assert_eq!(f_consumers[0][1].index(), 5);
-        assert_eq!(f_consumers[1][0].index(), 9);
-        assert_eq!(f_consumers[1][1].index(), 8);
-        assert_eq!(f_consumers[1][2].index(), 7);
-        assert_eq!(f_consumers[2][0].index(), 12);
-        assert_eq!(f_consumers[2][1].index(), 11);
-        assert_eq!(f_consumers[2][2].index(), 10);
+        assert_eq!(f_consumers[&providers[0]][0].index(), 6);
+        assert_eq!(f_consumers[&providers[0]][1].index(), 5);
+        assert_eq!(f_consumers[&providers[1]][0].index(), 9);
+        assert_eq!(f_consumers[&providers[1]][1].index(), 8);
+        assert_eq!(f_consumers[&providers[1]][2].index(), 7);
+        assert_eq!(f_consumers[&providers[2]][0].index(), 12);
+        assert_eq!(f_consumers[&providers[2]][1].index(), 11);
+        assert_eq!(f_consumers[&providers[2]][2].index(), 10);
     }
 
     #[test]
     fn get_g_consumers_normal() {
         let dag = create_sample_dag();
+        let providers = get_providers(dag.clone());
         let g_consumers = get_g_consumers(dag);
 
         assert_eq!(g_consumers.len(), 4);
-        assert_eq!(g_consumers[0].len(), 2);
-        assert_eq!(g_consumers[1].len(), 3);
-        assert_eq!(g_consumers[2].len(), 0);
-        assert_eq!(g_consumers[3].len(), 0);
+        assert_eq!(g_consumers[&providers[0]].len(), 2);
+        assert_eq!(g_consumers[&providers[1]].len(), 3);
+        assert_eq!(g_consumers[&providers[2]].len(), 0);
+        assert_eq!(g_consumers[&providers[3]].len(), 0);
 
-        assert_eq!(g_consumers[0][0].index(), 7);
-        assert_eq!(g_consumers[0][1].index(), 10);
-        assert_eq!(g_consumers[1][0].index(), 10);
-        assert_eq!(g_consumers[1][1].index(), 11);
-        assert_eq!(g_consumers[1][2].index(), 12);
+        assert_eq!(g_consumers[&providers[0]][0].index(), 7);
+        assert_eq!(g_consumers[&providers[0]][1].index(), 10);
+        assert_eq!(g_consumers[&providers[1]][0].index(), 10);
+        assert_eq!(g_consumers[&providers[1]][1].index(), 11);
+        assert_eq!(g_consumers[&providers[1]][2].index(), 12);
     }
 }
