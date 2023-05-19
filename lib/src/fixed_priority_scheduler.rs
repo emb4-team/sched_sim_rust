@@ -1,6 +1,7 @@
-use std::vec;
+use std::{collections::VecDeque, vec};
 
 use crate::{
+    core::ProcessResult,
     graph_extension::NodeData,
     processor::{get_minimum_time_unit_from_dag_set, ProcessorBase},
 };
@@ -10,8 +11,9 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     task_list: Vec<NodeIndex>,
     dag: &Graph<NodeData, f32>,
-) {
-    let mut ready_queue: Vec<NodeIndex> = Vec::new();
+) -> f32 {
+    let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
+    let mut time = 0.0;
 
     // Set the time unit of the processor.
     let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
@@ -21,17 +23,34 @@ pub fn fixed_priority_scheduler(
     // Set the ready queue.
     for &task in &task_list {
         if dag.neighbors_directed(task, Incoming).count() == 0 {
-            ready_queue.push(task);
+            ready_queue.push_back(task);
         }
     }
 
     // Add newly ready processes to the ready queue.
-    let idle_core_index = processor.get_idle_core_index();
-    if let Some(task) = ready_queue.pop() {
-        if let Some(core_index) = idle_core_index {
+    while let Some(task) = ready_queue.pop_front() {
+        println!("task: {}", task.index());
+        if let Some(core_index) = processor.get_idle_core_index() {
+            println!("core_index: {}", core_index);
             processor.allocate(core_index, dag[task].clone());
+        } else {
+            // No idle cores available, break the loop
+            println!("No idle cores");
+            ready_queue.push_front(task);
+            break;
         }
     }
+
+    // Run the processes
+    let mut process_result = processor.process();
+    time += time_unit;
+
+    while !process_result.contains(&ProcessResult::Done) {
+        process_result = processor.process();
+        time += time_unit;
+    }
+
+    println!("time: {}", time);
 
     // If the running process is done, remove it.
 
@@ -42,6 +61,7 @@ pub fn fixed_priority_scheduler(
     // If there are no processes left, we are done.
 
     // Advance the time.
+    time
 }
 
 #[cfg(test)]

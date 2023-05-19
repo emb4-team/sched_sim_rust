@@ -10,7 +10,6 @@ pub trait ProcessorBase {
     fn get_idle_core_index(&mut self) -> Option<usize>;
 }
 
-///Correspondence up to the 4th decimal point.
 pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -> f32 {
     fn round_fraction(num: f32, decimal_places: u32) -> f32 {
         let multiplier = 10_f32.powi(decimal_places as i32);
@@ -39,7 +38,7 @@ pub fn get_minimum_time_unit_from_dag_set(dag_set: &Vec<Graph<NodeData, f32>>) -
             }
         }
     }
-    time_unit
+    1.0 / time_unit
 }
 
 #[cfg(test)]
@@ -72,12 +71,12 @@ mod tests {
         dag2.add_node(create_node(2, "execution_time", 50.2));
         dag_set.push(dag2);
 
-        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 0.1);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 10.0);
 
         let mut dag3 = Graph::<NodeData, f32>::new();
         dag3.add_node(create_node(3, "execution_time", 0.03));
         dag_set.push(dag3);
 
-        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 0.01);
+        assert_eq!(get_minimum_time_unit_from_dag_set(&dag_set), 100.0);
     }
 }
