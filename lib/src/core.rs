@@ -40,7 +40,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if let Some(exec_time) = node_data.params.get("execution_time") {
-            self.remain_proc_time = *exec_time;
+            self.remain_proc_time = *exec_time * self.time_unit;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
@@ -53,6 +53,7 @@ impl Core {
             return Idle;
         }
         self.remain_proc_time -= 1.0;
+        println!("remain_proc_time: {}", self.remain_proc_time);
         if self.remain_proc_time == 0.0 {
             self.is_idle = true;
             self.processing_node = None;

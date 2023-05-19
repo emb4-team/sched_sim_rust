@@ -17,7 +17,6 @@ pub fn fixed_priority_scheduler(
 
     // Set the time unit of the processor.
     let time_unit = get_minimum_time_unit_from_dag_set(&vec![dag.clone()]);
-    println!("time_unit: {}", time_unit);
     processor.set_time_unit(time_unit);
 
     // Set the ready queue.
@@ -43,12 +42,12 @@ pub fn fixed_priority_scheduler(
 
     // Run the processes
     let mut process_result = processor.process();
-    time += time_unit;
+    time += 1.0;
 
-    while !process_result.contains(&ProcessResult::Done) {
-        process_result = processor.process();
-        time += time_unit;
-    }
+    //while !process_result.contains(&ProcessResult::Done) {
+    //    process_result = processor.process();
+    //    time += time_unit;
+    //}
 
     println!("time: {}", time);
 
