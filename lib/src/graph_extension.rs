@@ -11,7 +11,7 @@ const DUMMY_SOURCE_NODE_FLAG: f32 = -1.0;
 const DUMMY_SINK_NODE_FLAG: f32 = -2.0;
 
 /// custom node data structure for dag nodes (petgraph)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NodeData {
     pub id: i32,
     pub params: HashMap<String, f32>,

@@ -4,7 +4,7 @@ use log::warn;
 
 ///enum to represent three types of states
 ///execution not possible because not allocate, execution in progress, execution finished
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ProcessResult {
     Idle,
     Continue,
