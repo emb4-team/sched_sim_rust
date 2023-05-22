@@ -132,8 +132,8 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                         *communication_time_value as f32 * converted_integer as f32;
                 }
                 Yaml::Real(communication_time_value) => {
-                    communication_time = (communication_time_value.parse::<f32>().unwrap())
-                        * converted_integer as f32;
+                    communication_time =
+                        communication_time_value.parse::<f32>().unwrap() * converted_integer as f32;
                 }
                 Yaml::BadValue => {}
                 _ => unreachable!(),
