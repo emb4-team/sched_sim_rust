@@ -29,6 +29,7 @@ impl NodeData {
 pub trait GraphExtension {
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
+    fn add_params(&mut self, node: NodeIndex, key: &str, value: f32);
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
@@ -99,6 +100,11 @@ impl GraphExtension for Graph<NodeData, f32> {
             self.add_edge(sink_i, dummy_sink_i, 0.0);
         }
         dummy_sink_i
+    }
+
+    fn add_params(&mut self, node: NodeIndex, key: &str, value: f32) {
+        let node_added = self.node_weight_mut(node).unwrap();
+        node_added.params.insert(key.to_string(), value);
     }
 
     fn remove_dummy_source_node(&mut self) {
@@ -626,6 +632,24 @@ mod tests {
 
         assert!(dag[source_index].id == source_index.index() as i32);
         assert!(dag[sink_index].id == sink_index.index() as i32);
+    }
+
+    #[test]
+    fn test_add_params_normal() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        dag.add_params(n0, "test", 1.0);
+        assert_eq!(dag[n0].params.get("test").unwrap(), &1.0);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0.0);
+    }
+
+    #[test]
+    fn test_add_params_duplicate() {
+        let mut dag = Graph::<NodeData, f32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0.0));
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0.0);
+        dag.add_params(n0, "execution_time", 1.0);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &1.0);
     }
 
     #[test]
