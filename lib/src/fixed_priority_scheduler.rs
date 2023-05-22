@@ -10,6 +10,8 @@ use crate::{
 };
 use petgraph::{graph::NodeIndex, Graph};
 
+const DUMMY_EXECUTION_TIME: f32 = 1.0;
+
 /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
 ///
 /// # Arguments
@@ -56,11 +58,11 @@ pub fn fixed_priority_scheduler(
     let source_node = dag.add_dummy_source_node();
     dag[source_node]
         .params
-        .insert("execution_time".to_string(), 1.0);
+        .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
     let sink_node = dag.add_dummy_sink_node();
     dag[sink_node]
         .params
-        .insert("execution_time".to_string(), 1.0);
+        .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
 
     ready_queue.push_back(source_node);
 
@@ -127,7 +129,7 @@ pub fn fixed_priority_scheduler(
     }
 
     //Return the normalized total time taken to finish all tasks.
-    time - 2.0
+    time - DUMMY_EXECUTION_TIME * 2.0
 }
 
 #[cfg(test)]
