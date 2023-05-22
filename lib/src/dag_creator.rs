@@ -1,12 +1,11 @@
 //! Generate a petgraph DAG object from a yaml file
 
-use std::fs;
-use yaml_rust::Yaml;
-use yaml_rust::YamlLoader;
-
 use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
+use std::fs;
+use yaml_rust::Yaml;
+use yaml_rust::YamlLoader;
 
 use std::path::PathBuf;
 
@@ -20,6 +19,42 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
     YamlLoader::load_from_str(&file_content).unwrap()
 }
 
+fn get_minimum_decimal_places(yaml: &Yaml) -> u32 {
+    let mut minimum_decimal_places = 0;
+    match yaml {
+        Yaml::Real(real) => {
+            let decimal_places = real
+                .split('.')
+                .collect::<Vec<&str>>()
+                .last()
+                .unwrap()
+                .chars()
+                .count();
+            if decimal_places > minimum_decimal_places {
+                minimum_decimal_places = decimal_places;
+            }
+        }
+        Yaml::Integer(_integer) => {}
+        Yaml::Array(array) => {
+            for element in array {
+                let decimal_places = get_minimum_decimal_places(element);
+                if decimal_places > minimum_decimal_places.try_into().unwrap() {
+                    minimum_decimal_places = decimal_places as usize;
+                }
+            }
+        }
+        Yaml::Hash(hash) => {
+            for (_key, value) in hash {
+                let decimal_places = get_minimum_decimal_places(value);
+                if decimal_places > minimum_decimal_places.try_into().unwrap() {
+                    minimum_decimal_places = decimal_places as usize;
+                }
+            }
+        }
+        _ => {}
+    }
+    minimum_decimal_places as u32
+}
 /// load yaml file and return a dag object (petgraph)
 ///
 /// # Arguments
@@ -47,6 +82,8 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
 pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
+    let converted_integer =
+        10.0f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i64;
 
     // Check if nodes and links fields exist
     if let (Some(nodes), Some(links)) = (yaml_doc["nodes"].as_vec(), yaml_doc["links"].as_vec()) {
@@ -63,10 +100,16 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                 if key_str != "id" {
                     match value {
                         Yaml::Integer(_i) => {
-                            params.insert(key_str.to_owned(), value.as_i64().unwrap() as f32);
+                            params.insert(
+                                key_str.to_owned(),
+                                (value.as_i64().unwrap() * converted_integer) as f32,
+                            );
                         }
                         Yaml::Real(_r) => {
-                            params.insert(key_str.to_owned(), value.as_f64().unwrap() as f32);
+                            params.insert(
+                                key_str.to_owned(),
+                                (value.as_f64().unwrap() * converted_integer as f64) as f32,
+                            );
                         }
                         _ => {
                             panic!("Unknown type: {}", std::any::type_name::<Yaml>());
@@ -85,10 +128,12 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
 
             match &link["communication_time"] {
                 Yaml::Integer(communication_time_value) => {
-                    communication_time = *communication_time_value as f32;
+                    communication_time =
+                        *communication_time_value as f32 * converted_integer as f32;
                 }
                 Yaml::Real(communication_time_value) => {
-                    communication_time = communication_time_value.parse::<f32>().unwrap();
+                    communication_time = (communication_time_value.parse::<f32>().unwrap())
+                        * converted_integer as f32;
                 }
                 Yaml::BadValue => {}
                 _ => unreachable!(),
@@ -157,6 +202,14 @@ pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test() {
+        let yaml_docs = load_yaml("tests/sample_dags/float_params.yaml");
+        let yaml_doc = &yaml_docs[0];
+        println!("{:?}", yaml_doc);
+        let a = get_minimum_decimal_places(yaml_doc);
+        println!("{:?}", a);
+    }
     #[test]
     fn test_create_dag_set_from_dir_multiple_yaml_files() {
         let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml_files");
@@ -401,23 +454,23 @@ mod tests {
         assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
-            &4.1,
-            "first node weight is expected to be 4.1"
+            &41.0,
+            "first node weight is expected to be 41.0"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
-            &1.0,
-            "last node weight is expected to be 1.0"
+            &10.0,
+            "last node weight is expected to be 10.0"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &3.1,
-            "first node execution time is expected to be 3.1"
+            &31.0,
+            "first node execution time is expected to be 31.0"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &43.0,
-            "last node execution time is expected to be 43.0"
+            &430.0,
+            "last node execution time is expected to be 430.0"
         );
         assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2");
         assert_eq!(
@@ -441,12 +494,12 @@ mod tests {
             "last edge target node id is expected to be 19"
         );
         assert_eq!(
-            dag[first_edge], 11.1,
-            "first edge weight is expected to be 11.1"
+            dag[first_edge], 111.0,
+            "first edge weight is expected to be 111.0"
         );
         assert_eq!(
-            dag[last_edge], 2.0,
-            "last edge weight is expected to be 2.0"
+            dag[last_edge], 20.0,
+            "last edge weight is expected to be 20.0"
         );
     }
 
