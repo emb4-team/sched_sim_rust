@@ -1,5 +1,6 @@
 //! Generate a petgraph DAG object from a yaml file
 
+use log::warn;
 use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
@@ -84,6 +85,9 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
     let yaml_doc = &yaml_docs[0];
     let converted_integer =
         10.0f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i64;
+    if converted_integer > 100000 {
+        warn!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
+    }
 
     // Check if nodes and links fields exist
     if let (Some(nodes), Some(links)) = (yaml_doc["nodes"].as_vec(), yaml_doc["links"].as_vec()) {
