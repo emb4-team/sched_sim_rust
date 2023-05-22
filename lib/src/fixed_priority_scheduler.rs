@@ -1,9 +1,12 @@
-use std::{collections::VecDeque, vec};
+use std::{
+    collections::{HashMap, VecDeque},
+    vec,
+};
 
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
-    processor::{get_minimum_multiplier_from_dag_set, ProcessorBase},
+    processor::ProcessorBase,
 };
 use petgraph::{graph::NodeIndex, Graph};
 
@@ -43,35 +46,28 @@ use petgraph::{graph::NodeIndex, Graph};
 ///
 pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
-    task_list: &mut Vec<NodeIndex>,
     dag: &mut Graph<NodeData, f32>,
 ) -> f32 {
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-    let mut finished_tasks: Vec<NodeIndex> = vec![];
+    let mut finished_nodes: Vec<NodeIndex> = vec![];
     let mut time = 0.0;
-    let task_list_len = task_list.len();
-    let minimum_multiplier = get_minimum_multiplier_from_dag_set(&vec![dag.clone()]);
-    processor.set_minimum_multiplier(minimum_multiplier);
+    let mut finished_core_and_node_hashmap: HashMap<usize, NodeIndex> = HashMap::new();
 
-    while task_list_len != finished_tasks.len() {
-        //Executable if all predecessor nodes are done
-        for task in task_list.clone() {
-            let pre_nodes = dag.get_pre_nodes(task).unwrap_or_default();
-            if pre_nodes
-                .iter()
-                .any(|pre_node| !finished_tasks.contains(pre_node))
-            {
-                continue;
-            }
+    let source_node = dag.add_dummy_source_node();
+    dag[source_node]
+        .params
+        .insert("execution_time".to_string(), 1.0);
+    let sink_node = dag.add_dummy_sink_node();
+    dag[sink_node]
+        .params
+        .insert("execution_time".to_string(), 1.0);
 
-            ready_queue.push_back(task);
-            //Remove it from the list so it won't run again
-            task_list.retain(|&node| node != task);
-        }
+    ready_queue.push_back(source_node);
 
+    loop {
         //Sort by priority
-        ready_queue.make_contiguous().sort_by_key(|&task| {
-            let node = dag.node_weight(task).unwrap();
+        ready_queue.make_contiguous().sort_by_key(|&node| {
+            let node = dag.node_weight(node).unwrap();
             let priority = node.params.get("priority").unwrap_or(&999.0);
             *priority as i32
         });
@@ -80,6 +76,7 @@ pub fn fixed_priority_scheduler(
         while let Some(task) = ready_queue.pop_front() {
             if let Some(core_index) = processor.get_idle_core_index() {
                 processor.allocate(core_index, dag[task].clone());
+                finished_core_and_node_hashmap.insert(core_index, task);
             } else {
                 //If everything is working, it is useless to search any further, so the extracted task is returned to the ready queue.
                 ready_queue.push_front(task);
@@ -94,31 +91,41 @@ pub fn fixed_priority_scheduler(
         //Process until there is a task finished.
         while !process_result
             .iter()
-            .any(|result| matches!(result, ProcessResult::Done(_)))
+            .any(|result| matches!(result, ProcessResult::Done))
         {
             process_result = processor.process();
             time += 1.0;
         }
 
-        //id is needed to get NodeIndex because the processor takes NodeData as an argument.
-        let finish_node = match process_result
+        let finish_node = process_result
             .iter()
-            .find(|result| matches!(result, ProcessResult::Done(_)))
-        {
-            Some(ProcessResult::Done(id)) => *id,
-            _ => unreachable!(), //This is unreachable because the loop above ensures that there is a task finished.
-        };
-
-        let finish_node = dag
-            .node_indices()
-            .find(|node_index| dag[*node_index].id == finish_node)
+            .enumerate()
+            .find(|(_, result)| matches!(result, ProcessResult::Done))
+            .and_then(|(core_index, _)| finished_core_and_node_hashmap.remove(&core_index))
             .unwrap();
 
-        finished_tasks.push(finish_node);
+        finished_nodes.push(finish_node);
+
+        //Executable if all predecessor nodes are done
+        let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
+        if suc_nodes.is_empty() {
+            break;
+        }
+        for suc_node in suc_nodes {
+            let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
+            if pre_nodes
+                .iter()
+                .any(|pre_node| !finished_nodes.contains(pre_node))
+            {
+                continue;
+            }
+
+            ready_queue.push_back(suc_node);
+        }
     }
 
     //Return the normalized total time taken to finish all tasks.
-    time / minimum_multiplier as f32
+    time - 2.0
 }
 
 #[cfg(test)]
@@ -143,13 +150,13 @@ mod tests {
     fn test_fixed_priority_scheduler_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 5.2));
-        let c1 = dag.add_node(create_node(1, "execution_time", 4.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 52.0));
+        let c1 = dag.add_node(create_node(1, "execution_time", 40.0));
         add_params(&mut dag, c0, "priority", 0.0);
         add_params(&mut dag, c1, "priority", 0.0);
         //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(2, "execution_time", 1.0));
-        let n1_2 = dag.add_node(create_node(3, "execution_time", 1.0));
+        let n0_2 = dag.add_node(create_node(2, "execution_time", 10.0));
+        let n1_2 = dag.add_node(create_node(3, "execution_time", 10.0));
         add_params(&mut dag, n0_2, "priority", 2.0);
         add_params(&mut dag, n1_2, "priority", 1.0);
 
@@ -160,11 +167,10 @@ mod tests {
         dag.add_edge(c0, n0_2, 1.0);
         dag.add_edge(c0, n1_2, 1.0);
 
-        let mut task_list = vec![c0, c1, n0_2, n1_2];
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
         assert_eq!(
-            fixed_priority_scheduler(&mut homogeneous_processor, &mut task_list, &mut dag),
-            9.2
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag),
+            92.0
         );
     }
 }

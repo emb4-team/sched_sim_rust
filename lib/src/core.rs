@@ -8,7 +8,7 @@ use log::warn;
 pub enum ProcessResult {
     Idle,
     Continue,
-    Done(i32),
+    Done,
 }
 
 #[derive(Clone)]
@@ -16,7 +16,6 @@ pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<i32>,
     pub remain_proc_time: i32,
-    pub minimum_multiplier: i32,
 }
 
 impl Default for Core {
@@ -25,7 +24,6 @@ impl Default for Core {
             is_idle: true,
             processing_node: None,
             remain_proc_time: 0,
-            minimum_multiplier: 1,
         }
     }
 }
@@ -40,7 +38,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if let Some(exec_time) = node_data.params.get("execution_time") {
-            self.remain_proc_time = (*exec_time * self.minimum_multiplier as f32) as i32;
+            self.remain_proc_time = *exec_time as i32;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
@@ -55,9 +53,8 @@ impl Core {
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
-            let finis_node_id = self.processing_node.unwrap();
             self.processing_node = None;
-            return Done(finis_node_id);
+            return Done;
         }
         Continue
     }
@@ -125,7 +122,7 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 2.0));
         core.process();
-        assert_eq!(core.process(), Done(0));
+        assert_eq!(core.process(), Done);
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);

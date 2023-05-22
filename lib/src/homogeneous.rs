@@ -12,12 +12,6 @@ impl ProcessorBase for HomogeneousProcessor {
         }
     }
 
-    fn set_minimum_multiplier(&mut self, minimum_multiplier: i32) {
-        for core in &mut self.cores {
-            core.minimum_multiplier = minimum_multiplier;
-        }
-    }
-
     fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool {
         self.cores[core_id].allocate(node_data)
     }
@@ -60,15 +54,6 @@ mod tests {
             assert!(core.is_idle);
             assert_eq!(core.processing_node, None);
             assert_eq!(core.remain_proc_time, 0);
-        }
-    }
-
-    #[test]
-    fn test_set_minimum_multiplier_normal() {
-        let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.set_minimum_multiplier(10);
-        for core in &homogeneous_processor.cores {
-            assert_eq!(core.minimum_multiplier, 10);
         }
     }
 
@@ -123,7 +108,7 @@ mod tests {
         );
         assert_eq!(
             homogeneous_processor.process(),
-            vec![ProcessResult::Done(0), ProcessResult::Idle]
+            vec![ProcessResult::Done, ProcessResult::Idle]
         );
         assert_eq!(
             homogeneous_processor.process(),
