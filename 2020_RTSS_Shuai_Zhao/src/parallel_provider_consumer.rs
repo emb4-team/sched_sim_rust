@@ -14,7 +14,7 @@ use petgraph::graph::{Graph, NodeIndex};
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
 pub fn get_providers(
-    dag: Graph<NodeData, f32>,
+    dag: &Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
 ) -> Vec<Vec<NodeIndex>> {
     let mut deque_critical_path = VecDeque::from(critical_path);
@@ -35,10 +35,10 @@ pub fn get_providers(
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
 pub fn get_f_consumers(
-    mut dag: Graph<NodeData, f32>,
+    dag: &mut Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(dag.clone(), critical_path.clone());
+    let mut providers = get_providers(dag, critical_path.clone());
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     let mut current_provider = providers.remove(0);
@@ -46,8 +46,8 @@ pub fn get_f_consumers(
         let next_provider = providers.remove(0);
         let mut f_consumer = Vec::new();
 
-        for next_provider_node in next_provider.clone() {
-            let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
+        for next_provider_node in &next_provider {
+            let anc_nodes = dag.get_anc_nodes(*next_provider_node).unwrap();
 
             for anc_node in anc_nodes {
                 if non_critical_nodes.contains(&anc_node) {
@@ -55,7 +55,7 @@ pub fn get_f_consumers(
                 }
             }
         }
-        f_consumers.insert(current_provider.clone(), f_consumer.clone());
+        f_consumers.insert(current_provider, f_consumer.clone());
         current_provider = next_provider;
         non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
     }
@@ -69,8 +69,8 @@ pub fn get_g_consumers(
     mut dag: Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(dag.clone(), critical_path.clone());
-    let f_consumers = get_f_consumers(dag.clone(), critical_path.clone());
+    let mut providers = get_providers(&dag, critical_path.clone());
+    let f_consumers = get_f_consumers(&mut dag, critical_path.clone());
     let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     while !providers.is_empty() {
@@ -103,87 +103,6 @@ pub fn get_g_consumers(
     }
 
     g_consumers
-}
-
-//cpc = concurrent provider and consumer
-#[allow(dead_code)] // TODO: remove
-#[allow(clippy::type_complexity)]
-pub fn convert_dag_to_cpc(
-    mut dag: Graph<NodeData, f32>,
-    critical_path: Vec<NodeIndex>,
-) -> (
-    Vec<Vec<NodeIndex>>,
-    HashMap<Vec<NodeIndex>, Vec<NodeIndex>>,
-    HashMap<Vec<NodeIndex>, Vec<NodeIndex>>,
-) {
-    let mut deque_critical_path = VecDeque::from(critical_path.clone());
-    let mut providers: Vec<Vec<NodeIndex>> = Vec::new();
-    while !deque_critical_path.is_empty() {
-        let mut provider = vec![deque_critical_path.pop_front().unwrap()];
-        while !deque_critical_path.is_empty()
-            && dag.get_pre_nodes(deque_critical_path[0]).unwrap().len() == 1
-        {
-            provider.push(deque_critical_path.pop_front().unwrap());
-        }
-        providers.push(provider);
-    }
-
-    let non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
-    let mut f_non_critical_nodes = non_critical_nodes.clone();
-    let mut f_providers = providers.clone();
-    let mut current_provider = f_providers.remove(0);
-    let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    while !f_providers.is_empty() {
-        let next_provider = f_providers.remove(0);
-        let mut f_consumer = Vec::new();
-
-        for next_provider_node in next_provider.clone() {
-            let anc_nodes = dag.get_anc_nodes(next_provider_node).unwrap();
-
-            for anc_node in anc_nodes {
-                if f_non_critical_nodes.contains(&anc_node) {
-                    f_consumer.push(anc_node);
-                }
-            }
-        }
-        f_consumers.insert(current_provider.clone(), f_consumer.clone());
-        current_provider = next_provider;
-        f_non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
-    }
-
-    let mut g_non_critical_nodes = non_critical_nodes.clone();
-    let mut g_providers = providers.clone();
-    let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    while !g_providers.is_empty() {
-        let provider = g_providers.remove(0);
-        // Influenced by concurrency availability only from the last critical node
-        let latest_critical_node = provider.last().unwrap();
-        let parallel_process_node = dag
-            .get_parallel_process_nodes(*latest_critical_node)
-            .unwrap_or(vec![]);
-        // A non-critical node not belonging to the current consumer that can run concurrently with the last critical node
-        let provider_clone = provider.clone(); // Clone the provider here
-        let filtered_nodes: Vec<NodeIndex> = parallel_process_node
-            .iter()
-            .filter(|&node_index| {
-                !f_consumers
-                    .get(&provider_clone)
-                    .unwrap()
-                    .contains(node_index)
-            })
-            .filter(|&node_index| non_critical_nodes.contains(node_index))
-            .cloned()
-            .collect();
-        g_consumers.insert(provider, filtered_nodes);
-        g_non_critical_nodes.retain(|&node_index| {
-            !f_consumers
-                .get(&provider_clone)
-                .unwrap()
-                .contains(&node_index)
-        });
-    }
-
-    (providers, f_consumers, g_consumers)
 }
 
 #[cfg(test)]
@@ -243,53 +162,10 @@ mod tests {
     }
 
     #[test]
-    fn test_convert_dag_to_cpc_normal() {
-        let dag = create_sample_dag();
-        let critical_path = dag.clone().get_critical_path();
-        let cpc = convert_dag_to_cpc(dag, critical_path);
-        let providers = cpc.0;
-        let f_consumers = cpc.1;
-        let g_consumers = cpc.2;
-        assert_eq!(providers.len(), 4);
-
-        assert_eq!(providers[0][0].index(), 0);
-        assert_eq!(providers[0][1].index(), 1);
-        assert_eq!(providers[1][0].index(), 2);
-        assert_eq!(providers[2][0].index(), 3);
-        assert_eq!(providers[3][0].index(), 4);
-
-        assert_eq!(f_consumers.len(), 3);
-        assert_eq!(f_consumers[&providers[0]].len(), 2);
-        assert_eq!(f_consumers[&providers[1]].len(), 3);
-        assert_eq!(f_consumers[&providers[2]].len(), 3);
-
-        assert_eq!(f_consumers[&providers[0]][0].index(), 6);
-        assert_eq!(f_consumers[&providers[0]][1].index(), 5);
-        assert_eq!(f_consumers[&providers[1]][0].index(), 9);
-        assert_eq!(f_consumers[&providers[1]][1].index(), 8);
-        assert_eq!(f_consumers[&providers[1]][2].index(), 7);
-        assert_eq!(f_consumers[&providers[2]][0].index(), 12);
-        assert_eq!(f_consumers[&providers[2]][1].index(), 11);
-        assert_eq!(f_consumers[&providers[2]][2].index(), 10);
-
-        assert_eq!(g_consumers.len(), 4);
-        assert_eq!(g_consumers[&providers[0]].len(), 2);
-        assert_eq!(g_consumers[&providers[1]].len(), 3);
-        assert_eq!(g_consumers[&providers[2]].len(), 0);
-        assert_eq!(g_consumers[&providers[3]].len(), 0);
-
-        assert_eq!(g_consumers[&providers[0]][0].index(), 7);
-        assert_eq!(g_consumers[&providers[0]][1].index(), 10);
-        assert_eq!(g_consumers[&providers[1]][0].index(), 10);
-        assert_eq!(g_consumers[&providers[1]][1].index(), 11);
-        assert_eq!(g_consumers[&providers[1]][2].index(), 12);
-    }
-
-    #[test]
     fn test_get_providers_normal() {
         let dag = create_sample_dag();
         let critical_path = dag.clone().get_critical_path();
-        let providers = get_providers(dag, critical_path);
+        let providers = get_providers(&dag, critical_path);
         assert_eq!(providers.len(), 4);
 
         assert_eq!(providers[0][0].index(), 0);
@@ -301,11 +177,10 @@ mod tests {
 
     #[test]
     fn test_get_f_consumers_normal() {
-        let dag = create_sample_dag();
+        let mut dag = create_sample_dag();
         let critical_path = dag.clone().get_critical_path();
-        let providers = get_providers(dag.clone(), critical_path.clone());
-        let f_consumers = get_f_consumers(dag, critical_path);
-        println!("{:?}", f_consumers);
+        let providers = get_providers(&dag, critical_path.clone());
+        let f_consumers = get_f_consumers(&mut dag, critical_path);
 
         assert_eq!(f_consumers.len(), 3);
         assert_eq!(f_consumers[&providers[0]].len(), 2);
@@ -326,9 +201,8 @@ mod tests {
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();
         let critical_path = dag.clone().get_critical_path();
-        let providers = get_providers(dag.clone(), critical_path.clone());
+        let providers = get_providers(&dag, critical_path.clone());
         let g_consumers = get_g_consumers(dag, critical_path);
-        println!("g_consumers: {:?}", g_consumers);
 
         assert_eq!(g_consumers.len(), 4);
         assert_eq!(g_consumers[&providers[0]].len(), 2);
