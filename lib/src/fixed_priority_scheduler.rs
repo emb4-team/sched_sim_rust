@@ -112,15 +112,17 @@ pub fn fixed_priority_scheduler(
             break;
         }
         for suc_node in suc_nodes {
-            let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-            if pre_nodes
-                .iter()
-                .any(|pre_node| !finished_nodes.contains(pre_node))
-            {
-                continue;
+            if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
+                *value += 1.0;
+            } else {
+                dag[suc_node]
+                    .params
+                    .insert("pre_done_count".to_owned(), 1.0);
             }
-
-            ready_queue.push_back(suc_node);
+            let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
+            if pre_nodes.len() as f32 == dag[suc_node].params["pre_done_count"] {
+                ready_queue.push_back(suc_node);
+            }
         }
     }
 
