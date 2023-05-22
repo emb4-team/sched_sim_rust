@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    vec,
-};
+use std::collections::{HashMap, VecDeque};
 
 use crate::{
     core::ProcessResult,
@@ -50,9 +47,8 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, f32>,
 ) -> f32 {
-    let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-    let mut finished_nodes: Vec<NodeIndex> = vec![];
     let mut time = 0.0;
+    let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
     let mut finished_core_and_node_hashmap: HashMap<usize, NodeIndex> = HashMap::new();
 
     let source_node = dag.add_dummy_source_node();
@@ -69,8 +65,7 @@ pub fn fixed_priority_scheduler(
     loop {
         //Sort by priority
         ready_queue.make_contiguous().sort_by_key(|&node| {
-            let node = dag.node_weight(node).unwrap();
-            let priority = node.params.get("priority").unwrap_or(&999.0);
+            let priority = dag[node].params.get("priority").unwrap_or(&999.0); //If there is no priority, it is set to the lowest priority.
             *priority as i32
         });
 
@@ -105,8 +100,6 @@ pub fn fixed_priority_scheduler(
             .find(|(_, result)| matches!(result, ProcessResult::Done))
             .and_then(|(core_index, _)| finished_core_and_node_hashmap.remove(&core_index))
             .unwrap();
-
-        finished_nodes.push(finish_node);
 
         //Executable if all predecessor nodes are done
         let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
