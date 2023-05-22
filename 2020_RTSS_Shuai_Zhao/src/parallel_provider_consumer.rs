@@ -32,7 +32,8 @@ pub fn get_providers(mut dag: Graph<NodeData, f32>) -> Vec<Vec<NodeIndex>> {
 pub fn get_f_consumers(mut dag: Graph<NodeData, f32>) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(dag.clone());
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
+    let critical_path = dag.get_critical_path();
+    let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     let mut current_provider = providers.remove(0);
     while !providers.is_empty() {
         let next_provider = providers.remove(0);
@@ -61,7 +62,8 @@ pub fn get_g_consumers(mut dag: Graph<NodeData, f32>) -> HashMap<Vec<NodeIndex>,
     let mut providers = get_providers(dag.clone());
     let f_consumers = get_f_consumers(dag.clone());
     let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    let mut non_critical_nodes = dag.get_non_critical_nodes().unwrap();
+    let critical_path = dag.get_critical_path();
+    let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     while !providers.is_empty() {
         let provider = providers.remove(0);
         // Influenced by concurrency availability only from the last critical node
