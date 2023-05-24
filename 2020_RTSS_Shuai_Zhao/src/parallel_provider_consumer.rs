@@ -5,7 +5,7 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
@@ -38,26 +38,25 @@ pub fn get_f_consumers(
     dag: &mut Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(dag, critical_path.clone());
+    let providers = get_providers(dag, critical_path.clone());
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
-    let mut current_provider = providers.remove(0);
-    while !providers.is_empty() {
-        let next_provider = providers.remove(0);
+    let mut non_critical_nodes: HashSet<_> = dag
+        .get_non_critical_nodes(critical_path)
+        .unwrap()
+        .into_iter()
+        .collect();
+
+    for p_i in 0..providers.len() - 1 {
         let mut f_consumer = Vec::new();
-
-        for next_provider_node in &next_provider {
+        for next_provider_node in providers[p_i + 1].iter() {
             let anc_nodes = dag.get_anc_nodes(*next_provider_node).unwrap();
-
             for anc_node in anc_nodes {
-                if non_critical_nodes.contains(&anc_node) {
+                if non_critical_nodes.remove(&anc_node) {
                     f_consumer.push(anc_node);
                 }
             }
         }
-        f_consumers.insert(current_provider, f_consumer.clone());
-        current_provider = next_provider;
-        non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
+        f_consumers.insert(providers[p_i].clone(), f_consumer.clone());
     }
 
     f_consumers
