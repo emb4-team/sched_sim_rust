@@ -23,7 +23,7 @@ pub fn p_loop(
     priority: &mut f32,
     critical_path: Vec<NodeIndex>,
 ) {
-    //critical_pathと同じidを持つdagノードを配列に格納する
+    //critical_pathと同じidを持つdagIndexを配列に格納する
     let mut critical_path_nodes = Vec::new();
     for critical_node in critical_path {
         for node in dag.node_indices() {
@@ -45,7 +45,7 @@ pub fn p_loop(
     let providers = get_providers(dag, origin_critical_path_nodes.clone());
     let mut f_consumers = get_f_consumers(dag, origin_critical_path_nodes.clone());
 
-    for critical_node in critical_path_nodes {
+    for critical_node in origin_critical_path_nodes {
         dag.add_params(critical_node, "priority", *priority);
     }
 
@@ -67,7 +67,6 @@ pub fn p_loop(
                 longest_path.push(longest_node);
 
                 while let Some(pre_nodes) = dag.get_pre_nodes(longest_node) {
-                    println!("pre_nodes: {:?}", pre_nodes);
                     if pre_nodes
                         .iter()
                         .all(|pre_node| !f_consumer.contains(pre_node))
@@ -104,9 +103,10 @@ pub fn p_loop(
                 }
 
                 for node in longest_path {
-                    if !dag[node].params.contains_key("priority") {
-                        dag.add_params(node, "priority", *priority);
+                    if dag[node].params.contains_key("priority") {
+                        continue;
                     }
+                    dag.add_params(node, "priority", *priority);
                 }
 
                 for node in dag.node_indices() {
@@ -125,9 +125,10 @@ pub fn p_loop(
         let maybe_clone_node = dag.node_indices().find(|n| dag[*n].id == id);
 
         if let Some(clone_node) = maybe_clone_node {
-            if dag[clone_node].params.contains_key("priority") {
-                origin_dag.add_params(node, "priority", dag[clone_node].params["priority"]);
+            if !dag[clone_node].params.contains_key("priority") {
+                continue;
             }
+            origin_dag.add_params(node, "priority", dag[clone_node].params["priority"]);
         }
     }
 }
@@ -167,7 +168,11 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                     {
                         break;
                     }
-                    longest_node = pre_nodes[0];
+                    for pre_node in pre_nodes.clone() {
+                        if f_consumer.contains(&pre_node) {
+                            longest_node = pre_node;
+                        }
+                    }
                     let mut longest_current_length = dag[longest_node].params["current_length"];
                     for pre_node in pre_nodes {
                         if f_consumer.contains(&pre_node) {
@@ -186,7 +191,6 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                         if pre_nodes.len() > 1 {
                             let mut clone_dag = dag.clone();
                             remove_nodes(&mut clone_dag, f_consumer.clone());
-
                             p_loop(dag, &mut clone_dag, &mut priority, longest_path.clone());
                             break;
                         }
@@ -196,9 +200,10 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                 //dagのnodeがpriorityを持っていない場合，priorityを追加する．
 
                 for node in longest_path {
-                    if !dag[node].params.contains_key("priority") {
-                        dag.add_params(node, "priority", priority);
+                    if dag[node].params.contains_key("priority") {
+                        continue;
                     }
+                    dag.add_params(node, "priority", priority);
                 }
 
                 for node in dag.node_indices() {
