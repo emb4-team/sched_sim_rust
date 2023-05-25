@@ -17,7 +17,6 @@ fn remove_nodes(dag: &mut Graph<NodeData, f32>, nodes: Vec<NodeIndex>) {
     }
 }
 
-#[allow(dead_code)]
 pub fn p_loop(
     origin_dag: &mut Graph<NodeData, f32>,
     dag: &mut Graph<NodeData, f32>,
