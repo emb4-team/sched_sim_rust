@@ -82,21 +82,6 @@ pub fn p_loop(
                                 longest_node = pre_node;
                                 longest_current_length = current_length;
                             }
-                            if current_length == longest_current_length {
-                                let mut longest_pre_len = 0;
-                                let mut current_pre_len = 0;
-                                if let Some(_longest_pre_node) = dag.get_pre_nodes(longest_node) {
-                                    longest_pre_len =
-                                        dag.get_pre_nodes(longest_node).unwrap().len();
-                                }
-                                if let Some(_pre_len) = dag.get_pre_nodes(pre_node) {
-                                    current_pre_len = dag.get_pre_nodes(pre_node).unwrap().len();
-                                }
-                                if current_pre_len > longest_pre_len {
-                                    longest_node = pre_node;
-                                    longest_current_length = current_length;
-                                }
-                            }
                         }
                     }
                     longest_path.push(longest_node);
@@ -185,21 +170,6 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                                 longest_node = pre_node;
                                 longest_current_length = current_length;
                             }
-                            if current_length == longest_current_length {
-                                let mut longest_pre_len = 0;
-                                let mut current_pre_len = 0;
-                                if let Some(_longest_pre_node) = dag.get_pre_nodes(longest_node) {
-                                    longest_pre_len =
-                                        dag.get_pre_nodes(longest_node).unwrap().len();
-                                }
-                                if let Some(_pre_len) = dag.get_pre_nodes(pre_node) {
-                                    current_pre_len = dag.get_pre_nodes(pre_node).unwrap().len();
-                                }
-                                if current_pre_len > longest_pre_len {
-                                    longest_node = pre_node;
-                                    longest_current_length = current_length;
-                                }
-                            }
                         }
                     }
                     longest_path.push(longest_node);
@@ -256,7 +226,7 @@ mod tests {
         let c1 = dag.add_node(create_node(1, "execution_time", 10.0));
         let c2 = dag.add_node(create_node(2, "execution_time", 10.0));
 
-        let n3 = dag.add_node(create_node(3, "execution_time", 2.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
         let n4 = dag.add_node(create_node(4, "execution_time", 2.0));
         let n5 = dag.add_node(create_node(5, "execution_time", 3.0));
         let n6 = dag.add_node(create_node(6, "execution_time", 1.0));
@@ -299,10 +269,11 @@ mod tests {
         dag.add_edge(c0, c1, 1.0);
         dag.add_edge(c1, c2, 1.0);
         dag.add_edge(c0, n3, 1.0);
-        dag.add_edge(n3, n6, 1.0);
+        dag.add_edge(n3, c2, 1.0);
         dag.add_edge(c0, n4, 1.0);
         dag.add_edge(n4, n6, 1.0);
         dag.add_edge(c0, n5, 1.0);
+        dag.add_edge(n5, n6, 1.0);
         dag.add_edge(n5, n7, 1.0);
         dag.add_edge(n6, n8, 1.0);
         dag.add_edge(n7, n8, 1.0);
@@ -360,6 +331,7 @@ mod tests {
     #[test]
     fn test2() {
         let mut dag = create_sample_dag_not_consolidated();
+
         p(&mut dag);
         println!();
         for node in dag.node_indices() {
