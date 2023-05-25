@@ -67,13 +67,19 @@ pub fn p_loop(
                 longest_path.push(longest_node);
 
                 while let Some(pre_nodes) = dag.get_pre_nodes(longest_node) {
+                    println!("pre_nodes: {:?}", pre_nodes);
                     if pre_nodes
                         .iter()
                         .all(|pre_node| !f_consumer.contains(pre_node))
                     {
                         break;
                     }
-                    longest_node = pre_nodes[0];
+                    for pre_node in pre_nodes.clone() {
+                        if f_consumer.contains(&pre_node) {
+                            longest_node = pre_node;
+                        }
+                    }
+
                     let mut longest_current_length = dag[longest_node].params["current_length"];
                     for pre_node in pre_nodes {
                         if f_consumer.contains(&pre_node) {
