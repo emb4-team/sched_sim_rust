@@ -177,6 +177,11 @@ impl GraphExtension for Graph<NodeData, f32> {
                     .unwrap_or(0.0);
 
                 earliest_start_times[node.index()] = max_earliest_start_time;
+                dag.add_params(
+                    *node,
+                    "current_length",
+                    max_earliest_start_time + dag[*node].params["execution_time"],
+                );
             }
             assert!(
                 !earliest_start_times.iter().any(|&time| time < 0.0),

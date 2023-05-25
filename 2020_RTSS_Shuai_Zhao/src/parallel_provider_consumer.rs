@@ -110,13 +110,14 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, f32> {
-        fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, f32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1.0));
@@ -161,6 +162,30 @@ mod tests {
         dag
     }
 
+    fn create_sample_dag_not_consolidated() -> Graph<NodeData, f32> {
+        let mut dag = Graph::<NodeData, f32>::new();
+
+        //cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 3.0));
+        let c1 = dag.add_node(create_node(1, "execution_time", 1.0));
+        let c2 = dag.add_node(create_node(2, "execution_time", 3.0));
+        //nY_X is the Yth preceding node of cX.
+        let n0_1 = dag.add_node(create_node(3, "execution_time", 2.0));
+        let n0_2 = dag.add_node(create_node(4, "execution_time", 1.0));
+        //Independent Node
+        dag.add_node(create_node(5, "execution_time", 2.0));
+
+        //create critical path edges
+        dag.add_edge(c0, c1, 1.0);
+        dag.add_edge(c1, c2, 1.0);
+        //create non-critical path edges
+        dag.add_edge(n0_1, c1, 1.0);
+        dag.add_edge(n0_1, n0_2, 1.0);
+        dag.add_edge(n0_2, c2, 1.0);
+
+        dag
+    }
+
     #[test]
     fn test_get_providers_normal() {
         let dag = create_sample_dag();
@@ -173,6 +198,18 @@ mod tests {
         assert_eq!(providers[1][0].index(), 2);
         assert_eq!(providers[2][0].index(), 3);
         assert_eq!(providers[3][0].index(), 4);
+    }
+
+    #[test]
+    fn test_get_providers_dag_not_consolidated() {
+        let dag = create_sample_dag_not_consolidated();
+        let critical_path = dag.clone().get_critical_path();
+        let providers = get_providers(&dag, critical_path);
+        assert_eq!(providers.len(), 3);
+
+        assert_eq!(providers[0][0].index(), 0);
+        assert_eq!(providers[1][0].index(), 1);
+        assert_eq!(providers[2][0].index(), 2);
     }
 
     #[test]
@@ -195,6 +232,21 @@ mod tests {
         assert_eq!(f_consumers[&providers[2]][0].index(), 12);
         assert_eq!(f_consumers[&providers[2]][1].index(), 11);
         assert_eq!(f_consumers[&providers[2]][2].index(), 10);
+    }
+
+    #[test]
+    fn test_get_f_consumers_dag_not_consolidated() {
+        let mut dag = create_sample_dag_not_consolidated();
+        let critical_path = dag.clone().get_critical_path();
+        let providers = get_providers(&dag, critical_path.clone());
+        let f_consumers = get_f_consumers(&mut dag, critical_path);
+
+        assert_eq!(f_consumers.len(), 2);
+        assert_eq!(f_consumers[&providers[0]].len(), 1);
+        assert_eq!(f_consumers[&providers[1]].len(), 1);
+
+        assert_eq!(f_consumers[&providers[0]][0].index(), 3);
+        assert_eq!(f_consumers[&providers[1]][0].index(), 4);
     }
 
     #[test]
