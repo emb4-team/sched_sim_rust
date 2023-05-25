@@ -21,12 +21,31 @@ pub fn p_loop(
     origin_dag: &mut Graph<NodeData, f32>,
     dag: &mut Graph<NodeData, f32>,
     priority: &mut f32,
+    critical_path: Vec<NodeIndex>,
 ) {
-    let critical_path = dag.get_critical_path();
-    let providers = get_providers(dag, critical_path.clone());
-    let mut f_consumers = get_f_consumers(dag, critical_path.clone());
-
+    //critical_pathと同じidを持つdagノードを配列に格納する
+    let mut critical_path_nodes = Vec::new();
     for critical_node in critical_path {
+        for node in dag.node_indices() {
+            if dag[node].id == origin_dag[critical_node].id {
+                critical_path_nodes.push(node);
+            }
+        }
+    }
+    //critical_path_nodesの順番をorigin_dagの順番にする
+    let mut origin_critical_path_nodes = Vec::new();
+    for node in origin_dag.node_indices() {
+        for critical_node in &critical_path_nodes {
+            if origin_dag[node].id == dag[*critical_node].id {
+                origin_critical_path_nodes.push(*critical_node);
+            }
+        }
+    }
+
+    let providers = get_providers(dag, origin_critical_path_nodes.clone());
+    let mut f_consumers = get_f_consumers(dag, origin_critical_path_nodes.clone());
+
+    for critical_node in critical_path_nodes {
         dag.add_params(critical_node, "priority", *priority);
     }
 
@@ -63,6 +82,21 @@ pub fn p_loop(
                                 longest_node = pre_node;
                                 longest_current_length = current_length;
                             }
+                            if current_length == longest_current_length {
+                                let mut longest_pre_len = 0;
+                                let mut current_pre_len = 0;
+                                if let Some(_longest_pre_node) = dag.get_pre_nodes(longest_node) {
+                                    longest_pre_len =
+                                        dag.get_pre_nodes(longest_node).unwrap().len();
+                                }
+                                if let Some(_pre_len) = dag.get_pre_nodes(pre_node) {
+                                    current_pre_len = dag.get_pre_nodes(pre_node).unwrap().len();
+                                }
+                                if current_pre_len > longest_pre_len {
+                                    longest_node = pre_node;
+                                    longest_current_length = current_length;
+                                }
+                            }
                         }
                     }
                     longest_path.push(longest_node);
@@ -70,7 +104,6 @@ pub fn p_loop(
                 for node in longest_path.clone() {
                     if let Some(pre_nodes) = dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
-                            println!("node: {:?}", node);
                             let mut clone_dag = dag.clone();
                             remove_nodes(&mut clone_dag, f_consumer.clone());
 
@@ -136,9 +169,6 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                 let mut longest_node = f_consumer[longest_node_index];
                 longest_path.push(longest_node);
 
-                println!("longest_node: {:?}", longest_node);
-                println!("priority: {:?}", priority);
-
                 while let Some(pre_nodes) = dag.get_pre_nodes(longest_node) {
                     if pre_nodes
                         .iter()
@@ -155,17 +185,33 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                                 longest_node = pre_node;
                                 longest_current_length = current_length;
                             }
+                            if current_length == longest_current_length {
+                                let mut longest_pre_len = 0;
+                                let mut current_pre_len = 0;
+                                if let Some(_longest_pre_node) = dag.get_pre_nodes(longest_node) {
+                                    longest_pre_len =
+                                        dag.get_pre_nodes(longest_node).unwrap().len();
+                                }
+                                if let Some(_pre_len) = dag.get_pre_nodes(pre_node) {
+                                    current_pre_len = dag.get_pre_nodes(pre_node).unwrap().len();
+                                }
+                                if current_pre_len > longest_pre_len {
+                                    longest_node = pre_node;
+                                    longest_current_length = current_length;
+                                }
+                            }
                         }
                     }
                     longest_path.push(longest_node);
                 }
+
                 for node in longest_path.clone() {
                     if let Some(pre_nodes) = dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
                             let mut clone_dag = dag.clone();
                             remove_nodes(&mut clone_dag, f_consumer.clone());
 
-                            p_loop(dag, &mut clone_dag, &mut priority);
+                            p_loop(dag, &mut clone_dag, &mut priority, longest_path.clone());
                             break;
                         }
                     }
@@ -186,11 +232,9 @@ pub fn p(dag: &mut Graph<NodeData, f32>) {
                         }
                     }
                 }
-                println!("priority: {:?}", priority);
             }
         }
     }
-    println!();
 }
 
 #[cfg(test)]
@@ -226,7 +270,7 @@ mod tests {
         dag.add_edge(n3, c2, 1.0);
         dag.add_edge(c0, n4, 1.0);
         dag.add_edge(n4, n6, 1.0);
-        dag.add_edge(n4, n7, 1.0);
+        dag.add_edge(n5, n6, 1.0);
         dag.add_edge(c0, n5, 1.0);
         dag.add_edge(n5, n7, 1.0);
         dag.add_edge(n6, n8, 1.0);
