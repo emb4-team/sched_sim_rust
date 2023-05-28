@@ -63,6 +63,8 @@ pub fn get_f_consumers(
 }
 
 /// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
+/// Commented out because it is used only for the priority decision algorithm, rules of α-β pair analysis, Lemma, and equations, and is not involved in this simulator implementation.
+/// However, since there is a possibility that analytical α-β pair analysis will be implemented in the future, it has not been removed.
 #[allow(dead_code)] // TODO: remove
 pub fn get_g_consumers(
     mut dag: Graph<NodeData, f32>,
