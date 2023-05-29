@@ -34,6 +34,7 @@ pub fn get_providers(
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
+#[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
     dag: &mut Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
@@ -65,7 +66,8 @@ pub fn get_f_consumers(
 /// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 /// Commented out because it is used only for the priority decision algorithm, rules of α-β pair analysis, Lemma, and equations, and is not involved in this simulator implementation.
 /// However, since there is a possibility that analytical α-β pair analysis will be implemented in the future, it has not been removed.
-#[allow(dead_code)] // TODO: remove
+/// #[allow(dead_code)] // TODO: remove
+/*
 pub fn get_g_consumers(
     mut dag: Graph<NodeData, f32>,
     critical_path: Vec<NodeIndex>,
@@ -105,6 +107,7 @@ pub fn get_g_consumers(
 
     g_consumers
 }
+*/
 
 #[cfg(test)]
 mod tests {
@@ -198,6 +201,7 @@ mod tests {
         assert_eq!(f_consumers[&providers[2]][2].index(), 10);
     }
 
+    /*
     #[test]
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();
@@ -217,4 +221,5 @@ mod tests {
         assert_eq!(g_consumers[&providers[1]][1].index(), 11);
         assert_eq!(g_consumers[&providers[1]][2].index(), 12);
     }
+    */
 }
