@@ -25,7 +25,7 @@ pub enum FederateResult {
 /// # Arguments
 ///
 /// * `dag_set` - A vector of Graphs. Each Graph represents a task with nodes of type `NodeData`
-///   and edges of type `f32`. Each task has an "period" parameter and a WCET.
+///   and edges of type `i32`. Each task has an "period" parameter and a WCET.
 /// * `number_of_cores` - The total number of available processing cores.
 ///
 /// # Returns

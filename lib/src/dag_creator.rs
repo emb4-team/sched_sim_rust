@@ -136,8 +136,9 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
                         *communication_time_value as i32 * converted_integer as i32;
                 }
                 Yaml::Real(communication_time_value) => {
-                    communication_time =
-                        communication_time_value.parse::<i32>().unwrap() * converted_integer as i32;
+                    println!("{}", communication_time_value);
+                    communication_time = (communication_time_value.parse::<f32>().unwrap()
+                        * converted_integer as f32) as i32;
                 }
                 Yaml::BadValue => {}
                 _ => unreachable!(),
@@ -207,12 +208,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_get_minimum_decimal_places_normal() {
         let yaml_docs = load_yaml("tests/sample_dags/float_params.yaml");
         let yaml_doc = &yaml_docs[0];
-        println!("{:?}", yaml_doc);
-        let a = get_minimum_decimal_places(yaml_doc);
-        println!("{:?}", a);
+        let number_of_digits = get_minimum_decimal_places(yaml_doc);
+        assert_eq!(number_of_digits, 1, "number of digits is expected to be 1");
     }
     #[test]
     fn test_create_dag_set_from_dir_multiple_yaml_files() {

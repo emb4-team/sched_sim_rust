@@ -69,7 +69,7 @@ pub fn get_f_consumers(
 /// #[allow(dead_code)] // TODO: remove
 /*
 pub fn get_g_consumers(
-    mut dag: Graph<NodeData, f32>,
+    mut dag: Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(&dag, critical_path.clone());
