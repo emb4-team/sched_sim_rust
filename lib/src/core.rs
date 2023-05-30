@@ -38,7 +38,7 @@ impl Core {
         self.is_idle = false;
         self.processing_node = Some(node_data.id);
         if let Some(exec_time) = node_data.params.get("execution_time") {
-            self.remain_proc_time = *exec_time as i32;
+            self.remain_proc_time = *exec_time;
             true
         } else {
             warn!("Node {} does not have execution_time", node_data.id);
@@ -65,7 +65,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
@@ -82,7 +82,7 @@ mod tests {
     #[test]
     fn test_core_allocate_normal() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10.0));
+        core.allocate(create_node(0, "execution_time", 10));
         assert!(!core.is_idle);
         assert_eq!(core.processing_node, Some(0));
         assert_eq!(core.remain_proc_time, 10);
@@ -91,20 +91,20 @@ mod tests {
     #[test]
     fn test_core_allocate_already_allocated() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10.0));
-        assert!(!core.allocate(create_node(1, "execution_time", 10.0)));
+        core.allocate(create_node(0, "execution_time", 10));
+        assert!(!core.allocate(create_node(1, "execution_time", 10)));
     }
 
     #[test]
     fn test_core_allocate_node_no_has_execution_time() {
         let mut core = Core::default();
-        assert!(!core.allocate(create_node(0, "no_execution_time", 10.0)));
+        assert!(!core.allocate(create_node(0, "no_execution_time", 10)));
     }
 
     #[test]
     fn test_core_process_normal() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10.0));
+        core.allocate(create_node(0, "execution_time", 10));
         assert_eq!(core.process(), Continue);
         assert_eq!(core.remain_proc_time, 9);
         core.process();
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn test_core_process_when_finished() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 2.0));
+        core.allocate(create_node(0, "execution_time", 2));
         core.process();
         assert_eq!(core.process(), Done);
         assert!(core.is_idle);

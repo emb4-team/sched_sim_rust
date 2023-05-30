@@ -40,7 +40,7 @@ mod tests {
     use crate::{core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
@@ -61,18 +61,18 @@ mod tests {
     fn test_processor_allocate_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        assert!(homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0)));
+        assert!(homogeneous_processor.allocate(0, create_node(0, "execution_time", 2)));
         assert!(!homogeneous_processor.cores[0].is_idle);
         assert!(homogeneous_processor.cores[1].is_idle);
-        assert!(homogeneous_processor.allocate(1, create_node(1, "execution_time", 2.0)));
+        assert!(homogeneous_processor.allocate(1, create_node(1, "execution_time", 2)));
     }
 
     #[test]
     fn test_processor_allocate_same_core() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
 
-        assert!(!homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0)));
+        assert!(!homogeneous_processor.allocate(0, create_node(0, "execution_time", 2)));
     }
 
     #[test]
@@ -80,14 +80,14 @@ mod tests {
     fn test_processor_allocate_no_exist_core() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        homogeneous_processor.allocate(2, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(2, create_node(0, "execution_time", 2));
     }
 
     #[test]
     fn test_processor_process_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
-        homogeneous_processor.allocate(1, create_node(0, "execution_time", 3.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
+        homogeneous_processor.allocate(1, create_node(0, "execution_time", 3));
 
         assert_eq!(
             homogeneous_processor.process(),
@@ -100,7 +100,7 @@ mod tests {
     #[test]
     fn test_processor_process_when_one_core_no_allocated() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
 
         assert_eq!(
             homogeneous_processor.process(),
@@ -132,7 +132,7 @@ mod tests {
 
         assert_eq!(homogeneous_processor.get_idle_core_index(), Some(0));
 
-        let n1 = create_node(0, "execution_time", 2.0);
+        let n1 = create_node(0, "execution_time", 2);
 
         homogeneous_processor.allocate(0, n1.clone());
 

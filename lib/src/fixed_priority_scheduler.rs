@@ -7,7 +7,7 @@ use crate::{
 };
 use petgraph::{graph::NodeIndex, Graph};
 
-const DUMMY_EXECUTION_TIME: f32 = 1.0;
+const DUMMY_EXECUTION_TIME: i32 = 1;
 
 /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
 ///
@@ -46,8 +46,8 @@ const DUMMY_EXECUTION_TIME: f32 = 1.0;
 pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, f32>,
-) -> f32 {
-    let mut time = 0.0;
+) -> i32 {
+    let mut time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
     let mut finished_core_and_node_hashmap: HashMap<usize, NodeIndex> = HashMap::new();
 
@@ -65,8 +65,8 @@ pub fn fixed_priority_scheduler(
     loop {
         //Sort by priority
         ready_queue.make_contiguous().sort_by_key(|&node| {
-            let priority = dag[node].params.get("priority").unwrap_or(&999.0); //If there is no priority, it is set to the lowest priority.
-            *priority as i32
+            let priority = dag[node].params.get("priority").unwrap_or(&999); //If there is no priority, it is set to the lowest priority.
+            *priority
         });
 
         //Assign the highest priority task first to the first idle core found.
@@ -83,7 +83,7 @@ pub fn fixed_priority_scheduler(
 
         //Move one unit time so that the core state of the previous loop does not remain.
         let mut process_result = processor.process();
-        time += 1.0;
+        time += 1;
 
         //Process until there is a task finished.
         while !process_result
@@ -91,7 +91,7 @@ pub fn fixed_priority_scheduler(
             .any(|result| matches!(result, ProcessResult::Done))
         {
             process_result = processor.process();
-            time += 1.0;
+            time += 1;
         }
 
         let finish_node = process_result
@@ -108,21 +108,19 @@ pub fn fixed_priority_scheduler(
         }
         for suc_node in suc_nodes {
             if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
-                *value += 1.0;
+                *value += 1;
             } else {
-                dag[suc_node]
-                    .params
-                    .insert("pre_done_count".to_owned(), 1.0);
+                dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
             }
             let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-            if pre_nodes.len() as f32 == dag[suc_node].params["pre_done_count"] {
+            if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
                 ready_queue.push_back(suc_node);
             }
         }
     }
 
     //Return the normalized total time taken to finish all tasks.
-    time - DUMMY_EXECUTION_TIME * 2.0
+    time - DUMMY_EXECUTION_TIME * 2
 }
 
 #[cfg(test)]
@@ -132,13 +130,13 @@ mod tests {
     use super::*;
     use crate::homogeneous::HomogeneousProcessor;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }
 
-    fn add_params(dag: &mut Graph<NodeData, f32>, node: NodeIndex, key: &str, value: f32) {
+    fn add_params(dag: &mut Graph<NodeData, f32>, node: NodeIndex, key: &str, value: i32) {
         let node_added = dag.node_weight_mut(node).unwrap();
         node_added.params.insert(key.to_string(), value);
     }
@@ -147,15 +145,15 @@ mod tests {
     fn test_fixed_priority_scheduler_normal() {
         let mut dag = Graph::<NodeData, f32>::new();
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 52.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 40.0));
-        add_params(&mut dag, c0, "priority", 0.0);
-        add_params(&mut dag, c1, "priority", 0.0);
+        let c0 = dag.add_node(create_node(0, "execution_time", 52));
+        let c1 = dag.add_node(create_node(1, "execution_time", 40));
+        add_params(&mut dag, c0, "priority", 0);
+        add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(2, "execution_time", 10.0));
-        let n1_2 = dag.add_node(create_node(3, "execution_time", 10.0));
-        add_params(&mut dag, n0_2, "priority", 2.0);
-        add_params(&mut dag, n1_2, "priority", 1.0);
+        let n0_2 = dag.add_node(create_node(2, "execution_time", 10));
+        let n1_2 = dag.add_node(create_node(3, "execution_time", 10));
+        add_params(&mut dag, n0_2, "priority", 2);
+        add_params(&mut dag, n1_2, "priority", 1);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1.0);
@@ -167,7 +165,7 @@ mod tests {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
         assert_eq!(
             fixed_priority_scheduler(&mut homogeneous_processor, &mut dag),
-            92.0
+            92
         );
     }
 }

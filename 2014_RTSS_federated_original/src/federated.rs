@@ -80,10 +80,10 @@ pub fn federated(dag_set: Vec<Graph<NodeData, f32>>, number_of_cores: usize) -> 
             };
         }
 
-        let utilization = volume / period;
+        let utilization = volume as f32 / period as f32;
         if utilization > 1.0 {
-            let high_dedicated_cores = ((volume - critical_path_wcet)
-                / (end_to_end_deadline - critical_path_wcet))
+            let high_dedicated_cores = ((volume - critical_path_wcet) as f32
+                / (end_to_end_deadline - critical_path_wcet) as f32)
                 .ceil() as usize;
             if high_dedicated_cores > remaining_cores {
                 return Unschedulable {
@@ -116,7 +116,7 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
@@ -126,13 +126,13 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
             let mut params = HashMap::new();
-            params.insert("execution_time".to_owned(), 4.0);
-            params.insert("period".to_owned(), 10.0);
+            params.insert("execution_time".to_owned(), 4);
+            params.insert("period".to_owned(), 10);
             dag.add_node(NodeData { id: 3, params })
         };
-        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 4));
+        let n2 = dag.add_node(create_node(2, "execution_time", 3));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3));
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
         dag.add_edge(n0, n3, 1.0);
@@ -144,12 +144,12 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
             let mut params = HashMap::new();
-            params.insert("execution_time".to_owned(), 3.0);
-            params.insert("period".to_owned(), 30.0);
+            params.insert("execution_time".to_owned(), 3);
+            params.insert("period".to_owned(), 30);
             dag.add_node(NodeData { id: 2, params })
         };
-        let n1 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let n2 = dag.add_node(create_node(1, "execution_time", 4.0));
+        let n1 = dag.add_node(create_node(0, "execution_time", 3));
+        let n2 = dag.add_node(create_node(1, "execution_time", 4));
 
         dag.add_edge(n0, n1, 1.0);
         dag.add_edge(n0, n2, 1.0);
@@ -159,8 +159,8 @@ mod tests {
     fn create_period_exceeding_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
-        params.insert("execution_time".to_owned(), 20.0);
-        params.insert("period".to_owned(), 10.0);
+        params.insert("execution_time".to_owned(), 20);
+        params.insert("period".to_owned(), 10);
         dag.add_node(NodeData { id: 0, params });
         dag
     }
@@ -168,7 +168,7 @@ mod tests {
     fn create_no_has_period_dag() -> Graph<NodeData, f32> {
         let mut dag = Graph::<NodeData, f32>::new();
         let mut params = HashMap::new();
-        params.insert("execution_time".to_owned(), 3.0);
+        params.insert("execution_time".to_owned(), 3);
         dag.add_node(NodeData { id: 0, params });
         dag
     }

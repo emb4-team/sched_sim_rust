@@ -106,13 +106,13 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
                         Yaml::Integer(_i) => {
                             params.insert(
                                 key_str.to_owned(),
-                                (value.as_i64().unwrap() * converted_integer) as f32,
+                                (value.as_i64().unwrap() * converted_integer) as i32,
                             );
                         }
                         Yaml::Real(_r) => {
                             params.insert(
                                 key_str.to_owned(),
-                                (value.as_f64().unwrap() * converted_integer as f64) as f32,
+                                (value.as_f64().unwrap() * converted_integer as f64) as i32,
                             );
                         }
                         _ => {
@@ -255,19 +255,19 @@ mod tests {
         assert_eq!(dag.node_count(), 22, "number of nodes is expected to be 22");
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &73.0,
+            &73,
             "first node execution time is expected to be 73.0"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &2.0,
+            &2,
             "last node execution time is expected to be 2.0"
         );
         assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0");
         assert_eq!(dag[last_node].id, 21, "last node id is expected to be 21");
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
-            &50.0,
+            &50,
             "first node period is expected to be 50.0"
         );
         assert_eq!(dag.edge_count(), 25, "number of edges is expected to be 25");
@@ -312,22 +312,22 @@ mod tests {
         assert_eq!(dag.node_count(), 20, "number of nodes is expected to be 20");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
-            &4.0,
+            &4,
             "first node weight is expected to be 4.0"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
-            &1.0,
+            &1,
             "last node weight is expected to be 1.0"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &3.0,
+            &3,
             "first node execution time is expected to be 3.0"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &43.0,
+            &43,
             "last node execution time is expected to be 43.0"
         );
         assert_eq!(dag.edge_count(), 29, "number of edges is expected to be 29");
@@ -374,42 +374,42 @@ mod tests {
         assert_eq!(dag[last_node].id, 69, "last node id is expected to be 69");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
-            &1.0,
+            &1,
             "first node weight is expected to be 1.0"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
-            &5.0,
+            &5,
             "last node weight is expected to be 5.0"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &34.0,
+            &34,
             "first node execution time is expected to be 34.0"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &1.0,
+            &1,
             "last node execution time is expected to be 1.0"
         );
         assert_eq!(
             dag[first_node].params.get("offset").unwrap(),
-            &4.0,
+            &4,
             "first node offset is expected to be 4.0"
         );
         assert_eq!(
             dag[last_node].params.get("offset").unwrap(),
-            &5.0,
+            &5,
             "last node offset is expected to be 5.0"
         );
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
-            &6000.0,
+            &6000,
             "first node period is expected to be 6000.0"
         );
         assert_eq!(
             dag[last_node].params.get("period").unwrap(),
-            &10.0,
+            &10,
             "last node period is expected to be 10.0"
         );
         assert_eq!(
@@ -458,22 +458,22 @@ mod tests {
         assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
-            &41.0,
+            &41,
             "first node weight is expected to be 41.0"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
-            &10.0,
+            &10,
             "last node weight is expected to be 10.0"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &31.0,
+            &31,
             "first node execution time is expected to be 31.0"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &430.0,
+            &430,
             "last node execution time is expected to be 430.0"
         );
         assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2");

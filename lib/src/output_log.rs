@@ -17,9 +17,9 @@ struct DAGSetInfo {
 #[derive(Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
 struct DAGInfo {
-    critical_path_length: f32,
-    end_to_end_deadline: f32,
-    volume: f32,
+    critical_path_length: i32,
+    end_to_end_deadline: i32,
+    volume: i32,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -71,7 +71,7 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
         let period = dag.get_head_period().unwrap();
         let critical_path = dag.get_critical_path();
         let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
-        total_utilization += volume / period;
+        total_utilization += volume as f32 / period as f32;
 
         let dag_info = DAGInfo {
             critical_path_length,
@@ -100,7 +100,7 @@ mod tests {
     use super::*;
     use std::{collections::HashMap, fs::remove_file};
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
@@ -110,13 +110,13 @@ mod tests {
         let mut dag = Graph::<NodeData, f32>::new();
         let n0 = {
             let mut params = HashMap::new();
-            params.insert("execution_time".to_owned(), 4.0);
-            params.insert("period".to_owned(), 10.0);
+            params.insert("execution_time".to_owned(), 4);
+            params.insert("period".to_owned(), 10);
             dag.add_node(NodeData { id: 3, params })
         };
-        let n1 = dag.add_node(create_node(1, "execution_time", 4.0));
-        let n2 = dag.add_node(create_node(2, "execution_time", 3.0));
-        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 4));
+        let n2 = dag.add_node(create_node(2, "execution_time", 3));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3));
         dag.add_edge(n0, n1, 0.0);
         dag.add_edge(n0, n2, 0.0);
         dag.add_edge(n0, n3, 0.0);
@@ -135,9 +135,9 @@ mod tests {
 
         assert_eq!(dag_set.total_utilization, 2.8);
         assert_eq!(dag_set.each_dag_info.len(), 2);
-        assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8.0);
-        assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10.0);
-        assert_eq!(dag_set.each_dag_info[1].volume, 14.0);
+        assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8);
+        assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10);
+        assert_eq!(dag_set.each_dag_info[1].volume, 14);
 
         remove_file(file_path).unwrap();
     }
