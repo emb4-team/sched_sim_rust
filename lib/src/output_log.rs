@@ -62,7 +62,7 @@ pub fn dump_processor_info_to_yaml(file_path: &str, processor: impl ProcessorBas
     append_info_to_yaml(file_path, &yaml);
 }
 
-pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, f32>>) {
+pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, i32>>) {
     let mut total_utilization = 0.0;
     let mut each_dag_info = Vec::new();
 
@@ -106,8 +106,8 @@ mod tests {
         NodeData { id, params }
     }
 
-    fn create_dag() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_dag() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = {
             let mut params = HashMap::new();
             params.insert("execution_time".to_owned(), 4);
@@ -117,9 +117,9 @@ mod tests {
         let n1 = dag.add_node(create_node(1, "execution_time", 4));
         let n2 = dag.add_node(create_node(2, "execution_time", 3));
         let n3 = dag.add_node(create_node(3, "execution_time", 3));
-        dag.add_edge(n0, n1, 0.0);
-        dag.add_edge(n0, n2, 0.0);
-        dag.add_edge(n0, n3, 0.0);
+        dag.add_edge(n0, n1, 0);
+        dag.add_edge(n0, n2, 0);
+        dag.add_edge(n0, n3, 0);
 
         dag
     }

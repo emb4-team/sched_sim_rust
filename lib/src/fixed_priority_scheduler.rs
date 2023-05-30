@@ -45,7 +45,7 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 ///
 pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
-    dag: &mut Graph<NodeData, f32>,
+    dag: &mut Graph<NodeData, i32>,
 ) -> i32 {
     let mut time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -136,14 +136,14 @@ mod tests {
         NodeData { id, params }
     }
 
-    fn add_params(dag: &mut Graph<NodeData, f32>, node: NodeIndex, key: &str, value: i32) {
+    fn add_params(dag: &mut Graph<NodeData, i32>, node: NodeIndex, key: &str, value: i32) {
         let node_added = dag.node_weight_mut(node).unwrap();
         node_added.params.insert(key.to_string(), value);
     }
 
     #[test]
     fn test_fixed_priority_scheduler_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
@@ -156,11 +156,11 @@ mod tests {
         add_params(&mut dag, n1_2, "priority", 1);
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
+        dag.add_edge(c0, c1, 1);
 
         //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1.0);
-        dag.add_edge(c0, n1_2, 1.0);
+        dag.add_edge(c0, n0_2, 1);
+        dag.add_edge(c0, n1_2, 1);
 
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
         assert_eq!(

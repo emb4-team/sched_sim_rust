@@ -14,7 +14,7 @@ use petgraph::graph::{Graph, NodeIndex};
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
 pub fn get_providers(
-    dag: &Graph<NodeData, f32>,
+    dag: &Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> Vec<Vec<NodeIndex>> {
     let mut deque_critical_path = VecDeque::from(critical_path);
@@ -36,7 +36,7 @@ pub fn get_providers(
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
 #[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
-    dag: &mut Graph<NodeData, f32>,
+    dag: &mut Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let providers = get_providers(dag, critical_path.clone());
@@ -115,13 +115,13 @@ mod tests {
     use std::collections::HashMap;
 
     ///DAG in Figure 2 (b) of the paper
-    fn create_sample_dag() -> Graph<NodeData, f32> {
+    fn create_sample_dag() -> Graph<NodeData, i32> {
         fn create_node(id: i32, key: &str, value: i32) -> NodeData {
             let mut params = HashMap::new();
             params.insert(key.to_string(), value);
             NodeData { id, params }
         }
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1));
         let c1 = dag.add_node(create_node(1, "execution_time", 1));
@@ -139,28 +139,28 @@ mod tests {
         let n2_4 = dag.add_node(create_node(12, "execution_time", 0));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
-        dag.add_edge(c2, c3, 1.0);
-        dag.add_edge(c3, c4, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        dag.add_edge(c2, c3, 1);
+        dag.add_edge(c3, c4, 1);
 
         //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1.0);
-        dag.add_edge(n0_2, c2, 1.0);
-        dag.add_edge(c0, n1_2, 1.0);
-        dag.add_edge(n1_2, c2, 1.0);
-        dag.add_edge(c0, n0_3, 1.0);
-        dag.add_edge(n0_3, c3, 1.0);
-        dag.add_edge(c1, n1_3, 1.0);
-        dag.add_edge(n1_3, c3, 1.0);
-        dag.add_edge(c1, n2_3, 1.0);
-        dag.add_edge(n2_3, c3, 1.0);
-        dag.add_edge(n0_3, n0_4, 1.0);
-        dag.add_edge(n0_4, c4, 1.0);
-        dag.add_edge(n1_3, n1_4, 1.0);
-        dag.add_edge(n1_4, c4, 1.0);
-        dag.add_edge(n2_3, n2_4, 1.0);
-        dag.add_edge(n2_4, c4, 1.0);
+        dag.add_edge(c0, n0_2, 1);
+        dag.add_edge(n0_2, c2, 1);
+        dag.add_edge(c0, n1_2, 1);
+        dag.add_edge(n1_2, c2, 1);
+        dag.add_edge(c0, n0_3, 1);
+        dag.add_edge(n0_3, c3, 1);
+        dag.add_edge(c1, n1_3, 1);
+        dag.add_edge(n1_3, c3, 1);
+        dag.add_edge(c1, n2_3, 1);
+        dag.add_edge(n2_3, c3, 1);
+        dag.add_edge(n0_3, n0_4, 1);
+        dag.add_edge(n0_4, c4, 1);
+        dag.add_edge(n1_3, n1_4, 1);
+        dag.add_edge(n1_4, c4, 1);
+        dag.add_edge(n2_3, n2_4, 1);
+        dag.add_edge(n2_4, c4, 1);
 
         dag
     }

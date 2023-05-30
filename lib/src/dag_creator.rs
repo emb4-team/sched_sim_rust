@@ -80,18 +80,18 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> u32 {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
-pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
+pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
     let converted_integer =
-        10.0f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i64;
+        10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i64;
     if converted_integer > 100000 {
         warn!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
     }
 
     // Check if nodes and links fields exist
     if let (Some(nodes), Some(links)) = (yaml_doc["nodes"].as_vec(), yaml_doc["links"].as_vec()) {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
 
         // add nodes to dag
         for node in nodes {
@@ -128,16 +128,16 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, f32> {
         for link in links {
             let source = link["source"].as_i64().unwrap() as usize;
             let target = link["target"].as_i64().unwrap() as usize;
-            let mut communication_time = 0.0;
+            let mut communication_time = 0;
 
             match &link["communication_time"] {
                 Yaml::Integer(communication_time_value) => {
                     communication_time =
-                        *communication_time_value as f32 * converted_integer as f32;
+                        *communication_time_value as i32 * converted_integer as i32;
                 }
                 Yaml::Real(communication_time_value) => {
                     communication_time =
-                        communication_time_value.parse::<f32>().unwrap() * converted_integer as f32;
+                        communication_time_value.parse::<i32>().unwrap() * converted_integer as i32;
                 }
                 Yaml::BadValue => {}
                 _ => unreachable!(),
@@ -191,9 +191,9 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 /// let first_edge_num = dag_set[0].edge_count();
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
 /// ```
-pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, f32>> {
+pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
     let file_path_list = get_yaml_paths_from_dir(dir_path);
-    let mut dag_set: Vec<Graph<NodeData, f32>> = Vec::new();
+    let mut dag_set: Vec<Graph<NodeData, i32>> = Vec::new();
 
     for file_path in file_path_list {
         let dag = create_dag_from_yaml(&file_path);
@@ -256,19 +256,19 @@ mod tests {
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &73,
-            "first node execution time is expected to be 73.0"
+            "first node execution time is expected to be 73"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &2,
-            "last node execution time is expected to be 2.0"
+            "last node execution time is expected to be 2"
         );
         assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0");
         assert_eq!(dag[last_node].id, 21, "last node id is expected to be 21");
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
             &50,
-            "first node period is expected to be 50.0"
+            "first node period is expected to be 50"
         );
         assert_eq!(dag.edge_count(), 25, "number of edges is expected to be 25");
         assert_eq!(
@@ -291,14 +291,8 @@ mod tests {
             18,
             "last edge target node id is expected to be 18"
         );
-        assert_eq!(
-            dag[first_edge], 0.0,
-            "first edge weight is expected to be 0.0"
-        );
-        assert_eq!(
-            dag[last_edge], 0.0,
-            "last edge weight is expected to be 0.0"
-        );
+        assert_eq!(dag[first_edge], 0, "first edge weight is expected to be 0");
+        assert_eq!(dag[last_edge], 0, "last edge weight is expected to be 0");
     }
 
     #[test]
@@ -313,22 +307,22 @@ mod tests {
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &4,
-            "first node weight is expected to be 4.0"
+            "first node weight is expected to be 4"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &1,
-            "last node weight is expected to be 1.0"
+            "last node weight is expected to be 1"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &3,
-            "first node execution time is expected to be 3.0"
+            "first node execution time is expected to be 3"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &43,
-            "last node execution time is expected to be 43.0"
+            "last node execution time is expected to be 43"
         );
         assert_eq!(dag.edge_count(), 29, "number of edges is expected to be 29");
         assert_eq!(
@@ -352,13 +346,10 @@ mod tests {
             "last edge target node id is expected to be 19"
         );
         assert_eq!(
-            dag[first_edge], 11.0,
-            "first edge weight is expected to be 11.0"
+            dag[first_edge], 11,
+            "first edge weight is expected to be 11"
         );
-        assert_eq!(
-            dag[last_edge], 2.0,
-            "last edge weight is expected to be 2.0"
-        );
+        assert_eq!(dag[last_edge], 2, "last edge weight is expected to be 2");
     }
 
     #[test]
@@ -375,42 +366,42 @@ mod tests {
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &1,
-            "first node weight is expected to be 1.0"
+            "first node weight is expected to be 1"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &5,
-            "last node weight is expected to be 5.0"
+            "last node weight is expected to be 5"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &34,
-            "first node execution time is expected to be 34.0"
+            "first node execution time is expected to be 34"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &1,
-            "last node execution time is expected to be 1.0"
+            "last node execution time is expected to be 1"
         );
         assert_eq!(
             dag[first_node].params.get("offset").unwrap(),
             &4,
-            "first node offset is expected to be 4.0"
+            "first node offset is expected to be 4"
         );
         assert_eq!(
             dag[last_node].params.get("offset").unwrap(),
             &5,
-            "last node offset is expected to be 5.0"
+            "last node offset is expected to be 5"
         );
         assert_eq!(
             dag[first_node].params.get("period").unwrap(),
             &6000,
-            "first node period is expected to be 6000.0"
+            "first node period is expected to be 6000"
         );
         assert_eq!(
             dag[last_node].params.get("period").unwrap(),
             &10,
-            "last node period is expected to be 10.0"
+            "last node period is expected to be 10"
         );
         assert_eq!(
             dag.edge_count(),
@@ -437,14 +428,8 @@ mod tests {
             14,
             "last edge target node id is expected to be 14"
         );
-        assert_eq!(
-            dag[first_edge], 0.0,
-            "first edge weight is expected to be 0.0"
-        );
-        assert_eq!(
-            dag[last_edge], 0.0,
-            "last edge weight is expected to be 0.0"
-        );
+        assert_eq!(dag[first_edge], 0, "first edge weight is expected to be 0");
+        assert_eq!(dag[last_edge], 0, "last edge weight is expected to be 0");
     }
 
     #[test]
@@ -459,22 +444,22 @@ mod tests {
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &41,
-            "first node weight is expected to be 41.0"
+            "first node weight is expected to be 41"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
             &10,
-            "last node weight is expected to be 10.0"
+            "last node weight is expected to be 10"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
             &31,
-            "first node execution time is expected to be 31.0"
+            "first node execution time is expected to be 31"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
             &430,
-            "last node execution time is expected to be 430.0"
+            "last node execution time is expected to be 430"
         );
         assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2");
         assert_eq!(
@@ -498,13 +483,10 @@ mod tests {
             "last edge target node id is expected to be 19"
         );
         assert_eq!(
-            dag[first_edge], 111.0,
-            "first edge weight is expected to be 111.0"
+            dag[first_edge], 111,
+            "first edge weight is expected to be 111"
         );
-        assert_eq!(
-            dag[last_edge], 20.0,
-            "last edge weight is expected to be 20.0"
-        );
+        assert_eq!(dag[last_edge], 20, "last edge weight is expected to be 20");
     }
 
     #[test]

@@ -5,7 +5,6 @@ use petgraph::visit::EdgeRef;
 use petgraph::Direction::{Incoming, Outgoing};
 use std::collections::HashMap;
 use std::collections::VecDeque;
-use std::f32;
 
 const DUMMY_SOURCE_NODE_FLAG: i32 = -1;
 const DUMMY_SINK_NODE_FLAG: i32 = -2;
@@ -48,7 +47,7 @@ pub trait GraphExtension {
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
 }
 
-impl GraphExtension for Graph<NodeData, f32> {
+impl GraphExtension for Graph<NodeData, i32> {
     fn add_dummy_source_node(&mut self) -> NodeIndex {
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
@@ -70,7 +69,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             ]),
         ));
         for source_i in source_nodes {
-            self.add_edge(dummy_source_i, source_i, 0.0);
+            self.add_edge(dummy_source_i, source_i, 0);
         }
         dummy_source_i
     }
@@ -96,7 +95,7 @@ impl GraphExtension for Graph<NodeData, f32> {
             ]),
         ));
         for sink_i in sink_nodes {
-            self.add_edge(sink_i, dummy_sink_i, 0.0);
+            self.add_edge(sink_i, dummy_sink_i, 0);
         }
         dummy_sink_i
     }
@@ -145,18 +144,18 @@ impl GraphExtension for Graph<NodeData, f32> {
     /// use lib::graph_extension::NodeData;
     /// use lib::graph_extension::GraphExtension;
     ///
-    /// let mut dag = Graph::<NodeData, f32>::new();
+    /// let mut dag = Graph::<NodeData, i32>::new();
     /// let mut params = HashMap::new();
-    /// params.insert("execution_time".to_string(), 1.0);
+    /// params.insert("execution_time".to_string(), 1);
     /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
     /// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
-    /// dag.add_edge(n0, n1, 1.0);
+    /// dag.add_edge(n0, n1, 1);
     /// let critical_path = dag.get_critical_path();
     /// println!("The critical path is: {:?}", critical_path);
     /// ```
     fn get_critical_path(&mut self) -> Vec<NodeIndex> {
         /// Calculate the earliest start times for each node in the DAG.
-        fn calculate_earliest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<i32> {
+        fn calculate_earliest_start_times(dag: &mut Graph<NodeData, i32>) -> Vec<i32> {
             let sorted_nodes = toposort(&*dag, None).unwrap();
             let mut earliest_start_times = vec![0; dag.node_count()];
 
@@ -181,7 +180,7 @@ impl GraphExtension for Graph<NodeData, f32> {
         }
 
         /// Calculate the latest start times for each node in the DAG.
-        fn calculate_latest_start_times(dag: &mut Graph<NodeData, f32>) -> Vec<i32> {
+        fn calculate_latest_start_times(dag: &mut Graph<NodeData, i32>) -> Vec<i32> {
             let earliest_start_times = calculate_earliest_start_times(dag);
             let sorted_nodes = toposort(&*dag, None).unwrap();
             let node_count = dag.node_count();
@@ -461,16 +460,16 @@ mod tests {
 
     #[test]
     fn test_get_critical_path_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4));
         let n1 = dag.add_node(create_node(1, "execution_time", 7));
         let n2 = dag.add_node(create_node(2, "execution_time", 55));
         let n3 = dag.add_node(create_node(3, "execution_time", 36));
         let n4 = dag.add_node(create_node(4, "execution_time", 54));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
+        dag.add_edge(n2, n4, 1);
 
         let critical_path = dag.get_critical_path();
         assert_eq!(critical_path.len(), 3);
@@ -480,16 +479,16 @@ mod tests {
 
     #[test]
     fn test_get_non_critical_nodes_when_critical_path_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4));
         let n1 = dag.add_node(create_node(1, "execution_time", 7));
         let n2 = dag.add_node(create_node(2, "execution_time", 55));
         let n3 = dag.add_node(create_node(3, "execution_time", 36));
         let n4 = dag.add_node(create_node(4, "execution_time", 54));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
-        dag.add_edge(n2, n4, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
+        dag.add_edge(n2, n4, 1);
 
         let critical_path = dag.get_critical_path();
         let no_critical_path_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
@@ -500,7 +499,7 @@ mod tests {
 
     #[test]
     fn test_get_non_critical_nodes_no_exist() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let critical_path = dag.get_critical_path();
         let no_critical_path_nodes = dag.get_non_critical_nodes(critical_path);
         assert_eq!(no_critical_path_nodes, None);
@@ -508,12 +507,12 @@ mod tests {
 
     #[test]
     fn test_remove_dummy_node_check_whether_connected_edges_removed() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3));
         let n1 = dag.add_node(create_node(1, "execution_time", 6));
         let n2 = dag.add_node(create_node(2, "execution_time", 45));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         dag.add_dummy_source_node();
         dag.add_dummy_sink_node();
@@ -527,12 +526,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_remove_dummy_node_no_exist() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         dag.remove_dummy_source_node();
         dag.remove_dummy_sink_node();
@@ -541,12 +540,12 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_add_dummy_node_duplication() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3));
         let n1 = dag.add_node(create_node(1, "execution_time", 6));
         let n2 = dag.add_node(create_node(2, "execution_time", 45));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         dag.add_dummy_source_node();
         dag.add_dummy_source_node();
@@ -556,7 +555,7 @@ mod tests {
 
     #[test]
     fn test_get_source_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
@@ -564,19 +563,19 @@ mod tests {
             dag.get_source_nodes(),
             vec![NodeIndex::new(0), NodeIndex::new(1), NodeIndex::new(2),]
         );
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
         assert_eq!(dag.get_source_nodes(), vec![NodeIndex::new(0)]);
     }
 
     #[test]
     fn test_get_source_nodes_dummy_node() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         dag.add_dummy_source_node();
         assert_eq!(dag.get_source_nodes(), vec![NodeIndex::new(3)]);
@@ -584,7 +583,7 @@ mod tests {
 
     #[test]
     fn test_get_sink_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
@@ -592,8 +591,8 @@ mod tests {
             dag.get_sink_nodes(),
             vec![NodeIndex::new(0), NodeIndex::new(1), NodeIndex::new(2)]
         );
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
         assert_eq!(
             dag.get_sink_nodes(),
             vec![NodeIndex::new(1), NodeIndex::new(2)]
@@ -602,12 +601,12 @@ mod tests {
 
     #[test]
     fn test_get_sink_nodes_dummy_node() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         dag.add_dummy_sink_node();
         assert_eq!(dag.get_sink_nodes(), vec![NodeIndex::new(3)]);
@@ -615,12 +614,12 @@ mod tests {
 
     #[test]
     fn test_add_dummy_node_integrity_for_id_and_node_index() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         let source_index = dag.add_dummy_source_node();
         let sink_index = dag.add_dummy_sink_node();
@@ -631,12 +630,12 @@ mod tests {
 
     #[test]
     fn test_get_volume_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3));
         let n1 = dag.add_node(create_node(1, "execution_time", 6));
         let n2 = dag.add_node(create_node(2, "execution_time", 5));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         assert_eq!(dag.get_volume(), 14);
     }
@@ -644,7 +643,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_volume_node_no_includes_execution_time() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "weight", 3));
 
         dag.get_volume();
@@ -652,13 +651,13 @@ mod tests {
 
     #[test]
     fn test_get_total_wcet_from_nodes_any_given_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4));
         let n1 = dag.add_node(create_node(1, "execution_time", 7));
         let n2 = dag.add_node(create_node(2, "execution_time", 55));
 
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         let nodes0 = vec![n0, n1];
         let nodes1 = vec![n0, n2];
@@ -669,7 +668,7 @@ mod tests {
 
     #[test]
     fn test_get_total_wcet_from_nodes_given_one_node() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4));
         let nodes0 = vec![n0];
 
@@ -679,7 +678,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_total_wcet_from_nodes_node_no_includes_execution_time() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "weight", 3));
 
         let nodes = vec![n0];
@@ -688,7 +687,7 @@ mod tests {
 
     #[test]
     fn test_get_end_to_end_deadline_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 3));
         let n1 = dag.add_node(NodeData {
             id: 1,
@@ -700,14 +699,14 @@ mod tests {
             },
         });
 
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_end_to_end_deadline(), Some(25));
     }
 
     #[test]
     fn test_get_end_to_end_deadline_node_no_includes_end_to_end_deadline() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 3));
 
         assert_eq!(dag.get_end_to_end_deadline(), None);
@@ -715,18 +714,18 @@ mod tests {
 
     #[test]
     fn test_get_head_period_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "period", 3));
         let n1 = dag.add_node(create_node(0, "period", 4));
 
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_head_period(), Some(3));
     }
 
     #[test]
     fn test_get_head_period_node_no_includes_period() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "weight", 3));
 
         assert_eq!(dag.get_head_period(), None);
@@ -734,11 +733,11 @@ mod tests {
 
     #[test]
     fn test_get_all_periods_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "period", 3));
         let n1 = dag.add_node(create_node(0, "period", 4));
 
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         let mut expected_period_map = HashMap::new();
         expected_period_map.insert(n0, 3);
@@ -748,7 +747,7 @@ mod tests {
 
     #[test]
     fn test_get_all_periods_node_no_includes_period() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 3));
 
         assert_eq!(dag.get_all_periods(), None);
@@ -756,29 +755,29 @@ mod tests {
 
     #[test]
     fn test_get_pre_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n1, n2, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n1, n2, 1);
+        dag.add_edge(n0, n2, 1);
 
         assert_eq!(dag.get_pre_nodes(n2), Some(vec![n0, n1]));
     }
 
     #[test]
     fn test_get_pre_nodes_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_pre_nodes(n1), Some(vec![n0]));
     }
 
     #[test]
     fn test_get_pre_nodes_no_exist_pre_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
 
         assert_eq!(dag.get_pre_nodes(n0), None);
@@ -787,7 +786,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_pre_nodes_no_exist_target_node() {
-        let dag = Graph::<NodeData, f32>::new();
+        let dag = Graph::<NodeData, i32>::new();
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_pre_nodes(invalid_node), None);
@@ -795,29 +794,29 @@ mod tests {
 
     #[test]
     fn test_get_suc_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
 
         assert_eq!(dag.get_suc_nodes(n0), Some(vec![n2, n1]));
     }
 
     #[test]
     fn test_get_suc_nodes_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_suc_nodes(n0), Some(vec![n1]));
     }
 
     #[test]
     fn test_get_suc_nodes_no_exist_suc_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
 
         assert_eq!(dag.get_suc_nodes(n0), None);
@@ -826,7 +825,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_suc_nodes_no_exist_target_node() {
-        let dag = Graph::<NodeData, f32>::new();
+        let dag = Graph::<NodeData, i32>::new();
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_suc_nodes(invalid_node), None);
@@ -834,31 +833,31 @@ mod tests {
 
     #[test]
     fn test_get_anc_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
         let n3 = dag.add_node(create_node(3, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n2, n3, 1.0);
-        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n2, n3, 1);
+        dag.add_edge(n1, n3, 1);
 
         assert_eq!(dag.get_anc_nodes(n3), Some(vec![n1, n2, n0]));
     }
 
     #[test]
     fn test_get_anc_nodes_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_anc_nodes(n1), Some(vec![n0]));
     }
 
     #[test]
     fn test_get_anc_nodes_no_exist_anc_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
 
         assert_eq!(dag.get_anc_nodes(n0), None);
@@ -867,7 +866,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_anc_nodes_no_exist_target_node() {
-        let dag = Graph::<NodeData, f32>::new();
+        let dag = Graph::<NodeData, i32>::new();
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_anc_nodes(invalid_node), None);
@@ -875,31 +874,31 @@ mod tests {
 
     #[test]
     fn test_get_des_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
         let n2 = dag.add_node(create_node(2, "execution_time", 0));
         let n3 = dag.add_node(create_node(3, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
 
         assert_eq!(dag.get_des_nodes(n0), Some(vec![n2, n1, n3]));
     }
 
     #[test]
     fn test_get_des_nodes_single() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
         let n1 = dag.add_node(create_node(1, "execution_time", 0));
-        dag.add_edge(n0, n1, 1.0);
+        dag.add_edge(n0, n1, 1);
 
         assert_eq!(dag.get_des_nodes(n0), Some(vec![n1]));
     }
 
     #[test]
     fn test_get_des_nodes_no_exist_des_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 0));
 
         assert_eq!(dag.get_des_nodes(n0), None);
@@ -908,7 +907,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_des_nodes_no_exist_target_node() {
-        let dag = Graph::<NodeData, f32>::new();
+        let dag = Graph::<NodeData, i32>::new();
         let invalid_node = NodeIndex::new(999);
 
         assert_eq!(dag.get_des_nodes(invalid_node), None);
@@ -916,14 +915,14 @@ mod tests {
 
     #[test]
     fn get_parallel_process_nodes_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "parallel_process", 0));
         let n1 = dag.add_node(create_node(1, "parallel_process", 0));
         let n2 = dag.add_node(create_node(2, "parallel_process", 0));
         let n3 = dag.add_node(create_node(3, "parallel_process", 0));
-        dag.add_edge(n0, n1, 1.0);
-        dag.add_edge(n0, n2, 1.0);
-        dag.add_edge(n1, n3, 1.0);
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
 
         assert_eq!(dag.get_parallel_process_nodes(n2), Some(vec![n1, n3]));
         assert_eq!(dag.get_parallel_process_nodes(n3), Some(vec![n2]));
@@ -931,7 +930,7 @@ mod tests {
 
     #[test]
     fn get_parallel_process_nodes_no_exist_parallel_process_nodes() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "parallel_process", 0));
 
         assert_eq!(dag.get_parallel_process_nodes(n0), None);
@@ -939,7 +938,7 @@ mod tests {
 
     #[test]
     fn test_add_node_with_id_consistency_normal() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
 
         let n0 = dag.add_node_with_id_consistency(create_node(0, "execution_time", 3));
         let n1 = dag.add_node_with_id_consistency(create_node(1, "execution_time", 3));
@@ -951,7 +950,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_add_node_with_id_consistency_id_duplication() {
-        let mut dag = Graph::<NodeData, f32>::new();
+        let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node_with_id_consistency(create_node(0, "execution_time", 3));
         dag.add_node_with_id_consistency(create_node(0, "execution_time", 3));
     }
