@@ -9,7 +9,6 @@ use std::collections::VecDeque;
 const DUMMY_SOURCE_NODE_FLAG: i32 = -1;
 const DUMMY_SINK_NODE_FLAG: i32 = -2;
 
-/// custom node data structure for dag nodes (petgraph)
 #[derive(Debug, Clone, PartialEq)]
 pub struct NodeData {
     pub id: i32,
