@@ -29,7 +29,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_hyper_period() {
+    fn test_get_hyper_period_normal() {
         let dag_set = vec![
             create_dag(10.0),
             create_dag(20.0),
