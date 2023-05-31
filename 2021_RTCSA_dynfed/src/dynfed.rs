@@ -2,6 +2,7 @@ use lib::graph_extension::{GraphExtension, NodeData};
 use num_integer::lcm;
 use petgraph::graph::Graph;
 
+#[allow(dead_code)] //TODO: remove
 pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, f32>>) -> i32 {
     let mut hyper_period = 1;
     for dag in dag_set {
