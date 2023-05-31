@@ -191,7 +191,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                     .unwrap_or(0);
 
                 earliest_start_times[node.index()] = max_earliest_start_time;
-                dag.add_params(
+                dag.add_param(
                     *node,
                     "current_length",
                     max_earliest_start_time + dag[*node].params["execution_time"],

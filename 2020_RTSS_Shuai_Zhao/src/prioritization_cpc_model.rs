@@ -45,7 +45,7 @@ pub fn prioritization_cpc_model_loop(
     let mut f_consumers = get_f_consumers(clone_dag, origin_critical_path_nodes.clone());
 
     for critical_node in origin_critical_path_nodes {
-        clone_dag.add_params(critical_node, "priority", *priority);
+        clone_dag.add_param(critical_node, "priority", *priority);
     }
 
     for provider in providers {
@@ -102,7 +102,7 @@ pub fn prioritization_cpc_model_loop(
                     if clone_dag[node].params.contains_key("priority") {
                         continue;
                     }
-                    clone_dag.add_params(node, "priority", *priority);
+                    clone_dag.add_param(node, "priority", *priority);
                 }
 
                 for node in clone_dag.node_indices() {
@@ -124,7 +124,7 @@ pub fn prioritization_cpc_model_loop(
             if !clone_dag[clone_node].params.contains_key("priority") {
                 continue;
             }
-            dag.add_params(node, "priority", clone_dag[clone_node].params["priority"]);
+            dag.add_param(node, "priority", clone_dag[clone_node].params["priority"]);
         }
     }
 }
@@ -138,7 +138,7 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
 
     //Rule 1. give high priority to critical paths
     for critical_node in critical_path {
-        dag.add_params(critical_node, "priority", priority);
+        dag.add_param(critical_node, "priority", priority);
     }
 
     //Rule 2. Priority is given to consumers for providers located before
@@ -210,7 +210,7 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
                     if dag[node].params.contains_key("priority") {
                         continue;
                     }
-                    dag.add_params(node, "priority", priority);
+                    dag.add_param(node, "priority", priority);
                 }
 
                 //remove the nodes in the longest path from the f-consumer
