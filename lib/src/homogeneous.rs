@@ -12,12 +12,6 @@ impl ProcessorBase for HomogeneousProcessor {
         }
     }
 
-    fn set_time_unit(&mut self, time_unit: f32) {
-        for core in &mut self.cores {
-            core.time_unit = time_unit;
-        }
-    }
-
     fn allocate(&mut self, core_id: usize, node_data: NodeData) -> bool {
         self.cores[core_id].allocate(node_data)
     }
@@ -29,15 +23,25 @@ impl ProcessorBase for HomogeneousProcessor {
     fn get_number_of_cores(&self) -> usize {
         self.cores.len()
     }
+
+    fn get_idle_core_index(&self) -> Option<usize> {
+        for (index, core) in self.cores.iter().enumerate() {
+            if core.is_idle {
+                return Some(index);
+            }
+        }
+        None
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
+    use petgraph::graph::NodeIndex;
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
@@ -50,16 +54,7 @@ mod tests {
         for core in &homogeneous_processor.cores {
             assert!(core.is_idle);
             assert_eq!(core.processing_node, None);
-            assert_eq!(core.remain_proc_time, 0.0);
-        }
-    }
-
-    #[test]
-    fn test_set_time_unit_normal() {
-        let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.set_time_unit(0.1);
-        for core in &homogeneous_processor.cores {
-            assert_eq!(core.time_unit, 0.1);
+            assert_eq!(core.remain_proc_time, 0);
         }
     }
 
@@ -67,18 +62,18 @@ mod tests {
     fn test_processor_allocate_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        assert!(homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0)));
+        assert!(homogeneous_processor.allocate(0, create_node(0, "execution_time", 2)));
         assert!(!homogeneous_processor.cores[0].is_idle);
         assert!(homogeneous_processor.cores[1].is_idle);
-        assert!(homogeneous_processor.allocate(1, create_node(1, "execution_time", 2.0)));
+        assert!(homogeneous_processor.allocate(1, create_node(1, "execution_time", 2)));
     }
 
     #[test]
     fn test_processor_allocate_same_core() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
 
-        assert!(!homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0)));
+        assert!(!homogeneous_processor.allocate(0, create_node(0, "execution_time", 2)));
     }
 
     #[test]
@@ -86,27 +81,27 @@ mod tests {
     fn test_processor_allocate_no_exist_core() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        homogeneous_processor.allocate(2, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(2, create_node(0, "execution_time", 2));
     }
 
     #[test]
     fn test_processor_process_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
-        homogeneous_processor.allocate(1, create_node(0, "execution_time", 3.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
+        homogeneous_processor.allocate(1, create_node(0, "execution_time", 3));
 
         assert_eq!(
             homogeneous_processor.process(),
             vec![ProcessResult::Continue, ProcessResult::Continue]
         );
-        assert_eq!(homogeneous_processor.cores[0].remain_proc_time, 1.0);
-        assert_eq!(homogeneous_processor.cores[1].remain_proc_time, 2.0);
+        assert_eq!(homogeneous_processor.cores[0].remain_proc_time, 1);
+        assert_eq!(homogeneous_processor.cores[1].remain_proc_time, 2);
     }
 
     #[test]
     fn test_processor_process_when_one_core_no_allocated() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2.0));
+        homogeneous_processor.allocate(0, create_node(0, "execution_time", 2));
 
         assert_eq!(
             homogeneous_processor.process(),
@@ -114,7 +109,7 @@ mod tests {
         );
         assert_eq!(
             homogeneous_processor.process(),
-            vec![ProcessResult::Done, ProcessResult::Idle]
+            vec![ProcessResult::Done(NodeIndex::new(0)), ProcessResult::Idle]
         );
         assert_eq!(
             homogeneous_processor.process(),
@@ -130,5 +125,22 @@ mod tests {
             homogeneous_processor.process(),
             vec![ProcessResult::Idle, ProcessResult::Idle]
         );
+    }
+
+    #[test]
+    fn test_processor_get_idle_core_index_normal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), Some(0));
+
+        let n1 = create_node(0, "execution_time", 2);
+
+        homogeneous_processor.allocate(0, n1.clone());
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), Some(1));
+
+        homogeneous_processor.allocate(1, n1);
+
+        assert_eq!(homogeneous_processor.get_idle_core_index(), None);
     }
 }
