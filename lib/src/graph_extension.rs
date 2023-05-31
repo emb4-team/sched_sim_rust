@@ -26,8 +26,8 @@ impl NodeData {
 }
 
 pub trait GraphExtension {
-    fn add_param(&mut self, node: NodeIndex, key: &str, value: i32);
-    fn update_param(&mut self, node: NodeIndex, key: &str, value: i32);
+    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
+    fn update_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
