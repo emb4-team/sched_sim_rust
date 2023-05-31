@@ -78,7 +78,7 @@ pub fn fixed_priority_scheduler(
             if let Some(task) = ready_queue.pop_front() {
                 processor.allocate(core_index, dag[task].clone());
             } else {
-                break; // The scheduling has finished because the dummy sink node has completed.
+                break;
             }
         }
 
@@ -106,7 +106,7 @@ pub fn fixed_priority_scheduler(
         //Executable if all predecessor nodes are done
         let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
         if suc_nodes.is_empty() {
-            break;
+            break; // The scheduling has finished because the dummy sink node has completed.
         }
         for suc_node in suc_nodes {
             if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
