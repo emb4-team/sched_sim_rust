@@ -9,14 +9,14 @@ pub fn pre_computation(
     dag: &mut Graph<NodeData, f32>,
 ) -> HashMap<Graph<NodeData, i32>, Vec<NodeIndex>> {
     let vol = dag.get_volume() as i32;
-    let d = dag.get_end_to_end_deadline().unwrap() as i32;
-    let m_min = (vol as f32 / d as f32).ceil() as usize;
+    let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap() as i32;
+    let m_min = (vol as f32 / end_to_end_deadline as f32).ceil() as usize;
     let execution_order: HashMap<Graph<NodeData, i32>, Vec<NodeIndex>> = HashMap::new();
 
     #[allow(unused_variables, unused_mut)] // TODO: remove
     let mut processor = HomogeneousProcessor::new(m_min);
 
-    /*while 固定優先度スケジューラ (processor, dag) > d {
+    /*while 固定優先度スケジューラ (processor, dag) > end_to_end_deadline {
         m_min += 1;
         processor = HomogeneousProcessor::new(m_min);
       }
