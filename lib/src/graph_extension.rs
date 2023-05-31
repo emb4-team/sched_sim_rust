@@ -26,6 +26,8 @@ impl NodeData {
 }
 
 pub trait GraphExtension {
+    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
+    fn update_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
@@ -48,6 +50,24 @@ pub trait GraphExtension {
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
+    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32) {
+        let target_node = self.node_weight_mut(node_i).unwrap();
+        if target_node.params.contains_key(key) {
+            warn!("The key already exists. key: {}", key);
+        } else {
+            target_node.params.insert(key.to_string(), value);
+        }
+    }
+
+    fn update_param(&mut self, node_i: NodeIndex, key: &str, value: i32) {
+        let target_node = self.node_weight_mut(node_i).unwrap();
+        if !target_node.params.contains_key(key) {
+            warn!("The key no exists. key: {}", key);
+        } else {
+            target_node.params.insert(key.to_string(), value);
+        }
+    }
+
     fn add_dummy_source_node(&mut self) -> NodeIndex {
         if let Some(dummy_source_node) = self.node_indices().find(|&i| {
             self[i]
@@ -456,6 +476,41 @@ mod tests {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
+    }
+
+    #[test]
+    fn test_add_param_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0));
+        dag.add_param(n0, "test", 1);
+        assert_eq!(dag[n0].params.get("test").unwrap(), &1);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
+    }
+
+    #[test]
+    fn test_add_param_duplicate() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0));
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
+        dag.add_param(n0, "execution_time", 1);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
+    }
+
+    #[test]
+    fn test_update_param_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0));
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
+        dag.update_param(n0, "execution_time", 1);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &1);
+    }
+    #[test]
+    fn test_update_params_no_exist_params() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0));
+        dag.update_param(n0, "test", 1);
+        assert_eq!(dag[n0].params.get("test"), None);
+        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
     }
 
     #[test]
