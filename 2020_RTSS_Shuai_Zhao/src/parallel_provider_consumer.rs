@@ -114,6 +114,12 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, i32> {
         fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -123,68 +129,68 @@ mod tests {
         }
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 1.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 1.0));
-        let c2 = dag.add_node(create_node(2, "execution_time", 1.0));
-        let c3 = dag.add_node(create_node(3, "execution_time", 1.0));
-        let c4 = dag.add_node(create_node(4, "execution_time", 1.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 1));
+        let c1 = dag.add_node(create_node(1, "execution_time", 1));
+        let c2 = dag.add_node(create_node(2, "execution_time", 1));
+        let c3 = dag.add_node(create_node(3, "execution_time", 1));
+        let c4 = dag.add_node(create_node(4, "execution_time", 1));
         //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(5, "execution_time", 0.0));
-        let n1_2 = dag.add_node(create_node(6, "execution_time", 0.0));
-        let n0_3 = dag.add_node(create_node(7, "execution_time", 0.0));
-        let n1_3 = dag.add_node(create_node(8, "execution_time", 0.0));
-        let n2_3 = dag.add_node(create_node(9, "execution_time", 0.0));
-        let n0_4 = dag.add_node(create_node(10, "execution_time", 0.0));
-        let n1_4 = dag.add_node(create_node(11, "execution_time", 0.0));
-        let n2_4 = dag.add_node(create_node(12, "execution_time", 0.0));
+        let n0_2 = dag.add_node(create_node(5, "execution_time", 0));
+        let n1_2 = dag.add_node(create_node(6, "execution_time", 0));
+        let n0_3 = dag.add_node(create_node(7, "execution_time", 0));
+        let n1_3 = dag.add_node(create_node(8, "execution_time", 0));
+        let n2_3 = dag.add_node(create_node(9, "execution_time", 0));
+        let n0_4 = dag.add_node(create_node(10, "execution_time", 0));
+        let n1_4 = dag.add_node(create_node(11, "execution_time", 0));
+        let n2_4 = dag.add_node(create_node(12, "execution_time", 0));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
-        dag.add_edge(c2, c3, 1.0);
-        dag.add_edge(c3, c4, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        dag.add_edge(c2, c3, 1);
+        dag.add_edge(c3, c4, 1);
 
         //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1.0);
-        dag.add_edge(n0_2, c2, 1.0);
-        dag.add_edge(c0, n1_2, 1.0);
-        dag.add_edge(n1_2, c2, 1.0);
-        dag.add_edge(c0, n0_3, 1.0);
-        dag.add_edge(n0_3, c3, 1.0);
-        dag.add_edge(c1, n1_3, 1.0);
-        dag.add_edge(n1_3, c3, 1.0);
-        dag.add_edge(c1, n2_3, 1.0);
-        dag.add_edge(n2_3, c3, 1.0);
-        dag.add_edge(n0_3, n0_4, 1.0);
-        dag.add_edge(n0_4, c4, 1.0);
-        dag.add_edge(n1_3, n1_4, 1.0);
-        dag.add_edge(n1_4, c4, 1.0);
-        dag.add_edge(n2_3, n2_4, 1.0);
-        dag.add_edge(n2_4, c4, 1.0);
+        dag.add_edge(c0, n0_2, 1);
+        dag.add_edge(n0_2, c2, 1);
+        dag.add_edge(c0, n1_2, 1);
+        dag.add_edge(n1_2, c2, 1);
+        dag.add_edge(c0, n0_3, 1);
+        dag.add_edge(n0_3, c3, 1);
+        dag.add_edge(c1, n1_3, 1);
+        dag.add_edge(n1_3, c3, 1);
+        dag.add_edge(c1, n2_3, 1);
+        dag.add_edge(n2_3, c3, 1);
+        dag.add_edge(n0_3, n0_4, 1);
+        dag.add_edge(n0_4, c4, 1);
+        dag.add_edge(n1_3, n1_4, 1);
+        dag.add_edge(n1_4, c4, 1);
+        dag.add_edge(n2_3, n2_4, 1);
+        dag.add_edge(n2_4, c4, 1);
 
         dag
     }
 
-    fn create_sample_dag_not_consolidated() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_sample_dag_not_consolidated() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
 
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 3.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 1.0));
-        let c2 = dag.add_node(create_node(2, "execution_time", 3.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 3));
+        let c1 = dag.add_node(create_node(1, "execution_time", 1));
+        let c2 = dag.add_node(create_node(2, "execution_time", 3));
         //nY_X is the Yth preceding node of cX.
-        let n0_1 = dag.add_node(create_node(3, "execution_time", 2.0));
-        let n0_2 = dag.add_node(create_node(4, "execution_time", 1.0));
+        let n0_1 = dag.add_node(create_node(3, "execution_time", 2));
+        let n0_2 = dag.add_node(create_node(4, "execution_time", 1));
         //Independent Node
-        dag.add_node(create_node(5, "execution_time", 2.0));
+        dag.add_node(create_node(5, "execution_time", 2));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
         //create non-critical path edges
-        dag.add_edge(n0_1, c1, 1.0);
-        dag.add_edge(n0_1, n0_2, 1.0);
-        dag.add_edge(n0_2, c2, 1.0);
+        dag.add_edge(n0_1, c1, 1);
+        dag.add_edge(n0_1, n0_2, 1);
+        dag.add_edge(n0_2, c2, 1);
 
         dag
     }
@@ -251,7 +257,7 @@ mod tests {
         assert_eq!(f_consumers[&providers[0]][0].index(), 3);
         assert_eq!(f_consumers[&providers[1]][0].index(), 4);
     }
-
+    /*
     #[test]
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();

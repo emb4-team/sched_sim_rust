@@ -5,7 +5,7 @@ use petgraph::graph::{Graph, NodeIndex};
 
 use crate::parallel_provider_consumer::*;
 
-fn remove_nodes(dag: &mut Graph<NodeData, f32>, nodes: Vec<NodeIndex>) {
+fn remove_nodes(dag: &mut Graph<NodeData, i32>, nodes: Vec<NodeIndex>) {
     let mut nodes_to_remove = Vec::new();
     for node in dag.node_indices() {
         if !nodes.contains(&node) {
@@ -18,9 +18,9 @@ fn remove_nodes(dag: &mut Graph<NodeData, f32>, nodes: Vec<NodeIndex>) {
 }
 
 pub fn prioritization_cpc_model_loop(
-    dag: &mut Graph<NodeData, f32>,
-    clone_dag: &mut Graph<NodeData, f32>,
-    priority: &mut f32,
+    dag: &mut Graph<NodeData, i32>,
+    clone_dag: &mut Graph<NodeData, i32>,
+    priority: &mut i32,
     critical_path: Vec<NodeIndex>,
 ) {
     //
@@ -51,12 +51,10 @@ pub fn prioritization_cpc_model_loop(
     for provider in providers {
         if let Some(f_consumer) = f_consumers.get_mut(&provider) {
             while !f_consumer.is_empty() {
-                *priority += 1.0;
+                *priority += 1;
                 let mut longest_node = f_consumer
                     .iter()
-                    .max_by_key(|f_consumer_node| {
-                        dag[**f_consumer_node].params["current_length"] as i32
-                    })
+                    .max_by_key(|f_consumer_node| dag[**f_consumer_node].params["current_length"])
                     .cloned()
                     .unwrap();
 
@@ -132,8 +130,8 @@ pub fn prioritization_cpc_model_loop(
 }
 
 #[allow(dead_code)]
-pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, f32>) {
-    let mut priority = 0.0;
+pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
+    let mut priority = 0;
     let critical_path = dag.get_critical_path();
     let providers = get_providers(dag, critical_path.clone());
     let mut f_consumers = get_f_consumers(dag, critical_path.clone());
@@ -147,13 +145,11 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, f32>) {
     for provider in providers {
         if let Some(f_consumer) = f_consumers.get_mut(&provider) {
             while !f_consumer.is_empty() {
-                priority += 1.0;
+                priority += 1;
                 //Acquisition of the node with the longest earliest execution time in f_consumer
                 let mut longest_node = f_consumer
                     .iter()
-                    .max_by_key(|f_consumer_node| {
-                        dag[**f_consumer_node].params["current_length"] as i32
-                    })
+                    .max_by_key(|f_consumer_node| dag[**f_consumer_node].params["current_length"])
                     .cloned()
                     .unwrap();
 
@@ -235,118 +231,118 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }
 
-    fn create_sample_dag_not_consolidated() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_sample_dag_not_consolidated() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
 
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 10.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 10.0));
-        let c2 = dag.add_node(create_node(2, "execution_time", 10.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 10));
+        let c1 = dag.add_node(create_node(1, "execution_time", 10));
+        let c2 = dag.add_node(create_node(2, "execution_time", 10));
 
-        let n3 = dag.add_node(create_node(3, "execution_time", 3.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 2.0));
-        let n5 = dag.add_node(create_node(5, "execution_time", 3.0));
-        let n6 = dag.add_node(create_node(6, "execution_time", 1.0));
-        let n7 = dag.add_node(create_node(7, "execution_time", 1.0));
-        let n8 = dag.add_node(create_node(8, "execution_time", 3.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 3));
+        let n4 = dag.add_node(create_node(4, "execution_time", 2));
+        let n5 = dag.add_node(create_node(5, "execution_time", 3));
+        let n6 = dag.add_node(create_node(6, "execution_time", 1));
+        let n7 = dag.add_node(create_node(7, "execution_time", 1));
+        let n8 = dag.add_node(create_node(8, "execution_time", 3));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
-        dag.add_edge(c0, n3, 1.0);
-        dag.add_edge(n3, c2, 1.0);
-        dag.add_edge(c0, n4, 1.0);
-        dag.add_edge(n4, n6, 1.0);
-        dag.add_edge(n5, n6, 1.0);
-        dag.add_edge(c0, n5, 1.0);
-        dag.add_edge(n5, n7, 1.0);
-        dag.add_edge(n6, n8, 1.0);
-        dag.add_edge(n7, n8, 1.0);
-        dag.add_edge(n8, c2, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        dag.add_edge(c0, n3, 1);
+        dag.add_edge(n3, c2, 1);
+        dag.add_edge(c0, n4, 1);
+        dag.add_edge(n4, n6, 1);
+        dag.add_edge(n5, n6, 1);
+        dag.add_edge(c0, n5, 1);
+        dag.add_edge(n5, n7, 1);
+        dag.add_edge(n6, n8, 1);
+        dag.add_edge(n7, n8, 1);
+        dag.add_edge(n8, c2, 1);
 
         dag
     }
 
-    fn create_sample_dag_complex() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_sample_dag_complex() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
 
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 10.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 10.0));
-        let c2 = dag.add_node(create_node(2, "execution_time", 10.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 10));
+        let c1 = dag.add_node(create_node(1, "execution_time", 10));
+        let c2 = dag.add_node(create_node(2, "execution_time", 10));
 
-        let n3 = dag.add_node(create_node(3, "execution_time", 2.0));
-        let n4 = dag.add_node(create_node(4, "execution_time", 2.0));
-        let n5 = dag.add_node(create_node(5, "execution_time", 3.0));
-        let n6 = dag.add_node(create_node(6, "execution_time", 1.0));
-        let n7 = dag.add_node(create_node(7, "execution_time", 1.0));
-        let n8 = dag.add_node(create_node(8, "execution_time", 3.0));
+        let n3 = dag.add_node(create_node(3, "execution_time", 2));
+        let n4 = dag.add_node(create_node(4, "execution_time", 2));
+        let n5 = dag.add_node(create_node(5, "execution_time", 3));
+        let n6 = dag.add_node(create_node(6, "execution_time", 1));
+        let n7 = dag.add_node(create_node(7, "execution_time", 1));
+        let n8 = dag.add_node(create_node(8, "execution_time", 3));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
-        dag.add_edge(c0, n3, 1.0);
-        dag.add_edge(n3, c2, 1.0);
-        dag.add_edge(c0, n4, 1.0);
-        dag.add_edge(n4, n6, 1.0);
-        dag.add_edge(c0, n5, 1.0);
-        dag.add_edge(n5, n6, 1.0);
-        dag.add_edge(n5, n7, 1.0);
-        dag.add_edge(n6, n8, 1.0);
-        dag.add_edge(n7, n8, 1.0);
-        dag.add_edge(n8, c2, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        dag.add_edge(c0, n3, 1);
+        dag.add_edge(n3, c2, 1);
+        dag.add_edge(c0, n4, 1);
+        dag.add_edge(n4, n6, 1);
+        dag.add_edge(c0, n5, 1);
+        dag.add_edge(n5, n6, 1);
+        dag.add_edge(n5, n7, 1);
+        dag.add_edge(n6, n8, 1);
+        dag.add_edge(n7, n8, 1);
+        dag.add_edge(n8, c2, 1);
 
         dag
     }
 
     ///DAG in Figure 2 (b) of the paper
-    fn create_sample_dag() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_sample_dag() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 4.0));
-        let c1 = dag.add_node(create_node(1, "execution_time", 4.0));
-        let c2 = dag.add_node(create_node(2, "execution_time", 4.0));
-        let c3 = dag.add_node(create_node(3, "execution_time", 4.0));
-        let c4 = dag.add_node(create_node(4, "execution_time", 4.0));
+        let c0 = dag.add_node(create_node(0, "execution_time", 4));
+        let c1 = dag.add_node(create_node(1, "execution_time", 4));
+        let c2 = dag.add_node(create_node(2, "execution_time", 4));
+        let c3 = dag.add_node(create_node(3, "execution_time", 4));
+        let c4 = dag.add_node(create_node(4, "execution_time", 4));
         //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(5, "execution_time", 2.0));
-        let n1_2 = dag.add_node(create_node(6, "execution_time", 1.0));
-        let n0_3 = dag.add_node(create_node(7, "execution_time", 3.0));
-        let n1_3 = dag.add_node(create_node(8, "execution_time", 2.0));
-        let n2_3 = dag.add_node(create_node(9, "execution_time", 1.0));
-        let n0_4 = dag.add_node(create_node(10, "execution_time", 3.0));
-        let n1_4 = dag.add_node(create_node(11, "execution_time", 2.0));
-        let n2_4 = dag.add_node(create_node(12, "execution_time", 2.0));
+        let n0_2 = dag.add_node(create_node(5, "execution_time", 2));
+        let n1_2 = dag.add_node(create_node(6, "execution_time", 1));
+        let n0_3 = dag.add_node(create_node(7, "execution_time", 3));
+        let n1_3 = dag.add_node(create_node(8, "execution_time", 2));
+        let n2_3 = dag.add_node(create_node(9, "execution_time", 1));
+        let n0_4 = dag.add_node(create_node(10, "execution_time", 3));
+        let n1_4 = dag.add_node(create_node(11, "execution_time", 2));
+        let n2_4 = dag.add_node(create_node(12, "execution_time", 2));
 
         //create critical path edges
-        dag.add_edge(c0, c1, 1.0);
-        dag.add_edge(c1, c2, 1.0);
-        dag.add_edge(c2, c3, 1.0);
-        dag.add_edge(c3, c4, 1.0);
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        dag.add_edge(c2, c3, 1);
+        dag.add_edge(c3, c4, 1);
 
         //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1.0);
-        dag.add_edge(n0_2, c2, 1.0);
-        dag.add_edge(c0, n1_2, 1.0);
-        dag.add_edge(n1_2, c2, 1.0);
-        dag.add_edge(c0, n0_3, 1.0);
-        dag.add_edge(n0_3, c3, 1.0);
-        dag.add_edge(c1, n1_3, 1.0);
-        dag.add_edge(n1_3, c3, 1.0);
-        dag.add_edge(c1, n2_3, 1.0);
-        dag.add_edge(n2_3, c3, 1.0);
-        dag.add_edge(n0_3, n0_4, 1.0);
-        dag.add_edge(n0_4, c4, 1.0);
-        dag.add_edge(n1_3, n1_4, 1.0);
-        dag.add_edge(n1_4, c4, 1.0);
-        dag.add_edge(n2_3, n2_4, 1.0);
-        dag.add_edge(n2_4, c4, 1.0);
+        dag.add_edge(c0, n0_2, 1);
+        dag.add_edge(n0_2, c2, 1);
+        dag.add_edge(c0, n1_2, 1);
+        dag.add_edge(n1_2, c2, 1);
+        dag.add_edge(c0, n0_3, 1);
+        dag.add_edge(n0_3, c3, 1);
+        dag.add_edge(c1, n1_3, 1);
+        dag.add_edge(n1_3, c3, 1);
+        dag.add_edge(c1, n2_3, 1);
+        dag.add_edge(n2_3, c3, 1);
+        dag.add_edge(n0_3, n0_4, 1);
+        dag.add_edge(n0_4, c4, 1);
+        dag.add_edge(n1_3, n1_4, 1);
+        dag.add_edge(n1_4, c4, 1);
+        dag.add_edge(n2_3, n2_4, 1);
+        dag.add_edge(n2_4, c4, 1);
 
         dag
     }
@@ -354,9 +350,7 @@ mod tests {
     #[test]
     fn test() {
         let mut dag = create_sample_dag();
-        let expected_value = vec![
-            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 5.0, 3.0, 4.0, 8.0, 6.0, 7.0,
-        ];
+        let expected_value = vec![0, 0, 0, 0, 0, 1, 2, 5, 3, 4, 8, 6, 7];
 
         prioritization_cpc_model(&mut dag);
 
@@ -371,7 +365,7 @@ mod tests {
     #[test]
     fn test2() {
         let mut dag = create_sample_dag_not_consolidated();
-        let expected_value = vec![0.0, 0.0, 0.0, 4.0, 2.0, 1.0, 1.0, 3.0, 1.0];
+        let expected_value = vec![0, 00, 0, 4, 2, 1, 1, 3, 1];
 
         prioritization_cpc_model(&mut dag);
         for node in dag.node_indices() {
@@ -385,7 +379,7 @@ mod tests {
     #[test]
     fn test3() {
         let mut dag = create_sample_dag_complex();
-        let expected_value = vec![0.0, 0.0, 0.0, 4.0, 2.0, 1.0, 1.0, 3.0, 1.0];
+        let expected_value = vec![0, 0, 0, 4, 2, 1, 1, 3, 1];
 
         prioritization_cpc_model(&mut dag);
         for node in dag.node_indices() {

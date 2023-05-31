@@ -26,7 +26,7 @@ impl NodeData {
 }
 
 pub trait GraphExtension {
-    fn add_params(&mut self, node: NodeIndex, key: &str, value: f32);
+    fn add_params(&mut self, node: NodeIndex, key: &str, value: i32);
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
@@ -49,7 +49,7 @@ pub trait GraphExtension {
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
-    fn add_params(&mut self, node: NodeIndex, key: &str, value: f32) {
+    fn add_params(&mut self, node: NodeIndex, key: &str, value: i32) {
         let node_added = self.node_weight_mut(node).unwrap();
         node_added.params.insert(key.to_string(), value);
     }
