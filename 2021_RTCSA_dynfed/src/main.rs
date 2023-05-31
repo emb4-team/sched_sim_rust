@@ -1,2 +1,1 @@
-mod dynfed;
 fn main() {}
