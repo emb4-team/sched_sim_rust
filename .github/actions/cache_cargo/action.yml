@@ -12,7 +12,9 @@ runs:
           ~/.cargo/registry/index/
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
-          2014_RTSS_federated_original/target/
+          2014_ECRTS_federated_original/target/
+          2020_RTSS_Shuai_Zhao/target/
+          2021_RTCSA_dynfed/target/
           lib/target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
