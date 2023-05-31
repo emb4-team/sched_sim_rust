@@ -5,18 +5,6 @@ use petgraph::graph::{Graph, NodeIndex};
 
 use crate::parallel_provider_consumer::*;
 
-fn remove_nodes(dag: &mut Graph<NodeData, i32>, nodes: Vec<NodeIndex>) {
-    let mut nodes_to_remove = Vec::new();
-    for node in dag.node_indices() {
-        if !nodes.contains(&node) {
-            nodes_to_remove.push(node);
-        }
-    }
-    for node in nodes_to_remove {
-        dag.remove_node(node);
-    }
-}
-
 pub fn prioritization_cpc_model_loop(
     dag: &mut Graph<NodeData, i32>,
     clone_dag: &mut Graph<NodeData, i32>,
@@ -106,7 +94,7 @@ pub fn prioritization_cpc_model_loop(
                     if let Some(pre_nodes) = clone_dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
                             let mut clone_clone_dag = clone_dag.clone();
-                            remove_nodes(&mut clone_clone_dag, f_consumer.clone());
+                            clone_clone_dag.remove_nodes(f_consumer.clone());
                             prioritization_cpc_model_loop(
                                 &mut clone_clone_dag,
                                 clone_dag,
@@ -213,7 +201,7 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
                     if let Some(pre_nodes) = dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
                             let mut clone_dag = dag.clone();
-                            remove_nodes(&mut clone_dag, f_consumer.clone());
+                            clone_dag.remove_nodes(f_consumer.clone());
                             prioritization_cpc_model_loop(
                                 dag,
                                 &mut clone_dag,
