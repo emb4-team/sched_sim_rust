@@ -8,7 +8,7 @@ use log::warn;
 pub enum ProcessResult {
     Idle,
     Continue,
-    Done,
+    Done(i32),
 }
 
 #[derive(Clone)]
@@ -53,8 +53,9 @@ impl Core {
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
+            let finish_node_id = self.processing_node.unwrap();
             self.processing_node = None;
-            return Done;
+            return Done(finish_node_id);
         }
         Continue
     }
@@ -122,7 +123,7 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 2));
         core.process();
-        assert_eq!(core.process(), Done);
+        assert_eq!(core.process(), Done(0));
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);

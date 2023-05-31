@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use crate::{
     core::ProcessResult,
@@ -49,7 +49,6 @@ pub fn fixed_priority_scheduler(
 ) -> i32 {
     let mut current_time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-    let mut finished_core_and_node_hashmap: HashMap<usize, NodeIndex> = HashMap::new();
 
     let source_node = dag.add_dummy_source_node();
     dag[source_node]
@@ -65,15 +64,19 @@ pub fn fixed_priority_scheduler(
     loop {
         //Sort by priority
         ready_queue.make_contiguous().sort_by_key(|&node| {
-            let priority = dag[node].params.get("priority").unwrap();
-            *priority
+            dag[node].params.get("priority").unwrap_or_else(|| {
+                eprintln!(
+                    "Warning: 'priority' parameter not found for node {:?}",
+                    node
+                );
+                &999 //Because sorting cannot be done well without a priority
+            })
         });
 
         //Assign the highest priority task first to the first idle core found.
         while let Some(core_index) = processor.get_idle_core_index() {
             if let Some(task) = ready_queue.pop_front() {
                 processor.allocate(core_index, dag[task].clone());
-                finished_core_and_node_hashmap.insert(core_index, task);
             } else {
                 break;
             }
@@ -86,21 +89,24 @@ pub fn fixed_priority_scheduler(
         //Process until there is a task finished.
         while !process_result
             .iter()
-            .any(|result| matches!(result, ProcessResult::Done))
+            .any(|result| matches!(result, ProcessResult::Done(_)))
         {
             process_result = processor.process();
             current_time += 1;
         }
 
-        let finish_node = process_result
+        let finish_node_id = match process_result
             .iter()
-            .enumerate()
-            .find(|(_, result)| matches!(result, ProcessResult::Done))
-            .and_then(|(core_index, _)| finished_core_and_node_hashmap.remove(&core_index))
-            .unwrap();
+            .find(|result| matches!(result, ProcessResult::Done(_)))
+        {
+            Some(ProcessResult::Done(id)) => *id,
+            _ => unreachable!(), //This is unreachable because the loop above ensures that there is a task finished.
+        };
 
         //Executable if all predecessor nodes are done
-        let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
+        let suc_nodes = dag
+            .get_suc_nodes(NodeIndex::new(finish_node_id as usize))
+            .unwrap_or_default();
         if suc_nodes.is_empty() {
             break;
         }

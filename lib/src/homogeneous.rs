@@ -108,7 +108,7 @@ mod tests {
         );
         assert_eq!(
             homogeneous_processor.process(),
-            vec![ProcessResult::Done, ProcessResult::Idle]
+            vec![ProcessResult::Done(0), ProcessResult::Idle]
         );
         assert_eq!(
             homogeneous_processor.process(),
