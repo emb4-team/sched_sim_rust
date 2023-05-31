@@ -1,14 +1,14 @@
 //! This module contains the definition of the core and the process result enum
 use crate::{core::ProcessResult::*, graph_extension::NodeData};
 use log::warn;
-
+use petgraph::graph::NodeIndex;
 ///enum to represent three types of states
 ///execution not possible because not allocate, execution in progress, execution finished
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProcessResult {
     Idle,
     Continue,
-    Done(i32),
+    Done(NodeIndex),
 }
 
 #[derive(Clone)]
@@ -53,9 +53,9 @@ impl Core {
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
-            let finish_node_id = self.processing_node.unwrap();
+            let finish_node_id = self.processing_node.unwrap() as usize;
             self.processing_node = None;
-            return Done(finish_node_id);
+            return Done(NodeIndex::new(finish_node_id));
         }
         Continue
     }
@@ -123,7 +123,7 @@ mod tests {
         let mut core = Core::default();
         core.allocate(create_node(0, "execution_time", 2));
         core.process();
-        assert_eq!(core.process(), Done(0));
+        assert_eq!(core.process(), Done(NodeIndex::new(0)));
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);

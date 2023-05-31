@@ -95,7 +95,7 @@ pub fn fixed_priority_scheduler(
             current_time += 1;
         }
 
-        let finish_node_id = match process_result
+        let finish_node = match process_result
             .iter()
             .find(|result| matches!(result, ProcessResult::Done(_)))
         {
@@ -104,9 +104,7 @@ pub fn fixed_priority_scheduler(
         };
 
         //Executable if all predecessor nodes are done
-        let suc_nodes = dag
-            .get_suc_nodes(NodeIndex::new(finish_node_id as usize))
-            .unwrap_or_default();
+        let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
         if suc_nodes.is_empty() {
             break;
         }

@@ -38,6 +38,7 @@ impl ProcessorBase for HomogeneousProcessor {
 mod tests {
     use super::*;
     use crate::{core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
+    use petgraph::graph::NodeIndex;
     use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -108,7 +109,7 @@ mod tests {
         );
         assert_eq!(
             homogeneous_processor.process(),
-            vec![ProcessResult::Done(0), ProcessResult::Idle]
+            vec![ProcessResult::Done(NodeIndex::new(0)), ProcessResult::Idle]
         );
         assert_eq!(
             homogeneous_processor.process(),
