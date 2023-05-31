@@ -1,40 +1,29 @@
 use lib::graph_extension::{GraphExtension, NodeData};
-use num_integer::lcm;
-use petgraph::graph::Graph;
+use lib::homogeneous::HomogeneousProcessor;
+use lib::processor::ProcessorBase;
+use petgraph::graph::{Graph, NodeIndex};
+use std::collections::HashMap;
 
-pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, f32>>) -> i32 {
-    let mut hyper_period = 1;
-    for dag in dag_set {
-        let dag_period = dag.get_head_period().unwrap() as i32;
-        hyper_period = lcm(hyper_period, dag_period);
-    }
-    hyper_period
+#[allow(dead_code)] // TODO: remove
+pub fn pre_computation(
+    dag: &mut Graph<NodeData, f32>,
+) -> HashMap<Graph<NodeData, i32>, Vec<NodeIndex>> {
+    let vol = dag.get_volume() as i32;
+    let d = dag.get_end_to_end_deadline().unwrap() as i32;
+    let m_min = (vol as f32 / d as f32).ceil() as usize;
+    let execution_order: HashMap<Graph<NodeData, i32>, Vec<NodeIndex>> = HashMap::new();
+
+    #[allow(unused_variables, unused_mut)] // TODO: remove
+    let mut processor = HomogeneousProcessor::new(m_min);
+
+    /*while 固定優先度スケジューラ (processor, dag) > d {
+        m_min += 1;
+        processor = HomogeneousProcessor::new(m_min);
+      }
+    固定優先度スケジューラ (processor, dag)から実行順序を取得*/
+    execution_order
 }
 
 #[cfg(test)]
 
-mod tests {
-    use super::*;
-    use std::collections::HashMap;
-
-    fn create_dag(period: f32) -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
-        let mut params = HashMap::new();
-        params.insert("execution_time".to_owned(), 4.0);
-        params.insert("period".to_owned(), period);
-        dag.add_node(NodeData { id: 0, params });
-
-        dag
-    }
-
-    #[test]
-    fn test_get_hyper_period() {
-        let dag_set = vec![
-            create_dag(10.0),
-            create_dag(20.0),
-            create_dag(30.0),
-            create_dag(40.0),
-        ];
-        assert_eq!(get_hyper_period(&dag_set), 120);
-    }
-}
+mod tests {}
