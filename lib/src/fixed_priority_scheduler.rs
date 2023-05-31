@@ -47,7 +47,7 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> i32 {
-    let mut time = 0;
+    let mut current_time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
     let mut finished_core_and_node_hashmap: HashMap<usize, NodeIndex> = HashMap::new();
 
@@ -65,25 +65,23 @@ pub fn fixed_priority_scheduler(
     loop {
         //Sort by priority
         ready_queue.make_contiguous().sort_by_key(|&node| {
-            let priority = dag[node].params.get("priority").unwrap_or(&999); //If there is no priority, it is set to the lowest priority.
+            let priority = dag[node].params.get("priority").unwrap();
             *priority
         });
 
         //Assign the highest priority task first to the first idle core found.
-        while let Some(task) = ready_queue.pop_front() {
-            if let Some(core_index) = processor.get_idle_core_index() {
+        while let Some(core_index) = processor.get_idle_core_index() {
+            if let Some(task) = ready_queue.pop_front() {
                 processor.allocate(core_index, dag[task].clone());
                 finished_core_and_node_hashmap.insert(core_index, task);
             } else {
-                //If everything is working, it is useless to search any further, so the extracted task is returned to the ready queue.
-                ready_queue.push_front(task);
                 break;
             }
         }
 
         //Move one unit time so that the core state of the previous loop does not remain.
         let mut process_result = processor.process();
-        time += 1;
+        current_time += 1;
 
         //Process until there is a task finished.
         while !process_result
@@ -91,7 +89,7 @@ pub fn fixed_priority_scheduler(
             .any(|result| matches!(result, ProcessResult::Done))
         {
             process_result = processor.process();
-            time += 1;
+            current_time += 1;
         }
 
         let finish_node = process_result
@@ -120,7 +118,7 @@ pub fn fixed_priority_scheduler(
     }
 
     //Return the normalized total time taken to finish all tasks.
-    time - DUMMY_EXECUTION_TIME * 2
+    current_time - DUMMY_EXECUTION_TIME * 2
 }
 
 #[cfg(test)]

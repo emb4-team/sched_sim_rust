@@ -24,8 +24,8 @@ impl ProcessorBase for HomogeneousProcessor {
         self.cores.len()
     }
 
-    fn get_idle_core_index(&mut self) -> Option<usize> {
-        for (index, core) in self.cores.iter_mut().enumerate() {
+    fn get_idle_core_index(&self) -> Option<usize> {
+        for (index, core) in self.cores.iter().enumerate() {
             if core.is_idle {
                 return Some(index);
             }

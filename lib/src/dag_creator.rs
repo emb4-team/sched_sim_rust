@@ -20,7 +20,7 @@ fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
     YamlLoader::load_from_str(&file_content).unwrap()
 }
 
-fn get_minimum_decimal_places(yaml: &Yaml) -> u32 {
+fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     let mut minimum_decimal_places = 0;
     match yaml {
         Yaml::Real(real) => {
@@ -35,27 +35,27 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> u32 {
                 minimum_decimal_places = decimal_places;
             }
         }
-        Yaml::Integer(_integer) => {}
         Yaml::Array(array) => {
             for element in array {
                 let decimal_places = get_minimum_decimal_places(element);
-                if decimal_places > minimum_decimal_places.try_into().unwrap() {
-                    minimum_decimal_places = decimal_places as usize;
+                if decimal_places > minimum_decimal_places {
+                    minimum_decimal_places = decimal_places;
                 }
             }
         }
         Yaml::Hash(hash) => {
             for (_key, value) in hash {
                 let decimal_places = get_minimum_decimal_places(value);
-                if decimal_places > minimum_decimal_places.try_into().unwrap() {
-                    minimum_decimal_places = decimal_places as usize;
+                if decimal_places > minimum_decimal_places {
+                    minimum_decimal_places = decimal_places;
                 }
             }
         }
         _ => {}
     }
-    minimum_decimal_places as u32
+    minimum_decimal_places
 }
+
 /// load yaml file and return a dag object (petgraph)
 ///
 /// # Arguments
@@ -83,9 +83,9 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> u32 {
 pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
-    let converted_integer =
-        10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i64;
-    if converted_integer > 100000 {
+    let int_conversion_factor =
+        10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i32;
+    if int_conversion_factor > 100000 {
         warn!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
     }
 
@@ -106,13 +106,13 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
                         Yaml::Integer(_i) => {
                             params.insert(
                                 key_str.to_owned(),
-                                (value.as_i64().unwrap() * converted_integer) as i32,
+                                (value.as_i64().unwrap() * int_conversion_factor as i64) as i32,
                             );
                         }
                         Yaml::Real(_r) => {
                             params.insert(
                                 key_str.to_owned(),
-                                (value.as_f64().unwrap() * converted_integer as f64) as i32,
+                                (value.as_f64().unwrap() * int_conversion_factor as f64) as i32,
                             );
                         }
                         _ => {
@@ -132,12 +132,12 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
 
             match &link["communication_time"] {
                 Yaml::Integer(communication_time_value) => {
-                    communication_time =
-                        *communication_time_value as i32 * converted_integer as i32;
+                    communication_time = *communication_time_value as i32 * int_conversion_factor;
                 }
                 Yaml::Real(communication_time_value) => {
                     communication_time = (communication_time_value.parse::<f32>().unwrap()
-                        * converted_integer as f32) as i32;
+                        * int_conversion_factor as f32)
+                        as i32;
                 }
                 Yaml::BadValue => {}
                 _ => unreachable!(),
