@@ -5,7 +5,7 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
@@ -14,7 +14,7 @@ use petgraph::graph::{Graph, NodeIndex};
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
 pub fn get_providers(
-    dag: &Graph<NodeData, f32>,
+    dag: &Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> Vec<Vec<NodeIndex>> {
     let mut deque_critical_path = VecDeque::from(critical_path);
@@ -34,39 +34,42 @@ pub fn get_providers(
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
+#[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
-    dag: &mut Graph<NodeData, f32>,
+    dag: &mut Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(dag, critical_path.clone());
+    let providers = get_providers(dag, critical_path.clone());
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
-    let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
-    let mut current_provider = providers.remove(0);
-    while !providers.is_empty() {
-        let next_provider = providers.remove(0);
+    let mut non_critical_nodes: HashSet<_> = dag
+        .get_non_critical_nodes(critical_path)
+        .unwrap()
+        .into_iter()
+        .collect();
+
+    for p_i in 0..providers.len() - 1 {
         let mut f_consumer = Vec::new();
-
-        for next_provider_node in &next_provider {
+        for next_provider_node in providers[p_i + 1].iter() {
             let anc_nodes = dag.get_anc_nodes(*next_provider_node).unwrap();
-
             for anc_node in anc_nodes {
-                if non_critical_nodes.contains(&anc_node) {
+                if non_critical_nodes.remove(&anc_node) {
                     f_consumer.push(anc_node);
                 }
             }
         }
-        f_consumers.insert(current_provider, f_consumer.clone());
-        current_provider = next_provider;
-        non_critical_nodes.retain(|&node_index| !f_consumer.contains(&node_index));
+        f_consumers.insert(providers[p_i].clone(), f_consumer.clone());
     }
 
     f_consumers
 }
 
 /// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
-#[allow(dead_code)] // TODO: remove
+/// Commented out because it is used only for the priority decision algorithm, rules of α-β pair analysis, Lemma, and equations, and is not involved in this simulator implementation.
+/// However, since there is a possibility that analytical α-β pair analysis will be implemented in the future, it has not been removed.
+/// #[allow(dead_code)] // TODO: remove
+/*
 pub fn get_g_consumers(
-    mut dag: Graph<NodeData, f32>,
+    mut dag: Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(&dag, critical_path.clone());
@@ -104,21 +107,21 @@ pub fn get_g_consumers(
 
     g_consumers
 }
+*/
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::collections::HashMap;
 
-    fn create_node(id: i32, key: &str, value: f32) -> NodeData {
-        let mut params = HashMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
-
     ///DAG in Figure 2 (b) of the paper
-    fn create_sample_dag() -> Graph<NodeData, f32> {
-        let mut dag = Graph::<NodeData, f32>::new();
+    fn create_sample_dag() -> Graph<NodeData, i32> {
+        fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+            let mut params = HashMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1.0));
         let c1 = dag.add_node(create_node(1, "execution_time", 1.0));
@@ -268,4 +271,5 @@ mod tests {
         assert_eq!(g_consumers[&providers[1]][1].index(), 11);
         assert_eq!(g_consumers[&providers[1]][2].index(), 12);
     }
+    */
 }
