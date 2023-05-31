@@ -78,7 +78,7 @@ pub fn fixed_priority_scheduler(
             if let Some(task) = ready_queue.pop_front() {
                 processor.allocate(core_index, dag[task].clone());
             } else {
-                break;
+                break; // The scheduling has finished because the dummy sink node has completed.
             }
         }
 
