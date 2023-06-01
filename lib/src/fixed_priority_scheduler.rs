@@ -47,9 +47,9 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> i32 {
+    let mut dag = dag.clone();
     let mut current_time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-
     let source_node = dag.add_dummy_source_node();
     dag[source_node]
         .params
@@ -102,9 +102,11 @@ pub fn fixed_priority_scheduler(
             Some(ProcessResult::Done(id)) => *id,
             _ => unreachable!(), //This is unreachable because the loop above ensures that there is a task finished.
         };
+        
 
         //Executable if all predecessor nodes are done
         let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
+        println!("suc_nodes: {:?}", suc_nodes);
         if suc_nodes.is_empty() {
             break; // The scheduling has finished because the dummy sink node has completed.
         }
@@ -114,12 +116,20 @@ pub fn fixed_priority_scheduler(
             } else {
                 dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
             }
+            println!(
+                "pre_done_count: {:?}",
+                dag[suc_node].params["pre_done_count"]
+            );
             let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
             if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
                 ready_queue.push_back(suc_node);
             }
         }
     }
+
+    //remove dummy nodes
+    dag.remove_dummy_sink_node();
+    dag.remove_dummy_source_node();
 
     //Return the normalized total time taken to finish all tasks.
     current_time - DUMMY_EXECUTION_TIME * 2
@@ -151,18 +161,18 @@ mod tests {
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
         add_params(&mut dag, c0, "priority", 0);
         add_params(&mut dag, c1, "priority", 0);
-        //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(2, "execution_time", 10));
-        let n1_2 = dag.add_node(create_node(3, "execution_time", 10));
-        add_params(&mut dag, n0_2, "priority", 2);
-        add_params(&mut dag, n1_2, "priority", 1);
+        //nY_X is the Yth suc node of cX.
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
+        let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
+        add_params(&mut dag, n0_0, "priority", 2);
+        add_params(&mut dag, n1_0, "priority", 1);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1);
 
         //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1);
-        dag.add_edge(c0, n1_2, 1);
+        dag.add_edge(c0, n0_0, 1);
+        dag.add_edge(c0, n1_0, 1);
 
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
         assert_eq!(
