@@ -46,9 +46,10 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
-) -> i32 {
+) -> (i32, Vec<NodeIndex>) {
     let mut dag = dag.clone();
     let mut current_time = 0;
+    let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
     let mut finish_flag = false;
     let source_node = dag.add_dummy_source_node();
@@ -78,6 +79,7 @@ pub fn fixed_priority_scheduler(
         while let Some(core_index) = processor.get_idle_core_index() {
             if let Some(task) = ready_queue.pop_front() {
                 processor.allocate(core_index, dag[task].clone());
+                execution_order.push(task);
             } else {
                 break;
             }
@@ -135,8 +137,10 @@ pub fn fixed_priority_scheduler(
     dag.remove_dummy_sink_node();
     dag.remove_dummy_source_node();
 
-    //Return the normalized total time taken to finish all tasks.
-    current_time - DUMMY_EXECUTION_TIME * 2
+    execution_order.remove(0); //Remove the dummy source node from the execution order.
+    execution_order.pop(); //Remove the dummy sink node from the execution order.
+                           //Return the normalized total time taken to finish all tasks.
+    (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
 }
 
 #[cfg(test)]
@@ -180,8 +184,17 @@ mod tests {
 
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
         assert_eq!(
-            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag),
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag).0,
             92
+        );
+        assert_eq!(
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag).1,
+            vec![
+                NodeIndex::new(0),
+                NodeIndex::new(1),
+                NodeIndex::new(3),
+                NodeIndex::new(2)
+            ]
         );
     }
 
@@ -208,8 +221,18 @@ mod tests {
 
         let mut homogeneous_processor = HomogeneousProcessor::new(3);
         assert_eq!(
-            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag),
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag).0,
             92
+        );
+
+        assert_eq!(
+            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag).1,
+            vec![
+                NodeIndex::new(0),
+                NodeIndex::new(1),
+                NodeIndex::new(3),
+                NodeIndex::new(2)
+            ]
         );
     }
 }
