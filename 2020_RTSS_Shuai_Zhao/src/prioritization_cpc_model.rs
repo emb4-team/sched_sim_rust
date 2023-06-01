@@ -244,6 +244,8 @@ mod tests {
         let c1 = dag.add_node(create_node(1, "execution_time", 10));
         let c2 = dag.add_node(create_node(2, "execution_time", 10));
 
+        //create non-critical node.
+        //No distinction is made because of the complexity.
         let n3 = dag.add_node(create_node(3, "execution_time", 3));
         let n4 = dag.add_node(create_node(4, "execution_time", 2));
         let n5 = dag.add_node(create_node(5, "execution_time", 3));
@@ -254,6 +256,8 @@ mod tests {
         //create critical path edges
         dag.add_edge(c0, c1, 1);
         dag.add_edge(c1, c2, 1);
+
+        //create non-critical path edges
         dag.add_edge(c0, n3, 1);
         dag.add_edge(n3, c2, 1);
         dag.add_edge(c0, n4, 1);
@@ -276,6 +280,8 @@ mod tests {
         let c1 = dag.add_node(create_node(1, "execution_time", 10));
         let c2 = dag.add_node(create_node(2, "execution_time", 10));
 
+        //create non-critical node.
+        //No distinction is made because of the complexity.
         let n3 = dag.add_node(create_node(3, "execution_time", 2));
         let n4 = dag.add_node(create_node(4, "execution_time", 2));
         let n5 = dag.add_node(create_node(5, "execution_time", 3));
@@ -286,6 +292,8 @@ mod tests {
         //create critical path edges
         dag.add_edge(c0, c1, 1);
         dag.add_edge(c1, c2, 1);
+
+        //create non-critical path edges
         dag.add_edge(c0, n3, 1);
         dag.add_edge(n3, c2, 1);
         dag.add_edge(c0, n4, 1);
@@ -309,6 +317,7 @@ mod tests {
         let c2 = dag.add_node(create_node(2, "execution_time", 4));
         let c3 = dag.add_node(create_node(3, "execution_time", 4));
         let c4 = dag.add_node(create_node(4, "execution_time", 4));
+
         //nY_X is the Yth preceding node of cX.
         let n0_2 = dag.add_node(create_node(5, "execution_time", 2));
         let n1_2 = dag.add_node(create_node(6, "execution_time", 1));
