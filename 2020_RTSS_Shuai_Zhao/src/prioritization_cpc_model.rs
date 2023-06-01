@@ -12,13 +12,6 @@ fn create_f_consumer_dag(
     let mut f_consumer_dag = dag.clone();
     f_consumer_dag.shrink_dag(f_consumer.to_vec());
 
-    for node_i in f_consumer_dag.node_indices() {
-        f_consumer_dag.update_param(
-            node_i,
-            "execution_time",
-            f_consumer_dag[node_i].params["current_length"],
-        );
-    }
     f_consumer_dag
 }
 
@@ -315,7 +308,7 @@ mod tests {
     #[test]
     fn test_assign_priority_cpc_model_normal() {
         let mut dag = create_sample_dag();
-        let expected_value = vec![0, 1, 2, 3, 4, 5, 6, 9, 7, 8, 12, 10, 11];
+        let expected_value = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
         assign_priority_cpc_model(&mut dag);
         for node_i in dag.node_indices() {
@@ -329,7 +322,7 @@ mod tests {
     #[test]
     fn test_assign_priority_cpc_model_normal_dag_not_consolidated() {
         let mut dag = create_sample_dag_not_consolidated();
-        let expected_value = vec![0, 1, 2, 8, 6, 3, 7, 4, 5];
+        let expected_value = vec![0, 1, 2, 7, 6, 3, 8, 4, 5];
 
         assign_priority_cpc_model(&mut dag);
         for node_i in dag.node_indices() {
