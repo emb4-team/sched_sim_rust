@@ -5,6 +5,59 @@ use petgraph::graph::{Graph, NodeIndex};
 
 use crate::parallel_provider_consumer::*;
 
+fn get_longest_node(dag: &Graph<NodeData, i32>, f_consumer: &[NodeIndex]) -> NodeIndex {
+    let longest_node = f_consumer
+        .iter()
+        .max_by_key(|&f_consumer_node| dag[*f_consumer_node].params["current_length"])
+        .cloned()
+        .unwrap();
+    longest_node
+}
+
+fn find_pre_longest_node(
+    dag: &Graph<NodeData, i32>,
+    f_consumer: &[NodeIndex],
+    pre_nodes: Vec<NodeIndex>,
+) -> NodeIndex {
+    let mut longest_node = None;
+    let mut longest_current_length = 0;
+    for pre_node in pre_nodes.iter().rev() {
+        if f_consumer.contains(pre_node) {
+            let current_length = dag[*pre_node].params["current_length"];
+            if current_length > longest_current_length {
+                longest_node = Some(*pre_node);
+                longest_current_length = current_length;
+            }
+        }
+    }
+    longest_node.unwrap()
+}
+
+fn remove_nodes_with_priority(dag: &mut Graph<NodeData, i32>, f_consumer: &mut Vec<NodeIndex>) {
+    for node in dag.node_indices() {
+        if dag[node].params.contains_key("priority") {
+            if let Some(position) = f_consumer.iter().position(|x| *x == node) {
+                f_consumer.remove(position);
+            }
+        }
+    }
+}
+
+fn assign_priority_to_path(dag: &mut Graph<NodeData, i32>, path: &Vec<NodeIndex>, priority: i32) {
+    for node in path {
+        dag.add_param(*node, "priority", priority);
+    }
+}
+
+/*fn find_reference_node(pre_nodes: &[NodeIndex], f_consumer_set: &HashSet<&NodeIndex>) -> NodeIndex {
+    for &pre_node in pre_nodes.iter().rev() {
+        if f_consumer_set.contains(&pre_node) {
+            return pre_node;
+        }
+    }
+    panic!("Reference node not found"); //Not reaching here as it has already been confirmed that it is there in advance.
+}*/
+
 pub fn prioritization_cpc_model_loop(
     dag: &mut Graph<NodeData, i32>,
     clone_dag: &mut Graph<NodeData, i32>,
@@ -34,10 +87,13 @@ pub fn prioritization_cpc_model_loop(
     let providers = get_providers(clone_dag, origin_critical_path_nodes.clone());
     let mut f_consumers = get_f_consumers(clone_dag, origin_critical_path_nodes.clone());
 
+    println!("dag: {:?}", clone_dag);
+    println!(
+        "origin_critical_path_nodes: {:?}",
+        origin_critical_path_nodes
+    );
     //Rule 1. give high priority to critical paths
-    for critical_node in origin_critical_path_nodes {
-        clone_dag.add_param(critical_node, "priority", *priority);
-    }
+    assign_priority_to_path(clone_dag, &origin_critical_path_nodes, *priority);
 
     //Rule 2. Priority is given to consumers for providers located before
     for provider in providers {
@@ -45,20 +101,14 @@ pub fn prioritization_cpc_model_loop(
             while !f_consumer.is_empty() {
                 *priority += 1;
                 //Acquisition of the node with the longest earliest execution time in f_consumer
-                let mut longest_node = f_consumer
-                    .iter()
-                    .max_by_key(|f_consumer_node| {
-                        clone_dag[**f_consumer_node].params["current_length"]
-                    })
-                    .cloned()
-                    .unwrap();
+                let mut longest_node = get_longest_node(clone_dag, f_consumer);
 
                 let mut longest_path = vec![longest_node];
+                //Facilitates exploration
+                let f_consumer_set: HashSet<_> = f_consumer.iter().collect();
 
                 //HACK: Acquisition of the longest path
                 while let Some(pre_nodes) = clone_dag.get_pre_nodes(longest_node) {
-                    //Facilitates exploration
-                    let f_consumer_set: HashSet<_> = f_consumer.iter().collect();
                     //To find the longest path in the current f-consumer, terminate if all predecessor nodes are different
                     if pre_nodes
                         .iter()
@@ -69,34 +119,20 @@ pub fn prioritization_cpc_model_loop(
 
                     //Find the reference node in the current f-consumer
                     //Search in reverse order, with Index based on the fastest one.
-                    for pre_node in pre_nodes.iter().rev() {
-                        if f_consumer_set.contains(pre_node) {
-                            longest_node = *pre_node;
-                            break;
-                        }
-                    }
-                    let mut longest_current_length =
-                        clone_dag[longest_node].params["current_length"];
-                    for pre_node in pre_nodes.iter() {
-                        if f_consumer.contains(pre_node) {
-                            let current_length = clone_dag[*pre_node].params["current_length"];
-                            if current_length > longest_current_length {
-                                longest_node = *pre_node;
-                                longest_current_length = current_length;
-                            }
-                        }
-                    }
+                    longest_node = find_pre_longest_node(clone_dag, f_consumer, pre_nodes);
                     longest_path.push(longest_node);
                 }
 
                 //HACK:Recursion if there are dependencies in the f-consumer.
                 for node in longest_path.clone() {
-                    if let Some(pre_nodes) = clone_dag.get_pre_nodes(node) {
+                    if let Some(mut pre_nodes) = clone_dag.get_pre_nodes(node) {
+                        pre_nodes.retain(|pre_node| !origin_critical_path_nodes.contains(pre_node));
+
                         if pre_nodes.len() > 1 {
                             let mut clone_clone_dag = clone_dag.clone();
                             clone_clone_dag.reduction_dag(f_consumer.clone());
                             prioritization_cpc_model_loop(
-                                &mut clone_clone_dag,
+                                dag,
                                 clone_dag,
                                 priority,
                                 longest_path.clone(),
@@ -107,18 +143,10 @@ pub fn prioritization_cpc_model_loop(
                 }
 
                 //Rule 3. give high priority to the nodes in the longest path
-                for node in longest_path {
-                    clone_dag.add_param(node, "priority", *priority);
-                }
+                assign_priority_to_path(clone_dag, &longest_path, *priority);
 
                 //remove the nodes in the longest path from the f-consumer
-                for node in clone_dag.node_indices() {
-                    if clone_dag[node].params.contains_key("priority") {
-                        if let Some(position) = f_consumer.iter().position(|x| *x == node) {
-                            f_consumer.remove(position);
-                        }
-                    }
-                }
+                remove_nodes_with_priority(clone_dag, f_consumer);
             }
         }
     }
@@ -145,9 +173,7 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
     let mut f_consumers = get_f_consumers(dag, critical_path.clone());
 
     //Rule 1. give high priority to critical paths
-    for critical_node in critical_path {
-        dag.add_param(critical_node, "priority", priority);
-    }
+    assign_priority_to_path(dag, &critical_path, priority);
 
     //Rule 2. Priority is given to consumers for providers located before
     for provider in providers {
@@ -155,18 +181,13 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
             while !f_consumer.is_empty() {
                 priority += 1;
                 //Acquisition of the node with the longest earliest execution time in f_consumer
-                let mut longest_node = f_consumer
-                    .iter()
-                    .max_by_key(|f_consumer_node| dag[**f_consumer_node].params["current_length"])
-                    .cloned()
-                    .unwrap();
-
+                let mut longest_node = get_longest_node(dag, f_consumer);
                 let mut longest_path = vec![longest_node];
 
+                let f_consumer_set: HashSet<_> = f_consumer.iter().collect();
                 //HACK: Acquisition of the longest path
                 while let Some(pre_nodes) = dag.get_pre_nodes(longest_node) {
                     //Facilitates exploration
-                    let f_consumer_set: HashSet<_> = f_consumer.iter().collect();
                     //To find the longest path in the current f-consumer, terminate if all predecessor nodes are different
                     if pre_nodes
                         .iter()
@@ -177,28 +198,15 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
 
                     //Find the reference node in the current f-consumer
                     //Search in reverse order, with Index based on the fastest one.
-                    for pre_node in pre_nodes.iter().rev() {
-                        if f_consumer_set.contains(pre_node) {
-                            longest_node = *pre_node;
-                            break;
-                        }
-                    }
-                    let mut longest_current_length = dag[longest_node].params["current_length"];
-                    for pre_node in pre_nodes.iter() {
-                        if f_consumer.contains(pre_node) {
-                            let current_length = dag[*pre_node].params["current_length"];
-                            if current_length > longest_current_length {
-                                longest_node = *pre_node;
-                                longest_current_length = current_length;
-                            }
-                        }
-                    }
+                    longest_node = find_pre_longest_node(dag, f_consumer, pre_nodes);
                     longest_path.push(longest_node);
                 }
 
                 //HACK:Recursion if there are dependencies in the f-consumer.
                 for node in longest_path.clone() {
-                    if let Some(pre_nodes) = dag.get_pre_nodes(node) {
+                    if let Some(mut pre_nodes) = dag.get_pre_nodes(node) {
+                        pre_nodes.retain(|pre_node| !critical_path.contains(pre_node));
+
                         if pre_nodes.len() > 1 {
                             let mut clone_dag = dag.clone();
                             clone_dag.reduction_dag(f_consumer.clone());
@@ -214,18 +222,10 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
                 }
 
                 //Rule 3. give high priority to the nodes in the longest path
-                for node in longest_path {
-                    dag.add_param(node, "priority", priority);
-                }
+                assign_priority_to_path(dag, &longest_path, priority);
 
                 //remove the nodes in the longest path from the f-consumer
-                for node in dag.node_indices() {
-                    if dag[node].params.contains_key("priority") {
-                        if let Some(position) = f_consumer.iter().position(|x| *x == node) {
-                            f_consumer.remove(position);
-                        }
-                    }
-                }
+                remove_nodes_with_priority(dag, f_consumer);
             }
         }
     }
@@ -387,6 +387,9 @@ mod tests {
         let expected_value = vec![0, 0, 0, 4, 2, 1, 1, 3, 1];
 
         prioritization_cpc_model(&mut dag);
+        for node in dag.node_indices() {
+            println!("{} {}", dag[node].id, dag[node].params["priority"]);
+        }
         for node in dag.node_indices() {
             assert_eq!(
                 dag[node].params["priority"],
