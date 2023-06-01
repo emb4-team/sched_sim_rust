@@ -4,7 +4,6 @@ use petgraph::graph::{Graph, NodeIndex};
 use crate::parallel_provider_consumer::*;
 
 //Create a dag for f_consumer only
-//To take into account the length of the original graph, the current length is used as the execution time.
 fn create_f_consumer_dag(
     dag: &mut Graph<NodeData, i32>,
     f_consumer: &[NodeIndex],
