@@ -98,6 +98,7 @@ mod tests {
     use crate::homogeneous;
 
     use super::*;
+    #[allow(unused_imports)]
     use std::{collections::HashMap, fs::remove_file, thread, time::Duration};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -138,7 +139,7 @@ mod tests {
         assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8);
         assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10);
         assert_eq!(dag_set.each_dag_info[1].volume, 14);
-        remove_file(file_path).unwrap();
+        //remove_file(file_path).unwrap();
     }
 
     #[test]
@@ -151,6 +152,6 @@ mod tests {
         let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
 
         assert_eq!(number_of_cores.number_of_cores, 4);
-        remove_file(file_path).unwrap();
+        //remove_file(file_path).unwrap();
     }
 }
