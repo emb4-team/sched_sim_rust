@@ -488,6 +488,12 @@ impl GraphExtension for Graph<NodeData, i32> {
             }
         }
 
+        for node in nodes {
+            if let Some(anc_nodes) = self.get_anc_nodes(node) {
+                nodes_to_remove.retain(|&remove_node| !anc_nodes.contains(&remove_node));
+            }
+        }
+
         for node in nodes_to_remove.iter().rev() {
             if self.remove_node(*node).is_some() {
                 // node is removed
