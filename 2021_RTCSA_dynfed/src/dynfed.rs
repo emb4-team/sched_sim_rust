@@ -47,7 +47,7 @@ mod tests {
         dag.add_param(c0, "end_to_end_deadline", 100);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 30));
-        let n1_0 = dag.add_node(create_node(3, "execution_time", 31));
+        let n1_0 = dag.add_node(create_node(3, "execution_time", 30));
         dag.add_param(n0_0, "priority", 2);
         dag.add_param(n1_0, "priority", 1);
 
@@ -58,6 +58,16 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        calculate_execution_order_minimum_cores(&mut dag);
+        let result = calculate_execution_order_minimum_cores(&mut dag);
+
+        assert_eq!(
+            result,
+            vec![
+                NodeIndex::new(0),
+                NodeIndex::new(1),
+                NodeIndex::new(3),
+                NodeIndex::new(2)
+            ]
+        );
     }
 }
