@@ -4,6 +4,27 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use petgraph::graph::{Graph, NodeIndex};
 
+/// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
+///
+/// # Arguments
+///
+/// * `dag` - The DAG to be scheduled.
+///
+/// # Returns
+///
+/// * A vector of NodeIndex, representing the execution order of the tasks.
+///
+/// # Description
+///
+/// The function first calculates the volume of the DAG and the end-to-end deadline of the DAG.
+/// Then, it calculates the minimum number of cores required to meet the end-to-end deadline.
+/// Afterward, it creates a HomogeneousProcessor object with the minimum number of cores.
+/// Finally, it calls the fixed_priority_scheduler function to get the execution order of the tasks.
+///
+/// # Example
+///
+/// Refer to the examples in the tests code.
+///
 #[allow(dead_code)] // TODO: remove
 pub fn calculate_execution_order_minimum_cores(dag: &mut Graph<NodeData, i32>) -> Vec<NodeIndex> {
     let volume = dag.get_volume();
