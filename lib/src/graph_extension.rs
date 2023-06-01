@@ -47,7 +47,7 @@ pub trait GraphExtension {
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
-    fn remove_nodes(&mut self, nodes: Vec<NodeIndex>);
+    fn reduction_dag(&mut self, nodes: Vec<NodeIndex>);
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
@@ -473,7 +473,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         node_index
     }
 
-    fn remove_nodes(&mut self, nodes: Vec<NodeIndex>) {
+    fn reduction_dag(&mut self, nodes: Vec<NodeIndex>) {
         let mut nodes_to_remove = Vec::new();
         for node in self.node_indices() {
             if !nodes.contains(&node) {
@@ -1033,7 +1033,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_nodes_normal() {
+    fn test_reduction_dag_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         dag.add_node(create_node(1, "execution_time", 0));
@@ -1044,7 +1044,7 @@ mod tests {
         assert_eq!(dag[NodeIndex::new(1)].id, 1);
         assert_eq!(dag[NodeIndex::new(2)].id, 2);
 
-        dag.remove_nodes(vec![NodeIndex::new(0), NodeIndex::new(2)]);
+        dag.reduction_dag(vec![NodeIndex::new(0), NodeIndex::new(2)]);
         assert_eq!(dag.node_count(), 2);
         assert_eq!(dag[NodeIndex::new(0)].id, 0);
         assert_eq!(dag[NodeIndex::new(1)].id, 2);
@@ -1052,12 +1052,12 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_remove_nodes_no_exist() {
+    fn test_reduction_dag_no_exist() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         dag.add_node(create_node(1, "execution_time", 0));
         dag.add_node(create_node(2, "execution_time", 0));
 
-        dag.remove_nodes(vec![NodeIndex::new(0), NodeIndex::new(3)]);
+        dag.reduction_dag(vec![NodeIndex::new(0), NodeIndex::new(3)]);
     }
 }

@@ -94,7 +94,7 @@ pub fn prioritization_cpc_model_loop(
                     if let Some(pre_nodes) = clone_dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
                             let mut clone_clone_dag = clone_dag.clone();
-                            clone_clone_dag.remove_nodes(f_consumer.clone());
+                            clone_clone_dag.reduction_dag(f_consumer.clone());
                             prioritization_cpc_model_loop(
                                 &mut clone_clone_dag,
                                 clone_dag,
@@ -201,7 +201,7 @@ pub fn prioritization_cpc_model(dag: &mut Graph<NodeData, i32>) {
                     if let Some(pre_nodes) = dag.get_pre_nodes(node) {
                         if pre_nodes.len() > 1 {
                             let mut clone_dag = dag.clone();
-                            clone_dag.remove_nodes(f_consumer.clone());
+                            clone_dag.reduction_dag(f_consumer.clone());
                             prioritization_cpc_model_loop(
                                 dag,
                                 &mut clone_dag,
@@ -353,7 +353,7 @@ mod tests {
     }
 
     #[test]
-    fn test() {
+    fn test_prioritization_cpc_model_normal() {
         let mut dag = create_sample_dag();
         let expected_value = vec![0, 0, 0, 0, 0, 1, 2, 5, 3, 4, 8, 6, 7];
 
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn test2() {
+    fn test_prioritization_cpc_model_normal_dag_not_consolidated() {
         let mut dag = create_sample_dag_not_consolidated();
         let expected_value = vec![0, 0, 0, 4, 2, 1, 1, 3, 1];
 
@@ -382,7 +382,7 @@ mod tests {
     }
 
     #[test]
-    fn test3() {
+    fn test_prioritization_cpc_model_normal_recursion() {
         let mut dag = create_sample_dag_complex();
         let expected_value = vec![0, 0, 0, 4, 2, 1, 1, 3, 1];
 
