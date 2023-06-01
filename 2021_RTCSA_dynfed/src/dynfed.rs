@@ -11,14 +11,14 @@ pub fn calculate_execution_order_minimum_cores(dag: &mut Graph<NodeData, i32>) -
     let mut min_number_of_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
 
     #[allow(unused_variables, unused_mut)] // TODO: remove
-    let mut processor = HomogeneousProcessor::new(min_number_of_cores);
+    let mut homogeneous_processor = HomogeneousProcessor::new(min_number_of_cores);
 
-    let mut result = fixed_priority_scheduler(&mut processor, dag);
+    let mut result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
 
     while result.0 > end_to_end_deadline {
         min_number_of_cores += 1;
-        processor = HomogeneousProcessor::new(min_number_of_cores);
-        result = fixed_priority_scheduler(&mut processor, dag);
+        homogeneous_processor = HomogeneousProcessor::new(min_number_of_cores);
+        result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
     }
 
     result.1
