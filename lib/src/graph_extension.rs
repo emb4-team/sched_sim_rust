@@ -480,8 +480,8 @@ impl GraphExtension for Graph<NodeData, i32> {
                 nodes_to_remove.push(node);
             }
         }
-        for node in nodes_to_remove {
-            if self.remove_node(node).is_some() {
+        for node in nodes_to_remove.iter().rev() {
+            if self.remove_node(*node).is_some() {
                 // node is removed
             } else {
                 panic!("Node does not exist: {:?}", node);
