@@ -475,11 +475,19 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn reduction_dag(&mut self, nodes: Vec<NodeIndex>) {
         let mut nodes_to_remove = Vec::new();
+
+        for node in &nodes {
+            if !self.node_indices().any(|n| n == *node) {
+                panic!("Node does not exist: {:?}", node);
+            }
+        }
+
         for node in self.node_indices() {
             if !nodes.contains(&node) {
                 nodes_to_remove.push(node);
             }
         }
+
         for node in nodes_to_remove.iter().rev() {
             if self.remove_node(*node).is_some() {
                 // node is removed
