@@ -8,18 +8,14 @@ use petgraph::graph::{Graph, NodeIndex};
 pub fn pre_computation(dag: &mut Graph<NodeData, i32>) -> Vec<NodeIndex> {
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
-    println!("volume: {}", volume);
-    println!("end_to_end_deadline: {}", end_to_end_deadline);
     let mut m_min = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
     let execution_order: Vec<NodeIndex> = Vec::new();
 
-    println!("m_min: {}", m_min);
     #[allow(unused_variables, unused_mut)] // TODO: remove
     let mut processor = HomogeneousProcessor::new(m_min);
 
     while fixed_priority_scheduler(&mut processor, dag) > end_to_end_deadline {
         m_min += 1;
-        println!("m_min: {}", m_min);
         processor = HomogeneousProcessor::new(m_min);
     }
 
