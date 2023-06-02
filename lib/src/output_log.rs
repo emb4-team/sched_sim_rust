@@ -127,7 +127,7 @@ mod tests {
     #[test]
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
-        let file_path = create_yaml_file("../outputs", "tests");
+        let file_path = create_yaml_file("tests", "tests1");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_yaml_file("../outputs", "tests");
+        let file_path = create_yaml_file(".tests", "tests2");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 
