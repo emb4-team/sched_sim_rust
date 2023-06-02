@@ -79,7 +79,7 @@ pub fn assign_priority_to_cpc_model(
                     priority,
                 );
 
-                f_consumer_dag.remove_nodes(f_consumer_critical_path);
+                f_consumer_dag.remove_nodes(&f_consumer_critical_path);
             }
         }
     }
