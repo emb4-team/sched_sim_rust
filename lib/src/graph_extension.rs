@@ -365,9 +365,9 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn get_offset(&self) -> i32 {
         self.node_indices()
-            .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .or_else(|| {
-                warn!("The end-to-end deadline does not exist.");
+            .find_map(|i| self[i].params.get("offset").cloned())
+            .unwrap_or_else(|| {
+                warn!("The offset does not exist.");
                 0
             })
     }
@@ -816,6 +816,21 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3));
 
         assert_eq!(dag.get_all_periods(), None);
+    }
+
+    #[test]
+    fn test_get_offset_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+
+        assert_eq!(dag.get_offset(), 3);
+    }
+
+    #[test]
+    fn test_get_offset_no_exist() {
+        let dag = Graph::<NodeData, i32>::new();
+
+        assert_eq!(dag.get_offset(), 0);
     }
 
     #[test]
