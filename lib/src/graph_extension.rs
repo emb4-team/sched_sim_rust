@@ -33,7 +33,7 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
-    fn get_non_critical_nodes(&mut self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
+    fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> i32;
@@ -266,7 +266,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         critical_path[0].clone()
     }
 
-    fn get_non_critical_nodes(&mut self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>> {
+    fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>> {
         let mut no_critical_path_nodes = Vec::new();
         for node in self.node_indices() {
             if !critical_path.contains(&node) {
