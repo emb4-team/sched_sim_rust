@@ -23,21 +23,15 @@ fn create_shrunk_dag(
     shrunk_dag
 }
 
-//Transformations to access params in the original graph
-fn convert_node_index_to_node_id(
-    node_indices: &[NodeIndex],
+fn assign_priority_to_node(
+    original_dag: &mut Graph<NodeData, i32>,
     dag: &Graph<NodeData, i32>,
-) -> Vec<usize> {
-    node_indices
-        .iter()
-        .map(|node_i| dag[*node_i].id as usize)
-        .collect::<Vec<_>>()
-}
-
-fn assign_priority_to_id(dag: &mut Graph<NodeData, i32>, ids: &Vec<usize>, priority: &mut i32) {
-    for id in ids {
-        let result = dag.add_param(NodeIndex::new(*id), "priority", *priority);
-        if result {
+    node_indices: &[NodeIndex],
+    priority: &mut i32,
+) {
+    for &node_i in node_indices {
+        let node_id = dag[node_i].id as usize;
+        if original_dag.add_param(NodeIndex::new(node_id), "priority", *priority) {
             *priority += 1;
         }
     }
@@ -49,45 +43,39 @@ pub fn assign_priority_to_cpc_model(
     dag: &mut Graph<NodeData, i32>,
     priority: &mut i32,
 ) {
-    let critical_path = dag.get_critical_path();
-    let providers = get_providers(dag, critical_path.clone());
-    let mut f_consumers = get_f_consumers(dag, critical_path.clone());
+    let critical_node_indices = dag.get_critical_path();
+    let providers = get_providers(dag, &critical_node_indices);
+    let f_consumers = get_f_consumers(dag, &critical_node_indices);
 
-    //Rule 1. give high priority to critical paths
-    let mut critical_path_ids = convert_node_index_to_node_id(&critical_path, dag);
-    assign_priority_to_id(original_dag, &critical_path_ids, priority);
+    //Rule 1. Priority is given to critical nodes
+    assign_priority_to_node(original_dag, dag, &critical_node_indices, priority);
 
     //Rule 2. Priority is given to consumers for providers located before
     for provider in providers {
-        if let Some(f_consumer) = f_consumers.get_mut(&provider) {
-            let mut f_consumer_dag = create_shrunk_dag(&mut dag.clone(), f_consumer.to_vec());
+        if let Some(f_consumer) = f_consumers.get(&provider) {
+            let mut f_consumer_dag = create_shrunk_dag(dag, f_consumer.to_vec());
 
             while f_consumer_dag.node_count() != 0 {
                 let f_consumer_critical_path = f_consumer_dag.get_critical_path();
 
-                critical_path_ids =
-                    convert_node_index_to_node_id(&f_consumer_critical_path, &f_consumer_dag);
-
                 //recursion if there are dependencies in the f-consumer.
-                for node_i in &f_consumer_critical_path {
-                    if let Some(pre_nodes) = f_consumer_dag.get_pre_nodes(*node_i) {
-                        if pre_nodes.len() > 1 {
-                            assign_priority_to_cpc_model(
-                                original_dag,
-                                &mut f_consumer_dag,
-                                priority,
-                            );
-                            break;
-                        }
-                    }
+                if f_consumer_critical_path.iter().any(|&node_i| {
+                    f_consumer_dag
+                        .get_pre_nodes(node_i)
+                        .map_or(false, |pre_nodes| pre_nodes.len() > 1)
+                }) {
+                    assign_priority_to_cpc_model(original_dag, &mut f_consumer_dag, priority);
                 }
 
                 //Rule 3. give high priority to the nodes in the longest path
-                assign_priority_to_id(original_dag, &critical_path_ids, priority);
+                assign_priority_to_node(
+                    original_dag,
+                    &f_consumer_dag,
+                    &f_consumer_critical_path,
+                    priority,
+                );
 
-                for node_i in f_consumer_critical_path {
-                    f_consumer_dag.remove_node(node_i);
-                }
+                f_consumer_dag.remove_nodes(&f_consumer_critical_path);
             }
         }
     }

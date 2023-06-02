@@ -32,6 +32,7 @@ pub trait GraphExtension {
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&mut self, critical_path: Vec<NodeIndex>) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -147,6 +148,13 @@ impl GraphExtension for Graph<NodeData, i32> {
             panic!("The dummy sink node does not exist.");
         }
     }
+
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]) {
+        for &node_i in node_indices {
+            self.remove_node(node_i);
+        }
+    }
+
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
     ///
