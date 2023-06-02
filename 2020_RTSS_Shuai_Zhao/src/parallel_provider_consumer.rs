@@ -122,11 +122,6 @@ mod tests {
 
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, i32> {
-        fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1));
