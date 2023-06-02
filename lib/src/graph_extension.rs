@@ -32,7 +32,7 @@ pub trait GraphExtension {
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
-    fn remove_nodes(&mut self, node_indices: Vec<NodeIndex>);
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -147,12 +147,11 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn remove_nodes(&mut self, node_indices: Vec<NodeIndex>) {
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]) {
         for node_i in node_indices.iter().rev() {
             self.remove_node(*node_i);
         }
     }
-
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
     ///
@@ -609,9 +608,17 @@ mod tests {
         dag.add_edge(n0, n1, 1);
         dag.add_edge(n0, n2, 1);
 
-        dag.remove_nodes(vec![n1, n2]);
+        dag.remove_nodes(&[n1, n2]);
         assert_eq!(dag.node_count(), 1);
         assert_eq!(dag.edge_count(), 0);
+        assert_eq!(dag[n0].id, 0);
+
+        fn contains(dag: &Graph<NodeData, i32>, node: NodeIndex) -> bool {
+            dag.node_indices().any(|i| i == node)
+        }
+
+        assert!(!contains(&dag, n1));
+        assert!(!contains(&dag, n2));
     }
 
     #[test]
