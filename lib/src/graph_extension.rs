@@ -33,7 +33,7 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
-    fn get_non_critical_nodes(&mut self, critical_path: Vec<NodeIndex>) -> Option<Vec<NodeIndex>>;
+    fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> i32;
@@ -266,7 +266,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         critical_path[0].clone()
     }
 
-    fn get_non_critical_nodes(&mut self, critical_path: Vec<NodeIndex>) -> Option<Vec<NodeIndex>> {
+    fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>> {
         let mut no_critical_path_nodes = Vec::new();
         for node in self.node_indices() {
             if !critical_path.contains(&node) {
@@ -546,7 +546,7 @@ mod tests {
         dag.add_edge(n2, n4, 1);
 
         let critical_path = dag.get_critical_path();
-        let no_critical_path_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
+        let no_critical_path_nodes = dag.get_non_critical_nodes(&critical_path).unwrap();
         assert_eq!(no_critical_path_nodes.len(), 2);
 
         assert_eq!(no_critical_path_nodes, &[n1, n3]);
@@ -556,7 +556,7 @@ mod tests {
     fn test_get_non_critical_nodes_no_exist() {
         let mut dag = Graph::<NodeData, i32>::new();
         let critical_path = dag.get_critical_path();
-        let no_critical_path_nodes = dag.get_non_critical_nodes(critical_path);
+        let no_critical_path_nodes = dag.get_non_critical_nodes(&critical_path);
         assert_eq!(no_critical_path_nodes, None);
     }
 
