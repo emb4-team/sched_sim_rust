@@ -26,7 +26,7 @@ impl NodeData {
 }
 
 pub trait GraphExtension {
-    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
+    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32) -> bool;
     fn update_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
@@ -50,12 +50,14 @@ pub trait GraphExtension {
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
-    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32) {
+    fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32) -> bool {
         let target_node = self.node_weight_mut(node_i).unwrap();
         if target_node.params.contains_key(key) {
             warn!("The key already exists. key: {}", key);
+            false
         } else {
             target_node.params.insert(key.to_string(), value);
+            true
         }
     }
 

@@ -24,32 +24,27 @@ fn create_shrunk_dag(
 }
 
 //Transformations to access params in the original graph
-fn convert_node_index_to_id(node_indices: &[NodeIndex], dag: &Graph<NodeData, i32>) -> Vec<usize> {
+fn convert_node_index_to_node_id(
+    node_indices: &[NodeIndex],
+    dag: &Graph<NodeData, i32>,
+) -> Vec<usize> {
     node_indices
         .iter()
         .map(|node_i| dag[*node_i].id as usize)
         .collect::<Vec<_>>()
 }
 
-fn remove_ids_with_priority(dag: &mut Graph<NodeData, i32>, ids: &mut Vec<usize>) {
-    for node_i in dag.node_indices() {
-        if dag[node_i].params.contains_key("priority") {
-            if let Some(position) = ids.iter().position(|x| NodeIndex::new(*x) == node_i) {
-                ids.remove(position);
-            }
+fn assign_priority_to_id(dag: &mut Graph<NodeData, i32>, ids: &Vec<usize>, priority: &mut i32) {
+    for id in ids {
+        let result = dag.add_param(NodeIndex::new(*id), "priority", *priority);
+        if result {
+            *priority += 1;
         }
     }
 }
 
-fn assign_priority_to_id(dag: &mut Graph<NodeData, i32>, ids: &Vec<usize>, priority: &mut i32) {
-    for id in ids {
-        dag.add_param(NodeIndex::new(*id), "priority", *priority);
-        *priority += 1;
-    }
-}
-
 #[allow(dead_code)] //TODO: remove
-pub fn assign_priority_cpc_model(
+pub fn assign_priority_to_cpc_model(
     original_dag: &mut Graph<NodeData, i32>,
     dag: &mut Graph<NodeData, i32>,
     priority: &mut i32,
@@ -59,7 +54,7 @@ pub fn assign_priority_cpc_model(
     let mut f_consumers = get_f_consumers(dag, critical_path.clone());
 
     //Rule 1. give high priority to critical paths
-    let mut critical_path_ids = convert_node_index_to_id(&critical_path, dag);
+    let mut critical_path_ids = convert_node_index_to_node_id(&critical_path, dag);
     assign_priority_to_id(original_dag, &critical_path_ids, priority);
 
     //Rule 2. Priority is given to consumers for providers located before
@@ -71,20 +66,21 @@ pub fn assign_priority_cpc_model(
                 let f_consumer_critical_path = f_consumer_dag.get_critical_path();
 
                 critical_path_ids =
-                    convert_node_index_to_id(&f_consumer_critical_path, &f_consumer_dag);
+                    convert_node_index_to_node_id(&f_consumer_critical_path, &f_consumer_dag);
 
-                //:Recursion if there are dependencies in the f-consumer.
-                for node_i in f_consumer_critical_path.clone() {
-                    if let Some(pre_nodes) = f_consumer_dag.get_pre_nodes(node_i) {
+                //recursion if there are dependencies in the f-consumer.
+                for node_i in &f_consumer_critical_path {
+                    if let Some(pre_nodes) = f_consumer_dag.get_pre_nodes(*node_i) {
                         if pre_nodes.len() > 1 {
-                            assign_priority_cpc_model(original_dag, &mut f_consumer_dag, priority);
+                            assign_priority_to_cpc_model(
+                                original_dag,
+                                &mut f_consumer_dag,
+                                priority,
+                            );
                             break;
                         }
                     }
                 }
-
-                //remove the nodes in the f_consumer_dag from the longest path
-                remove_ids_with_priority(original_dag, &mut critical_path_ids);
 
                 //Rule 3. give high priority to the nodes in the longest path
                 assign_priority_to_id(original_dag, &critical_path_ids, priority);
@@ -233,7 +229,7 @@ mod tests {
         let mut clone_dag = dag.clone();
         let expected_value = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-        assign_priority_cpc_model(&mut dag, &mut clone_dag, &mut 0);
+        assign_priority_to_cpc_model(&mut dag, &mut clone_dag, &mut 0);
         for node_i in dag.node_indices() {
             assert_eq!(
                 dag[node_i].params["priority"],
@@ -248,7 +244,7 @@ mod tests {
         let mut clone_dag = dag.clone();
         let expected_value = vec![0, 1, 2, 8, 6, 3, 7, 4, 5];
 
-        assign_priority_cpc_model(&mut dag, &mut clone_dag, &mut 0);
+        assign_priority_to_cpc_model(&mut dag, &mut clone_dag, &mut 0);
         for node_i in dag.node_indices() {
             assert_eq!(
                 dag[node_i].params["priority"],
@@ -263,7 +259,7 @@ mod tests {
         let mut clone_dag = dag.clone();
         let expected_value = vec![0, 1, 2, 8, 6, 3, 7, 4, 5];
 
-        assign_priority_cpc_model(&mut dag, &mut clone_dag, &mut 0);
+        assign_priority_to_cpc_model(&mut dag, &mut clone_dag, &mut 0);
         for node_i in dag.node_indices() {
             assert_eq!(
                 dag[node_i].params["priority"],
