@@ -41,6 +41,7 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
+    fn get_offset(&self) -> i32;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -360,6 +361,15 @@ impl GraphExtension for Graph<NodeData, i32> {
         } else {
             Some(period_map)
         }
+    }
+
+    fn get_offset(&self) -> i32 {
+        self.node_indices()
+            .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
+            .or_else(|| {
+                warn!("The end-to-end deadline does not exist.");
+                0
+            })
     }
 
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
