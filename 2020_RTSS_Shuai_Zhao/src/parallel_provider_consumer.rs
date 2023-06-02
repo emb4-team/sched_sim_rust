@@ -17,7 +17,7 @@ pub fn get_providers(
     dag: &Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
 ) -> Vec<Vec<NodeIndex>> {
-    let mut deque_critical_path: VecDeque<_> = critical_path.iter().copied().collect();
+    let mut deque_critical_path: VecDeque<NodeIndex> = critical_path.iter().copied().collect();
     let mut providers: Vec<Vec<NodeIndex>> = Vec::new();
     while !deque_critical_path.is_empty() {
         let mut provider = vec![deque_critical_path.pop_front().unwrap()];
@@ -192,8 +192,8 @@ mod tests {
 
     #[test]
     fn test_get_providers_normal() {
-        let dag = create_sample_dag();
-        let critical_path = dag.clone().get_critical_path();
+        let mut dag = create_sample_dag();
+        let critical_path = dag.get_critical_path();
         let providers = get_providers(&dag, &critical_path);
         assert_eq!(providers.len(), 4);
 
@@ -206,8 +206,8 @@ mod tests {
 
     #[test]
     fn test_get_providers_dag_not_consolidated() {
-        let dag = create_sample_dag_not_consolidated();
-        let critical_path = dag.clone().get_critical_path();
+        let mut dag = create_sample_dag_not_consolidated();
+        let critical_path = dag.get_critical_path();
         let providers = get_providers(&dag, &critical_path);
         assert_eq!(providers.len(), 3);
 
@@ -219,7 +219,7 @@ mod tests {
     #[test]
     fn test_get_f_consumers_normal() {
         let mut dag = create_sample_dag();
-        let critical_path = dag.clone().get_critical_path();
+        let critical_path = dag.get_critical_path();
         let providers = get_providers(&dag, &critical_path);
         let f_consumers = get_f_consumers(&mut dag, &critical_path);
 
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();
-        let critical_path = dag.clone().get_critical_path();
+        let critical_path = dag.get_critical_path();
         let providers = get_providers(&dag, critical_path.clone());
         let g_consumers = get_g_consumers(dag, critical_path);
 
