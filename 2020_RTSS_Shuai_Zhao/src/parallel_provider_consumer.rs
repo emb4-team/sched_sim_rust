@@ -15,9 +15,9 @@ use petgraph::graph::{Graph, NodeIndex};
 /// capacity provider is a sub paths of the critical path
 pub fn get_providers(
     dag: &Graph<NodeData, i32>,
-    critical_path: Vec<NodeIndex>,
+    critical_path: &[NodeIndex],
 ) -> Vec<Vec<NodeIndex>> {
-    let mut deque_critical_path = VecDeque::from(critical_path);
+    let mut deque_critical_path: VecDeque<_> = critical_path.iter().copied().collect();
     let mut providers: Vec<Vec<NodeIndex>> = Vec::new();
     while !deque_critical_path.is_empty() {
         let mut provider = vec![deque_critical_path.pop_front().unwrap()];
@@ -37,12 +37,12 @@ pub fn get_providers(
 #[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
-    critical_path: Vec<NodeIndex>,
+    critical_path: &[NodeIndex],
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let providers = get_providers(dag, critical_path.clone());
+    let providers = get_providers(dag, critical_path);
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes: HashSet<_> = dag
-        .get_non_critical_nodes(critical_path)
+        .get_non_critical_nodes(critical_path.to_vec())
         .unwrap()
         .into_iter()
         .collect();
@@ -114,13 +114,14 @@ mod tests {
     use super::*;
     use std::collections::HashMap;
 
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, i32> {
-        fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-            let mut params = HashMap::new();
-            params.insert(key.to_string(), value);
-            NodeData { id, params }
-        }
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1));
@@ -165,11 +166,35 @@ mod tests {
         dag
     }
 
+    fn create_sample_dag_not_consolidated() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
+
+        //cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 3));
+        let c1 = dag.add_node(create_node(1, "execution_time", 1));
+        let c2 = dag.add_node(create_node(2, "execution_time", 3));
+        //nY_X is the Yth preceding node of cX.
+        let n0_1 = dag.add_node(create_node(3, "execution_time", 2));
+        let n0_2 = dag.add_node(create_node(4, "execution_time", 1));
+        //Independent Node
+        dag.add_node(create_node(5, "execution_time", 2));
+
+        //create critical path edges
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+        //create non-critical path edges
+        dag.add_edge(n0_1, c1, 1);
+        dag.add_edge(n0_1, n0_2, 1);
+        dag.add_edge(n0_2, c2, 1);
+
+        dag
+    }
+
     #[test]
     fn test_get_providers_normal() {
         let dag = create_sample_dag();
         let critical_path = dag.clone().get_critical_path();
-        let providers = get_providers(&dag, critical_path);
+        let providers = get_providers(&dag, &critical_path);
         assert_eq!(providers.len(), 4);
 
         assert_eq!(providers[0][0].index(), 0);
@@ -180,11 +205,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get_providers_dag_not_consolidated() {
+        let dag = create_sample_dag_not_consolidated();
+        let critical_path = dag.clone().get_critical_path();
+        let providers = get_providers(&dag, &critical_path);
+        assert_eq!(providers.len(), 3);
+
+        assert_eq!(providers[0][0].index(), 0);
+        assert_eq!(providers[1][0].index(), 1);
+        assert_eq!(providers[2][0].index(), 2);
+    }
+
+    #[test]
     fn test_get_f_consumers_normal() {
         let mut dag = create_sample_dag();
         let critical_path = dag.clone().get_critical_path();
-        let providers = get_providers(&dag, critical_path.clone());
-        let f_consumers = get_f_consumers(&mut dag, critical_path);
+        let providers = get_providers(&dag, &critical_path);
+        let f_consumers = get_f_consumers(&mut dag, &critical_path);
 
         assert_eq!(f_consumers.len(), 3);
         assert_eq!(f_consumers[&providers[0]].len(), 2);
@@ -201,6 +238,20 @@ mod tests {
         assert_eq!(f_consumers[&providers[2]][2].index(), 10);
     }
 
+    #[test]
+    fn test_get_f_consumers_dag_not_consolidated() {
+        let mut dag = create_sample_dag_not_consolidated();
+        let critical_path = dag.get_critical_path();
+        let providers = get_providers(&dag, &critical_path);
+        let f_consumers = get_f_consumers(&mut dag, &critical_path);
+
+        assert_eq!(f_consumers.len(), 2);
+        assert_eq!(f_consumers[&providers[0]].len(), 1);
+        assert_eq!(f_consumers[&providers[1]].len(), 1);
+
+        assert_eq!(f_consumers[&providers[0]][0].index(), 3);
+        assert_eq!(f_consumers[&providers[1]][0].index(), 4);
+    }
     /*
     #[test]
     fn test_get_g_consumers_normal() {
