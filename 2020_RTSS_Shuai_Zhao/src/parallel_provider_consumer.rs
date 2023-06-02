@@ -42,7 +42,7 @@ pub fn get_f_consumers(
     let providers = get_providers(dag, critical_path);
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes: HashSet<_> = dag
-        .get_non_critical_nodes(critical_path.to_vec())
+        .get_non_critical_nodes(critical_path)
         .unwrap()
         .into_iter()
         .collect();
