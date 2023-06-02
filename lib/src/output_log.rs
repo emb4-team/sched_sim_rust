@@ -98,7 +98,6 @@ mod tests {
     use crate::homogeneous;
 
     use super::*;
-    #[allow(unused_imports)]
     use std::{collections::HashMap, fs::remove_file, thread, time::Duration};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
