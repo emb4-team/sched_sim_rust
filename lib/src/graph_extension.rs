@@ -365,7 +365,7 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn get_head_offset(&self) -> Option<i32> {
         let source_nodes = self.get_source_nodes();
-        let mut periods: Vec<i32> = source_nodes
+        let mut offsets: Vec<i32> = source_nodes
             .iter()
             .filter_map(|&node| {
                 self.node_weight(node)
@@ -376,15 +376,15 @@ impl GraphExtension for Graph<NodeData, i32> {
         if source_nodes.len() > 1 {
             warn!("Multiple source nodes found.");
         }
-        if periods.len() > 1 {
-            warn!("Multiple periods found.");
+        if offsets.len() > 1 {
+            warn!("Multiple offsets found.");
         }
-        if periods.is_empty() {
-            warn!("No period found.");
-            periods.push(0)
+        if offsets.is_empty() {
+            warn!("No offset found.");
+            offsets.push(0)
         }
 
-        periods.first().cloned()
+        offsets.first().cloned()
     }
 
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
