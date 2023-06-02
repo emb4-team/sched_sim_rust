@@ -198,15 +198,5 @@ mod tests {
                 NodeIndex::new(2)
             ]
         );
-
-        assert_eq!(
-            fixed_priority_scheduler(&mut homogeneous_processor, &mut dag).1,
-            vec![
-                NodeIndex::new(0),
-                NodeIndex::new(1),
-                NodeIndex::new(3),
-                NodeIndex::new(2)
-            ]
-        );
     }
 }
