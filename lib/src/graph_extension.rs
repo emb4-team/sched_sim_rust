@@ -41,7 +41,7 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
-    fn get_head_offset(&self) -> Option<i32>;
+    fn get_head_offset(&self) -> i32;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -363,7 +363,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn get_head_offset(&self) -> Option<i32> {
+    fn get_head_offset(&self) -> i32 {
         let source_nodes = self.get_source_nodes();
         let mut offsets: Vec<i32> = source_nodes
             .iter()
@@ -384,7 +384,7 @@ impl GraphExtension for Graph<NodeData, i32> {
             offsets.push(0)
         }
 
-        offsets.first().cloned()
+        offsets.first().cloned().unwrap()
     }
 
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
@@ -838,7 +838,7 @@ mod tests {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "offset", 3));
 
-        assert_eq!(dag.get_head_offset(), Some(3));
+        assert_eq!(dag.get_head_offset(), 3);
     }
 
     #[test]
@@ -847,14 +847,14 @@ mod tests {
         dag.add_node(create_node(0, "offset", 3));
         dag.add_node(create_node(1, "offset", 2));
 
-        assert_eq!(dag.get_head_offset(), Some(3));
+        assert_eq!(dag.get_head_offset(), 3);
     }
 
     #[test]
     fn test_get_offset_no_exist() {
         let dag = Graph::<NodeData, i32>::new();
 
-        assert_eq!(dag.get_head_offset(), Some(0));
+        assert_eq!(dag.get_head_offset(), 0);
     }
 
     #[test]
