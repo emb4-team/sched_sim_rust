@@ -611,6 +611,14 @@ mod tests {
         dag.remove_nodes(&[n1, n2]);
         assert_eq!(dag.node_count(), 1);
         assert_eq!(dag.edge_count(), 0);
+        assert_eq!(dag[n0].id, 0);
+
+        fn contains(dag: &Graph<NodeData, i32>, node: NodeIndex) -> bool {
+            dag.node_indices().any(|i| i == node)
+        }
+
+        assert!(!contains(&dag, n1));
+        assert!(!contains(&dag, n2));
     }
 
     #[test]
