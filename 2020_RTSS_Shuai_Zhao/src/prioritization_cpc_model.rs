@@ -31,7 +31,8 @@ fn assign_priority_to_node(
 ) {
     for &node_i in node_indices {
         let node_id = dag[node_i].id as usize;
-        if original_dag.add_param(NodeIndex::new(node_id), "priority", *priority) {
+        if !dag[node_i].params.contains_key("priority") {
+            original_dag.add_param(NodeIndex::new(node_id), "priority", *priority);
             *priority += 1;
         }
     }
