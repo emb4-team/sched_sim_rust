@@ -32,6 +32,7 @@ pub trait GraphExtension {
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&mut self, critical_path: Vec<NodeIndex>) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -143,6 +144,12 @@ impl GraphExtension for Graph<NodeData, i32> {
             self.remove_node(dummy_sink_node);
         } else {
             panic!("The dummy sink node does not exist.");
+        }
+    }
+
+    fn remove_nodes(&mut self, node_indices: &[NodeIndex]) {
+        for node_i in node_indices.iter().rev() {
+            self.remove_node(*node_i);
         }
     }
     /// Returns the critical path of a DAG
@@ -590,6 +597,20 @@ mod tests {
 
         dag.remove_dummy_source_node();
         dag.remove_dummy_sink_node();
+    }
+
+    #[test]
+    fn test_remove_nodes_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 3));
+        let n1 = dag.add_node(create_node(1, "execution_time", 6));
+        let n2 = dag.add_node(create_node(2, "execution_time", 45));
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+
+        dag.remove_nodes(&[n1, n2]);
+        assert_eq!(dag.node_count(), 1);
+        assert_eq!(dag.edge_count(), 0);
     }
 
     #[test]
