@@ -41,7 +41,7 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
-    fn get_offset(&self) -> i32;
+    fn get_head_offset(&self) -> Option<i32>;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -363,13 +363,28 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn get_offset(&self) -> i32 {
-        self.node_indices()
-            .find_map(|i| self[i].params.get("offset").cloned())
-            .unwrap_or_else(|| {
-                warn!("The offset does not exist.");
-                0
+    fn get_head_offset(&self) -> Option<i32> {
+        let source_nodes = self.get_source_nodes();
+        let mut periods: Vec<i32> = source_nodes
+            .iter()
+            .filter_map(|&node| {
+                self.node_weight(node)
+                    .and_then(|node_data| node_data.params.get("offset").cloned())
             })
+            .collect();
+
+        if source_nodes.len() > 1 {
+            warn!("Multiple source nodes found.");
+        }
+        if periods.len() > 1 {
+            warn!("Multiple periods found.");
+        }
+        if periods.is_empty() {
+            warn!("No period found.");
+            periods.push(0)
+        }
+
+        periods.first().cloned()
     }
 
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
@@ -823,14 +838,23 @@ mod tests {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "offset", 3));
 
-        assert_eq!(dag.get_offset(), 3);
+        assert_eq!(dag.get_head_offset(), Some(3));
+    }
+
+    #[test]
+    fn test_get_offset_multiple() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+        dag.add_node(create_node(1, "offset", 2));
+
+        assert_eq!(dag.get_head_offset(), Some(3));
     }
 
     #[test]
     fn test_get_offset_no_exist() {
         let dag = Graph::<NodeData, i32>::new();
 
-        assert_eq!(dag.get_offset(), 0);
+        assert_eq!(dag.get_head_offset(), Some(0));
     }
 
     #[test]
