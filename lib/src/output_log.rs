@@ -98,7 +98,7 @@ mod tests {
     use crate::homogeneous;
 
     use super::*;
-    use std::{collections::HashMap, fs::remove_file, thread, time::Duration};
+    use std::{collections::HashMap, fs::remove_file};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
