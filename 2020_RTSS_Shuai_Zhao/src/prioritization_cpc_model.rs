@@ -31,16 +31,6 @@ fn convert_node_index_to_id(node_indices: &[NodeIndex], dag: &Graph<NodeData, i3
         .collect::<Vec<_>>()
 }
 
-fn remove_nodes_with_priority(dag: &mut Graph<NodeData, i32>, path: &mut Vec<NodeIndex>) {
-    for node_i in dag.node_indices() {
-        if dag[node_i].params.contains_key("priority") {
-            if let Some(position) = path.iter().position(|x| *x == node_i) {
-                path.remove(position);
-            }
-        }
-    }
-}
-
 fn remove_ids_with_priority(dag: &mut Graph<NodeData, i32>, ids: &mut Vec<usize>) {
     for node_i in dag.node_indices() {
         if dag[node_i].params.contains_key("priority") {
@@ -77,7 +67,7 @@ pub fn assign_priority_cpc_model(
         if let Some(f_consumer) = f_consumers.get_mut(&provider) {
             let mut f_consumer_dag = create_shrunk_dag(&mut dag.clone(), f_consumer.to_vec());
 
-            while !f_consumer.is_empty() {
+            while f_consumer_dag.node_count() != 0 {
                 let f_consumer_critical_path = f_consumer_dag.get_critical_path();
 
                 critical_path_ids =
@@ -98,9 +88,6 @@ pub fn assign_priority_cpc_model(
 
                 //Rule 3. give high priority to the nodes in the longest path
                 assign_priority_to_id(original_dag, &critical_path_ids, priority);
-
-                //remove the nodes in the longest path from the f-consumer
-                remove_nodes_with_priority(original_dag, f_consumer);
 
                 for node_i in f_consumer_critical_path {
                     f_consumer_dag.remove_node(node_i);
