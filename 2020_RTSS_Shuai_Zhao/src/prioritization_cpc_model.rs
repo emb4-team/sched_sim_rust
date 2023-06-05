@@ -58,7 +58,7 @@ fn assign_priority_to_cpc_model_core(
     let f_consumers = get_f_consumers(shrunk_dag, &critical_path);
 
     //Rule 1. Priority is given to critical nodes
-    let original_critical_path = convert_shrunk_indices_to_original(shrunk_dag, &critical_path);
+    let mut original_critical_path = convert_shrunk_indices_to_original(shrunk_dag, &critical_path);
     prioritize_path_from_head_with_increment(original_dag, &original_critical_path, priority);
 
     //Rule 2. Priority is given to consumers for providers located before
@@ -79,7 +79,7 @@ fn assign_priority_to_cpc_model_core(
                 }
 
                 //Rule 3. give high priority to the nodes in the longest path
-                let original_critical_path =
+                original_critical_path =
                     convert_shrunk_indices_to_original(&f_consumer_dag, &f_consumer_critical_path);
                 prioritize_path_from_head_with_increment(
                     original_dag,
