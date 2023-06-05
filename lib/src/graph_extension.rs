@@ -247,7 +247,9 @@ impl GraphExtension for Graph<NodeData, i32> {
         while let Some((node, mut current_critical_path)) = path_search_queue.pop_front() {
             let outgoing_edges = self.edges_directed(node, Outgoing);
 
-            if outgoing_edges.clone().count() == 0 {
+            let outgoing_edges: Vec<_> = outgoing_edges.collect();
+
+            if outgoing_edges.is_empty() {
                 current_critical_path.pop(); // Remove the dummy sink node
                 current_critical_path.remove(0); // Remove the dummy source node
                 critical_path.push(current_critical_path);
