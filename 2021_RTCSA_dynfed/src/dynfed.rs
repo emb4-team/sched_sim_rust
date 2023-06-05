@@ -38,10 +38,10 @@ pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> usize {
     let mut min_num_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
     let mut homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
     let mut result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
-
     while result.0 > end_to_end_deadline {
         min_num_cores += 1;
         homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
+        println!("min_num_cores: {}", min_num_cores);
         result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
     }
 
