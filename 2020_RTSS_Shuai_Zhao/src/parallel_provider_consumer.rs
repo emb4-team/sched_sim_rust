@@ -38,7 +38,7 @@ pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(dag, critical_path);
+    let providers = get_providers(dag, critical_path);
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes: HashSet<_> = dag
         .get_non_critical_nodes(critical_path)
@@ -56,7 +56,7 @@ pub fn get_f_consumers(
                 }
             }
         }
-        f_consumers.insert(providers[p_i].drain(..).collect(), f_consumer);
+        f_consumers.insert(providers[p_i].clone(), f_consumer);
     }
 
     f_consumers
