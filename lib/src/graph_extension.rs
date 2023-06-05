@@ -17,11 +17,8 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub fn new(id: i32, params: &HashMap<String, i32>) -> NodeData {
-        NodeData {
-            id,
-            params: params.clone(),
-        }
+    pub fn new(id: i32, params: HashMap<String, i32>) -> NodeData {
+        NodeData { id, params }
     }
 }
 
@@ -84,7 +81,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let source_nodes = self.get_source_nodes();
         let dummy_source_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            &HashMap::from([
+            HashMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
             ]),
@@ -110,7 +107,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let sink_nodes = self.get_sink_nodes();
         let dummy_sink_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            &HashMap::from([
+            HashMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SINK_NODE_FLAG),
             ]),
@@ -175,7 +172,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     /// let mut params = HashMap::new();
     /// params.insert("execution_time".to_string(), 1);
     /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
-    /// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
+    /// let n1 = dag.add_node(NodeData { id: 1, params: params });
     /// dag.add_edge(n0, n1, 1);
     /// let critical_path = dag.get_critical_path();
     /// println!("The critical path is: {:?}", critical_path);
@@ -245,9 +242,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let mut critical_path = Vec::new();
 
         while let Some((node, mut current_critical_path)) = path_search_queue.pop_front() {
-            let outgoing_edges = self.edges_directed(node, Outgoing);
-
-            let outgoing_edges: Vec<_> = outgoing_edges.collect();
+            let outgoing_edges: Vec<_> = self.edges_directed(node, Outgoing).collect();
 
             if outgoing_edges.is_empty() {
                 current_critical_path.pop(); // Remove the dummy sink node
@@ -261,7 +256,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                     {
                         let mut new_critical_path = current_critical_path.clone();
                         new_critical_path.push(target_node);
-                        path_search_queue.push_back((target_node, new_critical_path));
+                        path_search_queue.push_back((target_node, new_critical_path.to_vec()));
                     }
                 }
             }
@@ -327,34 +322,33 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn get_end_to_end_deadline(&mut self) -> Option<i32> {
         self.node_indices()
-            .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .or_else(|| {
-                warn!("The end-to-end deadline does not exist.");
-                None
+            .find_map(|i| match self[i].params.get("end_to_end_deadline") {
+                Some(deadline) => Some(*deadline),
+                None => {
+                    warn!("The end-to-end deadline does not exist.");
+                    None
+                }
             })
     }
 
     fn get_head_period(&self) -> Option<i32> {
         let source_nodes = self.get_source_nodes();
-        let periods: Vec<i32> = source_nodes
+        let periods: Vec<&i32> = source_nodes
             .iter()
-            .filter_map(|&node| {
-                self.node_weight(node)
-                    .and_then(|node_data| node_data.params.get("period").cloned())
-            })
+            .filter_map(|&node_i| self[node_i].params.get("period"))
             .collect();
 
         if source_nodes.len() > 1 {
             warn!("Multiple source nodes found.");
         }
         if periods.len() > 1 {
-            warn!("Multiple periods found.");
+            warn!("Multiple periods found. The first offset is used.");
         }
         if periods.is_empty() {
             warn!("No period found.");
+            return None;
         }
-
-        periods.first().cloned()
+        Some(*periods[0])
     }
 
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>> {
