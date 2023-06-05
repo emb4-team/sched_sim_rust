@@ -42,6 +42,7 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
+    fn get_head_offset(&self) -> i32;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -366,6 +367,26 @@ impl GraphExtension for Graph<NodeData, i32> {
             None
         } else {
             Some(period_map)
+        }
+    }
+
+    fn get_head_offset(&self) -> i32 {
+        let source_nodes = self.get_source_nodes();
+        let offsets: Vec<&i32> = source_nodes
+            .iter()
+            .filter_map(|&node_i| self[node_i].params.get("offset"))
+            .collect();
+        if source_nodes.len() > 1 {
+            warn!("Multiple source nodes found.");
+        }
+        if offsets.len() > 1 {
+            warn!("Multiple offsets found. The first offset is used.");
+        }
+        if offsets.is_empty() {
+            warn!("No offset found. 0 is used");
+            0
+        } else {
+            *offsets[0]
         }
     }
 
@@ -835,6 +856,30 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3));
 
         assert_eq!(dag.get_all_periods(), None);
+    }
+
+    #[test]
+    fn test_get_offset_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+
+        assert_eq!(dag.get_head_offset(), 3);
+    }
+
+    #[test]
+    fn test_get_offset_multiple() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+        dag.add_node(create_node(1, "offset", 2));
+
+        assert_eq!(dag.get_head_offset(), 3);
+    }
+
+    #[test]
+    fn test_get_offset_no_exist() {
+        let dag = Graph::<NodeData, i32>::new();
+
+        assert_eq!(dag.get_head_offset(), 0);
     }
 
     #[test]
