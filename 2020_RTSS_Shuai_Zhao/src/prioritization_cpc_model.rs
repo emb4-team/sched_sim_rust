@@ -50,42 +50,45 @@ pub fn assign_priority_to_cpc_model(dag: &mut Graph<NodeData, i32>) {
 fn assign_priority_to_cpc_model_core(
     original_dag: &mut Graph<NodeData, i32>,
     shrunk_dag: &mut Graph<NodeData, i32>,
-    priority: &mut i32,
+    current_priority: &mut i32,
 ) {
     let critical_path = shrunk_dag.get_critical_path();
     let providers = get_providers(shrunk_dag, &critical_path);
     let f_consumers = get_f_consumers(shrunk_dag, &critical_path);
-
     //Rule 1. Priority is given to critical nodes
-    let mut original_critical_path = convert_shrunk_indices_to_original(shrunk_dag, &critical_path);
-    prioritize_path_from_head_with_increment(original_dag, &original_critical_path, priority);
-
+    prioritize_path_from_head_with_increment(
+        original_dag,
+        &convert_shrunk_indices_to_original(shrunk_dag, &critical_path),
+        current_priority,
+    );
     //Rule 2. Priority is given to consumers for providers located before
     for provider in providers {
         if let Some(f_consumer) = f_consumers.get(&provider) {
             let mut f_consumer_dag = create_shrunk_dag(shrunk_dag, f_consumer.to_vec());
-
             while f_consumer_dag.node_count() != 0 {
                 let f_consumer_critical_path = f_consumer_dag.get_critical_path();
-
                 //recursion if there are dependencies in the f-consumer.
                 if f_consumer_critical_path.iter().any(|&node_i| {
                     f_consumer_dag
                         .get_pre_nodes(node_i)
                         .map_or(false, |pre_nodes| pre_nodes.len() > 1)
                 }) {
-                    assign_priority_to_cpc_model_core(original_dag, &mut f_consumer_dag, priority);
+                    assign_priority_to_cpc_model_core(
+                        original_dag,
+                        &mut f_consumer_dag,
+                        current_priority,
+                    );
+                } else {
+                    //Rule 3. give high priority to the nodes in the longest path
+                    prioritize_path_from_head_with_increment(
+                        original_dag,
+                        &convert_shrunk_indices_to_original(
+                            &f_consumer_dag,
+                            &f_consumer_critical_path,
+                        ),
+                        current_priority,
+                    );
                 }
-
-                //Rule 3. give high priority to the nodes in the longest path
-                original_critical_path =
-                    convert_shrunk_indices_to_original(&f_consumer_dag, &f_consumer_critical_path);
-                prioritize_path_from_head_with_increment(
-                    original_dag,
-                    &original_critical_path,
-                    priority,
-                );
-
                 f_consumer_dag.remove_nodes(&f_consumer_critical_path);
             }
         }
