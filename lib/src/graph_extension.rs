@@ -256,7 +256,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                     {
                         let mut new_critical_path = current_critical_path.clone();
                         new_critical_path.push(target_node);
-                        path_search_queue.push_back((target_node, new_critical_path.to_vec()));
+                        path_search_queue.push_back((target_node, new_critical_path));
                     }
                 }
             }
