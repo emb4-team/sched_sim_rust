@@ -26,20 +26,26 @@ use petgraph::graph::{Graph, NodeIndex};
 /// Refer to the examples in the tests code.
 ///
 #[allow(dead_code)] // TODO: remove
-pub fn calculate_execution_order_minimum_cores(dag: &mut Graph<NodeData, i32>) -> Vec<NodeIndex> {
+pub fn get_execution_order(dag: &mut Graph<NodeData, i32>, num_cores: usize) -> Vec<NodeIndex> {
+    let mut homogeneous_processor = HomogeneousProcessor::new(num_cores);
+    fixed_priority_scheduler(&mut homogeneous_processor, dag).1
+}
+
+#[allow(dead_code)] // TODO: remove
+pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> usize {
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
-    let mut min_number_of_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    let mut homogeneous_processor = HomogeneousProcessor::new(min_number_of_cores);
+    let mut min_num_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
+    let mut homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
     let mut result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
 
     while result.0 > end_to_end_deadline {
-        min_number_of_cores += 1;
-        homogeneous_processor = HomogeneousProcessor::new(min_number_of_cores);
+        min_num_cores += 1;
+        homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
         result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
     }
 
-    result.1
+    min_num_cores
 }
 
 #[cfg(test)]
@@ -54,8 +60,7 @@ mod tests {
         NodeData { id, params }
     }
 
-    #[test]
-    fn test_calculate_execution_order_minimum_cores_normal() {
+    fn create_sample_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
@@ -76,7 +81,21 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let result = calculate_execution_order_minimum_cores(&mut dag);
+        dag
+    }
+
+    #[test]
+    fn test_get_min_num_cores_normal() {
+        let mut dag = create_sample_dag();
+        let result = get_min_mum_cores(&mut dag);
+
+        assert_eq!(result, 3);
+    }
+
+    #[test]
+    fn test_calculate_execution_order_normal() {
+        let mut dag = create_sample_dag();
+        let result = get_execution_order(&mut dag, 3);
 
         assert_eq!(
             result,
