@@ -47,6 +47,8 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> (i32, Vec<NodeIndex>) {
+    //1. Cloneをする #TODO remove
+    //2. DAGのpre_done_countをリセットする #TODO remove
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -122,6 +124,7 @@ pub fn fixed_priority_scheduler(
                     dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
                 }
                 let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
+                // 2. ==ではなく<=にする #TODO remove
                 if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
                     ready_queue.push_back(suc_node);
                 }
@@ -132,6 +135,8 @@ pub fn fixed_priority_scheduler(
     //remove dummy nodes
     dag.remove_dummy_sink_node();
     dag.remove_dummy_source_node();
+
+    //4. DAGのpre_done_countをリセットする #TODO remove
 
     //Remove the dummy source node from the execution order.
     execution_order.remove(0);
