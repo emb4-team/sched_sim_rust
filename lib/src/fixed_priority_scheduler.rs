@@ -20,24 +20,24 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 /// # Returns
 ///
 /// * A floating point number representing the normalized total time taken to finish all tasks.
+/// * A vector of NodeIndex, representing the order of tasks finished.
 ///
 /// # Description
 ///
-/// The function first initializes a ready queue and a list of finished tasks, sets the time to 0,
-/// calculates the minimum_multiplier from the dag set and sets it to the processor.
+/// The function `fixed_priority_scheduler` is responsible for task scheduling based on a Directed Acyclic Graph (DAG).
+/// Specifically, it schedules tasks, associated with priority, on a processor, and continues to do so until all tasks have been executed.
+/// The tasks are scheduled in order of their priority, from highest to lowest (smaller values have higher priority).
 ///
-/// Then, it enters a loop that continues until all tasks are finished.
-/// In each iteration, it finds the tasks whose predecessors have all finished and adds them to the ready queue.
-/// Afterward, it sorts the ready queue by the priority of tasks.
+/// Initially, a processor and a DAG are passed to this function.
+/// Dummy source and sink nodes are added to the DAG. These nodes symbolize the start and end points of the tasks, respectively.
+/// In the main loop of the function, the following operations are carried out:
 ///
-/// When there is an idle core, it assigns the first task in the ready queue to the idle core.
+/// 1. Nodes representing tasks that are ready to be scheduled are sorted by their priority.
+/// 2. If there is an idle core available, the task with the highest priority is allocated to it.
+/// 3. The processor processes for a single unit of time. This is repeated until all tasks are completed.
+/// 4. Once all tasks are completed, dummy source and sink nodes are removed from the DAG.
 ///
-/// Then it processes tasks for one time unit and checks if there are tasks finished.
-/// If no tasks finish in this time unit, it continues processing tasks until there are tasks finished.
-///
-/// When a task finishes, it adds the task to the finished tasks list.
-///
-/// Finally, the function returns the total time taken to finish all tasks divided by the minimum_multiplier.
+/// The function returns the total time taken to complete all tasks (excluding the execution time of the dummy tasks) and the order in which the tasks were executed.
 ///
 /// # Example
 ///
