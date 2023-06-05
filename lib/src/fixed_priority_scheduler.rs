@@ -78,7 +78,7 @@ pub fn fixed_priority_scheduler(
         //Assign the highest priority task first to the first idle core found.
         while let Some(core_index) = processor.get_idle_core_index() {
             if let Some(task) = ready_queue.pop_front() {
-                processor.allocate(core_index, dag[task].clone());
+                processor.allocate(core_index, &dag[task]);
                 execution_order.push(task);
             } else {
                 break;
