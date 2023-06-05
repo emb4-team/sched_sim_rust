@@ -39,7 +39,7 @@ pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let providers = get_providers(dag, critical_path);
+    let mut providers = get_providers(dag, critical_path);
     let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes: HashSet<_> = dag
         .get_non_critical_nodes(critical_path)
@@ -57,7 +57,7 @@ pub fn get_f_consumers(
                 }
             }
         }
-        f_consumers.insert(providers[p_i].clone(), f_consumer.clone());
+        f_consumers.insert(providers[p_i].drain(..).collect(), f_consumer);
     }
 
     f_consumers
@@ -72,8 +72,8 @@ pub fn get_g_consumers(
     mut dag: Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(&dag, critical_path.clone());
-    let f_consumers = get_f_consumers(&mut dag, critical_path.clone());
+    let mut providers = get_providers(&dag, critical_path);
+    let f_consumers = get_f_consumers(&mut dag, critical_path);
     let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     while !providers.is_empty() {
@@ -257,7 +257,7 @@ mod tests {
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();
         let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, critical_path.clone());
+        let providers = get_providers(&dag, critical_path);
         let g_consumers = get_g_consumers(dag, critical_path);
 
         assert_eq!(g_consumers.len(), 4);
