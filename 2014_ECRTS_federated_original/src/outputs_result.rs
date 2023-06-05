@@ -75,12 +75,12 @@ mod tests {
     #[test]
     fn test_dump_federated_result_to_file_normal() {
         let number_of_cores = 40;
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_high_utilization_dag(),
             create_low_utilization_dag(),
         ];
-        let result = crate::federated::federated(dag_set, number_of_cores);
+        let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_dump_federated_info_normal");
         dump_federated_result_to_file(&file_path, result);
 
@@ -101,12 +101,12 @@ mod tests {
     #[test]
     fn test_dump_federated_result_to_file_lack_cores_for_high_tasks() {
         let number_of_cores = 1;
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_high_utilization_dag(),
             create_low_utilization_dag(),
         ];
-        let result = crate::federated::federated(dag_set, number_of_cores);
+        let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_high_tasks");
         dump_federated_result_to_file(&file_path, result);
 
@@ -127,12 +127,12 @@ mod tests {
     #[test]
     fn test_dump_federated_result_to_file_lack_cores_for_low_tasks() {
         let number_of_cores = 3;
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_low_utilization_dag(),
             create_low_utilization_dag(),
         ];
-        let result = crate::federated::federated(dag_set, number_of_cores);
+        let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
         dump_federated_result_to_file(&file_path, result);
 
@@ -153,8 +153,8 @@ mod tests {
     #[test]
     fn test_dump_federated_result_to_file_unsuited_tasks() {
         let number_of_cores = 1;
-        let dag_set = vec![create_period_exceeding_dag()];
-        let result = crate::federated::federated(dag_set, number_of_cores);
+        let mut dag_set = vec![create_period_exceeding_dag()];
+        let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path = create_yaml_file("../outputs", "test_federated_unsuited_tasks");
         dump_federated_result_to_file(&file_path, result);
 
