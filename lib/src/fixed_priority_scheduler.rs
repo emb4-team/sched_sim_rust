@@ -20,24 +20,24 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 /// # Returns
 ///
 /// * A floating point number representing the normalized total time taken to finish all tasks.
+/// * A vector of NodeIndex, representing the order of tasks finished.
 ///
 /// # Description
 ///
-/// The function first initializes a ready queue and a list of finished tasks, sets the time to 0,
-/// calculates the minimum_multiplier from the dag set and sets it to the processor.
+/// The function `fixed_priority_scheduler` is responsible for task scheduling based on a Directed Acyclic Graph (DAG).
+/// Specifically, it schedules tasks, associated with priority, on a processor, and continues to do so until all tasks have been executed.
+/// The tasks are scheduled in order of their priority, from highest to lowest (smaller values have higher priority).
 ///
-/// Then, it enters a loop that continues until all tasks are finished.
-/// In each iteration, it finds the tasks whose predecessors have all finished and adds them to the ready queue.
-/// Afterward, it sorts the ready queue by the priority of tasks.
+/// Initially, a processor and a DAG are passed to this function.
+/// Dummy source and sink nodes are added to the DAG. These nodes symbolize the start and end points of the tasks, respectively.
+/// In the main loop of the function, the following operations are carried out:
 ///
-/// When there is an idle core, it assigns the first task in the ready queue to the idle core.
+/// 1. Nodes representing tasks that are ready to be scheduled are sorted by their priority.
+/// 2. If there is an idle core available, the task with the highest priority is allocated to it.
+/// 3. The processor processes for a single unit of time. This is repeated until all tasks are completed.
+/// 4. Once all tasks are completed, dummy source and sink nodes are removed from the DAG.
 ///
-/// Then it processes tasks for one time unit and checks if there are tasks finished.
-/// If no tasks finish in this time unit, it continues processing tasks until there are tasks finished.
-///
-/// When a task finishes, it adds the task to the finished tasks list.
-///
-/// Finally, the function returns the total time taken to finish all tasks divided by the minimum_multiplier.
+/// The function returns the total time taken to complete all tasks (excluding the execution time of the dummy tasks) and the order in which the tasks were executed.
 ///
 /// # Example
 ///
@@ -51,7 +51,6 @@ pub fn fixed_priority_scheduler(
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-    let mut finish_flag = false;
     let source_node = dag.add_dummy_source_node();
 
     dag[source_node]
@@ -110,13 +109,13 @@ pub fn fixed_priority_scheduler(
             })
             .collect();
 
+        if finish_nodes.len() == 1 && dag.get_suc_nodes(finish_nodes[0]).is_none() {
+            break; // The scheduling has finished because the dummy sink node has completed.
+        }
+
         //Executable if all predecessor nodes are done
         for finish_node in finish_nodes {
             let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
-            if suc_nodes.is_empty() {
-                finish_flag = true;
-                break; // The scheduling has finished because the dummy sink node has completed.
-            }
             for suc_node in suc_nodes {
                 if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
                     *value += 1;
@@ -129,19 +128,16 @@ pub fn fixed_priority_scheduler(
                 }
             }
         }
-        if finish_flag {
-            break; // The scheduling has finished because the dummy sink node has completed.
-        }
     }
+
+    //remove dummy nodes
+    dag.remove_dummy_sink_node();
+    dag.remove_dummy_source_node();
 
     //Remove the dummy source node from the execution order.
     execution_order.remove(0);
     //Remove the dummy sink node from the execution order.
     execution_order.pop();
-
-    //remove dummy nodes
-    dag.remove_dummy_sink_node();
-    dag.remove_dummy_source_node();
 
     //Return the normalized total time taken to finish all tasks.
     (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
@@ -224,10 +220,8 @@ mod tests {
         dag.add_edge(c0, n1_0, 1);
 
         let mut homogeneous_processor = HomogeneousProcessor::new(3);
-
         let result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
         assert_eq!(result.0, 92);
-
         assert_eq!(
             result.1,
             vec![
