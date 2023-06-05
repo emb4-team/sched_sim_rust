@@ -365,26 +365,22 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn get_head_offset(&self) -> i32 {
         let source_nodes = self.get_source_nodes();
-        let mut offsets: Vec<i32> = source_nodes
+        let offsets: Vec<&i32> = source_nodes
             .iter()
-            .filter_map(|&node| {
-                self.node_weight(node)
-                    .and_then(|node_data| node_data.params.get("offset").cloned())
-            })
+            .filter_map(|&node_i| self[node_i].params.get("offset"))
             .collect();
-
         if source_nodes.len() > 1 {
             warn!("Multiple source nodes found.");
         }
         if offsets.len() > 1 {
-            warn!("Multiple offsets found.");
+            warn!("Multiple offsets found. The first offset is used.");
         }
         if offsets.is_empty() {
-            warn!("No offset found.");
-            offsets.push(0)
+            warn!("No offset found. 0 is used");
+            0
+        } else {
+            *offsets[0]
         }
-
-        offsets.first().cloned().unwrap()
     }
 
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>> {
