@@ -17,11 +17,8 @@ pub struct NodeData {
 }
 
 impl NodeData {
-    pub fn new(id: i32, params: &HashMap<String, i32>) -> NodeData {
-        NodeData {
-            id,
-            params: params.clone(),
-        }
+    pub fn new(id: i32, params: HashMap<String, i32>) -> NodeData {
+        NodeData { id, params }
     }
 }
 
@@ -42,6 +39,7 @@ pub trait GraphExtension {
     fn get_end_to_end_deadline(&mut self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
+    fn get_head_offset(&self) -> i32;
     fn get_pre_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_suc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
@@ -84,7 +82,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let source_nodes = self.get_source_nodes();
         let dummy_source_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            &HashMap::from([
+            HashMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
             ]),
@@ -110,7 +108,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let sink_nodes = self.get_sink_nodes();
         let dummy_sink_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            &HashMap::from([
+            HashMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SINK_NODE_FLAG),
             ]),
@@ -175,7 +173,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     /// let mut params = HashMap::new();
     /// params.insert("execution_time".to_string(), 1);
     /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
-    /// let n1 = dag.add_node(NodeData { id: 1, params: params.clone() });
+    /// let n1 = dag.add_node(NodeData { id: 1, params: params });
     /// dag.add_edge(n0, n1, 1);
     /// let critical_path = dag.get_critical_path();
     /// println!("The critical path is: {:?}", critical_path);
@@ -245,9 +243,9 @@ impl GraphExtension for Graph<NodeData, i32> {
         let mut critical_path = Vec::new();
 
         while let Some((node, mut current_critical_path)) = path_search_queue.pop_front() {
-            let outgoing_edges = self.edges_directed(node, Outgoing);
+            let outgoing_edges: Vec<_> = self.edges_directed(node, Outgoing).collect();
 
-            if outgoing_edges.clone().count() == 0 {
+            if outgoing_edges.is_empty() {
                 current_critical_path.pop(); // Remove the dummy sink node
                 current_critical_path.remove(0); // Remove the dummy source node
                 critical_path.push(current_critical_path);
@@ -325,34 +323,33 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn get_end_to_end_deadline(&mut self) -> Option<i32> {
         self.node_indices()
-            .find_map(|i| self[i].params.get("end_to_end_deadline").cloned())
-            .or_else(|| {
-                warn!("The end-to-end deadline does not exist.");
-                None
+            .find_map(|i| match self[i].params.get("end_to_end_deadline") {
+                Some(end_to_end_deadline) => Some(*end_to_end_deadline),
+                None => {
+                    warn!("The end-to-end deadline does not exist.");
+                    None
+                }
             })
     }
 
     fn get_head_period(&self) -> Option<i32> {
         let source_nodes = self.get_source_nodes();
-        let periods: Vec<i32> = source_nodes
+        let periods: Vec<&i32> = source_nodes
             .iter()
-            .filter_map(|&node| {
-                self.node_weight(node)
-                    .and_then(|node_data| node_data.params.get("period").cloned())
-            })
+            .filter_map(|&node_i| self[node_i].params.get("period"))
             .collect();
 
         if source_nodes.len() > 1 {
             warn!("Multiple source nodes found.");
         }
         if periods.len() > 1 {
-            warn!("Multiple periods found.");
+            warn!("Multiple periods found. The first period is used.");
         }
         if periods.is_empty() {
             warn!("No period found.");
+            return None;
         }
-
-        periods.first().cloned()
+        Some(*periods[0])
     }
 
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>> {
@@ -366,6 +363,26 @@ impl GraphExtension for Graph<NodeData, i32> {
             None
         } else {
             Some(period_map)
+        }
+    }
+
+    fn get_head_offset(&self) -> i32 {
+        let source_nodes = self.get_source_nodes();
+        let offsets: Vec<&i32> = source_nodes
+            .iter()
+            .filter_map(|&node_i| self[node_i].params.get("offset"))
+            .collect();
+        if source_nodes.len() > 1 {
+            warn!("Multiple source nodes found.");
+        }
+        if offsets.len() > 1 {
+            warn!("Multiple offsets found. The first offset is used.");
+        }
+        if offsets.is_empty() {
+            warn!("No offset found. 0 is used");
+            0
+        } else {
+            *offsets[0]
         }
     }
 
@@ -835,6 +852,30 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 3));
 
         assert_eq!(dag.get_all_periods(), None);
+    }
+
+    #[test]
+    fn test_get_offset_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+
+        assert_eq!(dag.get_head_offset(), 3);
+    }
+
+    #[test]
+    fn test_get_offset_multiple() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "offset", 3));
+        dag.add_node(create_node(1, "offset", 2));
+
+        assert_eq!(dag.get_head_offset(), 3);
+    }
+
+    #[test]
+    fn test_get_offset_no_exist() {
+        let dag = Graph::<NodeData, i32>::new();
+
+        assert_eq!(dag.get_head_offset(), 0);
     }
 
     #[test]
