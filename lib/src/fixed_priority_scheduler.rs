@@ -47,7 +47,6 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> (i32, Vec<NodeIndex>) {
-    //let mut dag = dag.clone();
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -116,7 +115,6 @@ pub fn fixed_priority_scheduler(
         //Executable if all predecessor nodes are done
         for finish_node in finish_nodes {
             let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
-            println!("suc_nodes: {:?}", suc_nodes);
             for suc_node in suc_nodes {
                 if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
                     *value += 1;
@@ -124,15 +122,12 @@ pub fn fixed_priority_scheduler(
                     dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
                 }
                 let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-                //if pre_nodes.len() as i32 <= dag[suc_node].params["pre_done_count"]
                 if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
                     ready_queue.push_back(suc_node);
                 }
             }
         }
     }
-
-    //Initialize all D's to 0 after completion
 
     //remove dummy nodes
     dag.remove_dummy_sink_node();
