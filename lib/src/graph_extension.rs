@@ -323,7 +323,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     fn get_end_to_end_deadline(&mut self) -> Option<i32> {
         self.node_indices()
             .find_map(|i| match self[i].params.get("end_to_end_deadline") {
-                Some(deadline) => Some(*deadline),
+                Some(end_to_end_deadline) => Some(*end_to_end_deadline),
                 None => {
                     warn!("The end-to-end deadline does not exist.");
                     None
@@ -342,7 +342,7 @@ impl GraphExtension for Graph<NodeData, i32> {
             warn!("Multiple source nodes found.");
         }
         if periods.len() > 1 {
-            warn!("Multiple periods found. The first offset is used.");
+            warn!("Multiple periods found. The first period is used.");
         }
         if periods.is_empty() {
             warn!("No period found.");
