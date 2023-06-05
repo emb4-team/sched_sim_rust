@@ -59,11 +59,11 @@ pub enum FederateResult {
 /// let can_schedule = federated(dag_set, number_of_cores);
 /// ```
 ///
-pub fn federated(dag_set: Vec<Graph<NodeData, i32>>, number_of_cores: usize) -> FederateResult {
+pub fn federated(dag_set: &mut [Graph<NodeData, i32>], number_of_cores: usize) -> FederateResult {
     let mut remaining_cores = number_of_cores;
     let mut low_utilizations = 0.0;
 
-    for mut dag in dag_set {
+    for dag in dag_set {
         let period = dag.get_head_period().unwrap();
 
         // Conforms to the definition in the original paper
@@ -175,14 +175,14 @@ mod tests {
 
     #[test]
     fn test_federated_enough_core() {
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_high_utilization_dag(),
             create_low_utilization_dag(),
         ];
 
         assert_eq!(
-            federated(dag_set, 40),
+            federated(&mut dag_set, 40),
             Schedulable {
                 high_dedicated_cores: 6,
                 low_dedicated_cores: 34
@@ -192,14 +192,14 @@ mod tests {
 
     #[test]
     fn test_federated_lack_cores_for_high_tasks() {
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_high_utilization_dag(),
             create_low_utilization_dag(),
         ];
 
         assert_eq!(
-            federated(dag_set, 1),
+            federated(&mut dag_set, 1),
             Unschedulable {
                 reason: (String::from("Insufficient number of cores for high-utilization tasks.")),
                 insufficient_cores: 2
@@ -209,14 +209,14 @@ mod tests {
 
     #[test]
     fn test_federated_lack_cores_for_low_tasks() {
-        let dag_set = vec![
+        let mut dag_set = vec![
             create_high_utilization_dag(),
             create_low_utilization_dag(),
             create_low_utilization_dag(),
         ];
 
         assert_eq!(
-            federated(dag_set, 3),
+            federated(&mut dag_set, 3),
             Unschedulable {
                 reason: (String::from("Insufficient number of cores for low-utilization tasks.")),
                 insufficient_cores: 2
@@ -227,7 +227,7 @@ mod tests {
     #[test]
     fn test_federated_unsuited_tasks() {
         assert_eq!(
-            federated(vec![create_period_exceeding_dag()], 5),
+            federated(&mut [create_period_exceeding_dag()], 5),
             Unschedulable {
                 reason: (String::from(
                     "The critical path length is greater than end_to_end_deadline."
@@ -240,6 +240,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_federated_no_has_period() {
-        federated(vec![create_no_has_period_dag()], 1);
+        federated(&mut [create_no_has_period_dag()], 1);
     }
 }
