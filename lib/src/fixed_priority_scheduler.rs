@@ -49,7 +49,6 @@ pub fn fixed_priority_scheduler(
 ) -> i32 {
     let mut current_time = 0;
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-    let mut finish_flag = false;
     let source_node = dag.add_dummy_source_node();
 
     dag[source_node]
@@ -107,13 +106,13 @@ pub fn fixed_priority_scheduler(
             })
             .collect();
 
+        if finish_nodes.len() == 1 && dag.get_suc_nodes(finish_nodes[0]).is_none() {
+            break; // The scheduling has finished because the dummy sink node has completed.
+        }
+
         //Executable if all predecessor nodes are done
         for finish_node in finish_nodes {
             let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
-            if suc_nodes.is_empty() {
-                finish_flag = true;
-                break; // The scheduling has finished because the dummy sink node has completed.
-            }
             for suc_node in suc_nodes {
                 if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
                     *value += 1;
@@ -125,9 +124,6 @@ pub fn fixed_priority_scheduler(
                     ready_queue.push_back(suc_node);
                 }
             }
-        }
-        if finish_flag {
-            break; // The scheduling has finished because the dummy sink node has completed.
         }
     }
 
