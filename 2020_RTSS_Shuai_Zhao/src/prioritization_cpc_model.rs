@@ -44,8 +44,7 @@ fn prioritize_path_from_head_with_increment(
 
 #[allow(dead_code)] //TODO: remove
 pub fn assign_priority_to_cpc_model(dag: &mut Graph<NodeData, i32>) {
-    let mut priority = 0;
-    assign_priority_to_cpc_model_core(dag, &mut dag.clone(), &mut priority);
+    assign_priority_to_cpc_model_core(dag, &mut dag.clone(), &mut 0);
 }
 
 fn assign_priority_to_cpc_model_core(
