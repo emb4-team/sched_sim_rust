@@ -43,8 +43,8 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 /// Refer to the examples in the tests code.
 ///
 pub fn fixed_priority_scheduler(
-    processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
+    processor: &mut impl ProcessorBase,
 ) -> (i32, Vec<NodeIndex>) {
     let mut dag = dag.clone(); //To avoid adding pre_node_count to the original DAG
     let mut current_time = 0;
@@ -183,7 +183,7 @@ mod tests {
 
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        let result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        let result = fixed_priority_scheduler(&mut dag, &mut homogeneous_processor);
         assert_eq!(result.0, 92);
 
         assert_eq!(
@@ -219,7 +219,7 @@ mod tests {
         dag.add_edge(c0, n1_0, 1);
 
         let mut homogeneous_processor = HomogeneousProcessor::new(3);
-        let result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        let result = fixed_priority_scheduler(&mut dag, &mut homogeneous_processor);
         assert_eq!(result.0, 92);
         assert_eq!(
             result.1,
@@ -239,10 +239,10 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 1));
 
         let mut homogeneous_processor = HomogeneousProcessor::new(1);
-        let mut result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        let mut result = fixed_priority_scheduler(&mut dag, &mut homogeneous_processor);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
-        result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        result = fixed_priority_scheduler(&mut dag, &mut homogeneous_processor);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
