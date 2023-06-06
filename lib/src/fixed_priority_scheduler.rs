@@ -232,4 +232,19 @@ mod tests {
             ]
         );
     }
+
+    #[test]
+    fn test_fixed_priority_scheduler_used_twice_for_same_dag() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        //cX is the Xth critical node.
+        dag.add_node(create_node(0, "execution_time", 1));
+
+        let mut homogeneous_processor = HomogeneousProcessor::new(1);
+        let mut result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
+        result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
+    }
 }
