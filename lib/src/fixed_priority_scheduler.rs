@@ -14,7 +14,6 @@ const DUMMY_EXECUTION_TIME: i32 = 1;
 /// # Arguments
 ///
 /// * `processor` - An object that implements `ProcessorBase` trait, representing a CPU or a collection of CPU cores.
-/// * `task_list` - A mutable reference to a vector of NodeIndex, representing the tasks to be scheduled.
 /// * `dag` - A mutable reference to a Graph object, representing the dependencies among tasks.
 ///
 /// # Returns
