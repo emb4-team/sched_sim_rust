@@ -25,14 +25,9 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// Refer to the examples in the tests code.
 ///
-#[allow(dead_code)] // TODO: remove
-pub fn get_execution_order(dag: &mut Graph<NodeData, i32>, num_cores: usize) -> Vec<NodeIndex> {
-    let mut homogeneous_processor = HomogeneousProcessor::new(num_cores);
-    fixed_priority_scheduler(&mut homogeneous_processor, dag).1
-}
 
 #[allow(dead_code)] // TODO: remove
-pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> usize {
+pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> (usize, Vec<NodeIndex>) {
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut min_num_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
@@ -41,11 +36,10 @@ pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> usize {
     while result.0 > end_to_end_deadline {
         min_num_cores += 1;
         homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
-        println!("min_num_cores: {}", min_num_cores);
         result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
     }
 
-    min_num_cores
+    (min_num_cores, result.1)
 }
 
 #[cfg(test)]
@@ -89,16 +83,16 @@ mod tests {
         let mut dag = create_sample_dag();
         let result = get_min_mum_cores(&mut dag);
 
-        assert_eq!(result, 3);
+        assert_eq!(result.0, 3);
     }
 
     #[test]
     fn test_calculate_execution_order_normal() {
         let mut dag = create_sample_dag();
-        let result = get_execution_order(&mut dag, 3);
+        let result = get_min_mum_cores(&mut dag);
 
         assert_eq!(
-            result,
+            result.1,
             vec![
                 NodeIndex::new(0),
                 NodeIndex::new(1),

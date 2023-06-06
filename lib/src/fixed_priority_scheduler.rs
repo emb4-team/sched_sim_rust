@@ -47,6 +47,7 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> (i32, Vec<NodeIndex>) {
+    let mut dag = dag.clone(); //To avoid adding pre_node_count to the original DAG
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
