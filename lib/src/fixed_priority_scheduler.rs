@@ -47,8 +47,7 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> (i32, Vec<NodeIndex>) {
-    //1. Cloneをする #TODO remove
-    //2. DAGのpre_done_countをリセットする #TODO remove
+    let mut dag = dag.clone();
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -124,7 +123,6 @@ pub fn fixed_priority_scheduler(
                     dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
                 }
                 let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-                // 2. ==ではなく<=にする #TODO remove
                 if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
                     ready_queue.push_back(suc_node);
                 }
@@ -135,8 +133,6 @@ pub fn fixed_priority_scheduler(
     //remove dummy nodes
     dag.remove_dummy_sink_node();
     dag.remove_dummy_source_node();
-
-    //4. DAGのpre_done_countをリセットする #TODO remove
 
     //Remove the dummy source node from the execution order.
     execution_order.remove(0);
@@ -235,5 +231,20 @@ mod tests {
                 NodeIndex::new(2)
             ]
         );
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_used_twice_for_same_dag() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        //cX is the Xth critical node.
+        dag.add_node(create_node(0, "execution_time", 1));
+
+        let mut homogeneous_processor = HomogeneousProcessor::new(1);
+        let mut result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
+        result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
 }
