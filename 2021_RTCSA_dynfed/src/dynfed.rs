@@ -13,13 +13,12 @@ use petgraph::graph::{Graph, NodeIndex};
 /// # Returns
 ///
 /// * A vector of NodeIndex, representing the execution order of the tasks.
+/// * The minimum number of cores required to meet the end-to-end deadline.
 ///
 /// # Description
 ///
-/// The function first calculates the volume of the DAG and the end-to-end deadline of the DAG.
-/// Then, it calculates the minimum number of cores required to meet the end-to-end deadline.
-/// Afterward, it creates a HomogeneousProcessor object with the minimum number of cores.
-/// Finally, it calls the fixed_priority_scheduler function to get the execution order of the tasks.
+/// This function calculates the minimum number of cores required to meet the end-to-end deadline of the DAG.
+/// In addition, it returns the execution order of the tasks when the minimum number of cores are used.
 ///
 /// # Example
 ///
@@ -27,19 +26,22 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 
 #[allow(dead_code)] // TODO: remove
-pub fn get_min_mum_cores(dag: &mut Graph<NodeData, i32>) -> (usize, Vec<NodeIndex>) {
+pub fn calculate_minimum_cores_and_execution_order(
+    dag: &mut Graph<NodeData, i32>,
+) -> (usize, Vec<NodeIndex>) {
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
-    let mut min_num_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    let mut homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
-    let mut result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
-    while result.0 > end_to_end_deadline {
-        min_num_cores += 1;
-        homogeneous_processor = HomogeneousProcessor::new(min_num_cores);
-        result = fixed_priority_scheduler(&mut homogeneous_processor, dag);
+    let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
+    // schedule_result is (total_time, execution_order)
+    let mut schedule_result =
+        fixed_priority_scheduler(&mut HomogeneousProcessor::new(minimum_cores), dag);
+    while schedule_result.0 > end_to_end_deadline {
+        minimum_cores += 1;
+        schedule_result =
+            fixed_priority_scheduler(&mut HomogeneousProcessor::new(minimum_cores), dag);
     }
 
-    (min_num_cores, result.1)
+    (minimum_cores, schedule_result.1)
 }
 
 #[cfg(test)]
@@ -81,7 +83,7 @@ mod tests {
     #[test]
     fn test_get_min_num_cores_normal() {
         let mut dag = create_sample_dag();
-        let result = get_min_mum_cores(&mut dag);
+        let result = calculate_minimum_cores_and_execution_order(&mut dag);
 
         assert_eq!(result.0, 3);
     }
@@ -89,7 +91,7 @@ mod tests {
     #[test]
     fn test_calculate_execution_order_normal() {
         let mut dag = create_sample_dag();
-        let result = get_min_mum_cores(&mut dag);
+        let result = calculate_minimum_cores_and_execution_order(&mut dag);
 
         assert_eq!(
             result.1,
