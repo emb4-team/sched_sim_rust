@@ -47,6 +47,7 @@ pub fn fixed_priority_scheduler(
     processor: &mut impl ProcessorBase,
     dag: &mut Graph<NodeData, i32>,
 ) -> (i32, Vec<NodeIndex>) {
+    let mut dag = dag.clone(); //To avoid adding pre_node_count to the original DAG
     let mut current_time = 0;
     let mut execution_order = Vec::new();
     let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -230,5 +231,20 @@ mod tests {
                 NodeIndex::new(2)
             ]
         );
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_used_twice_for_same_dag() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        //cX is the Xth critical node.
+        dag.add_node(create_node(0, "execution_time", 1));
+
+        let mut homogeneous_processor = HomogeneousProcessor::new(1);
+        let mut result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
+        result = fixed_priority_scheduler(&mut homogeneous_processor, &mut dag);
+        assert_eq!(result.0, 1);
+        assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
 }
