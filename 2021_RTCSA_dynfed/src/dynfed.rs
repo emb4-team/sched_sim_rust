@@ -32,12 +32,12 @@ pub fn calculate_minimum_cores_and_execution_order(
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    let (mut finished_time, mut execution_order) =
+    let (mut schedule_length, mut execution_order) =
         FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
 
-    while finished_time > end_to_end_deadline {
+    while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
-        (finished_time, execution_order) =
+        (schedule_length, execution_order) =
             FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
     }
 
