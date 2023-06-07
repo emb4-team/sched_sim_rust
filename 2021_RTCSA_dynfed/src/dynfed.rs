@@ -13,8 +13,8 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// # Returns
 ///
-/// * A vector of NodeIndex, representing the execution order of the tasks.
 /// * The minimum number of cores required to meet the end-to-end deadline.
+/// * A vector of NodeIndex, representing the execution order of the tasks.
 ///
 /// # Description
 ///
