@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_yaml_file(".tests", "tests2");
+        let file_path = create_yaml_file("tests", "tests2");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 
