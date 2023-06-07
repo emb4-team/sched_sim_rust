@@ -10,23 +10,14 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-pub struct FixedPriorityScheduler<T>
-where
-    T: ProcessorBase + Clone,
-{
-    pub dag: Graph<NodeData, i32>,
-    pub processor: T,
-}
+pub struct FixedPriorityScheduler {}
 
-impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
+impl<T> SchedulerBase<T> for FixedPriorityScheduler
 where
     T: ProcessorBase + Clone,
 {
     fn new() -> Self {
-        FixedPriorityScheduler {
-            dag: Graph::new(),
-            processor: T::new(0),
-        }
+        FixedPriorityScheduler {}
     }
 
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
