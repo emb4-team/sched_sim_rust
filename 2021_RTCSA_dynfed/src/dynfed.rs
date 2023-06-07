@@ -1,7 +1,8 @@
-use lib::fixed_priority_scheduler::fixed_priority_scheduler;
+use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
+use lib::scheduler::SchedulerBase;
 use petgraph::graph::{Graph, NodeIndex};
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
@@ -24,7 +25,6 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// Refer to the examples in the tests code.
 ///
-
 #[allow(dead_code)] // TODO: remove
 pub fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
@@ -32,16 +32,16 @@ pub fn calculate_minimum_cores_and_execution_order(
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    // schedule_result is (total_time, execution_order)
-    let mut schedule_result =
-        fixed_priority_scheduler(&mut HomogeneousProcessor::new(minimum_cores), dag);
-    while schedule_result.0 > end_to_end_deadline {
+    let (mut finished_time, mut execution_order) =
+        FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
+
+    while finished_time > end_to_end_deadline {
         minimum_cores += 1;
-        schedule_result =
-            fixed_priority_scheduler(&mut HomogeneousProcessor::new(minimum_cores), dag);
+        (finished_time, execution_order) =
+            FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
     }
 
-    (minimum_cores, schedule_result.1)
+    (minimum_cores, execution_order)
 }
 
 #[cfg(test)]
@@ -81,20 +81,14 @@ mod tests {
     }
 
     #[test]
-    fn test_get_min_num_cores_normal() {
+    fn test_calculate_minimum_cores_and_execution_order_normal() {
         let mut dag = create_sample_dag();
-        let result = calculate_minimum_cores_and_execution_order(&mut dag);
+        let (finished_time, execution_order) =
+            calculate_minimum_cores_and_execution_order(&mut dag);
 
-        assert_eq!(result.0, 3);
-    }
-
-    #[test]
-    fn test_calculate_execution_order_normal() {
-        let mut dag = create_sample_dag();
-        let result = calculate_minimum_cores_and_execution_order(&mut dag);
-
+        assert_eq!(finished_time, 3);
         assert_eq!(
-            result.1,
+            execution_order,
             vec![
                 NodeIndex::new(0),
                 NodeIndex::new(1),
