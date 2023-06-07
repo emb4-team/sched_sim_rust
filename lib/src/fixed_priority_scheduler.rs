@@ -22,10 +22,10 @@ impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
-        Self {
-            dag: dag.clone(),
-            processor: processor.clone(),
+    fn new() -> Self {
+        FixedPriorityScheduler {
+            dag: Graph::new(),
+            processor: T::new(0),
         }
     }
 
@@ -177,15 +177,6 @@ mod tests {
     fn add_params(dag: &mut Graph<NodeData, i32>, node: NodeIndex, key: &str, value: i32) {
         let node_added = dag.node_weight_mut(node).unwrap();
         node_added.params.insert(key.to_string(), value);
-    }
-
-    #[test]
-    fn test_fixed_priority_scheduler_new_normal() {
-        let dag = Graph::<NodeData, i32>::new();
-        let processor = HomogeneousProcessor::new(1);
-        let scheduler = FixedPriorityScheduler::new(&dag, &processor);
-        assert_eq!(scheduler.dag.node_count(), 0);
-        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
     }
 
     #[test]
