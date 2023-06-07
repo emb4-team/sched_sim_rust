@@ -4,6 +4,7 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
+    scheduler::SchedulerBase,
 };
 use petgraph::{graph::NodeIndex, Graph};
 
@@ -17,11 +18,11 @@ where
     pub processor: T,
 }
 
-impl<T> FixedPriorityScheduler<T>
+impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    pub fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
@@ -61,7 +62,7 @@ where
     ///
     /// Refer to the examples in the tests code.
     ///
-    pub fn schedule(dag: &mut Graph<NodeData, i32>, mut processor: T) -> (i32, Vec<NodeIndex>) {
+    fn schedule(dag: &mut Graph<NodeData, i32>, mut processor: T) -> (i32, Vec<NodeIndex>) {
         let mut dag = dag.clone(); //To avoid adding pre_node_count to the original DAG
         let mut current_time = 0;
         let mut execution_order = Vec::new();
