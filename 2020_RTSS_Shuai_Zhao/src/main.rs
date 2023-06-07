@@ -10,7 +10,7 @@ use lib::processor::ProcessorBase;
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
 #[clap(
-    name = "sched_sim",
+    name = "cpc_model",
     author = "Yutaro kobayashi",
     version = "v1.0.0",
     about = "Application short description."
