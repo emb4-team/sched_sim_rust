@@ -10,12 +10,7 @@ use lib::scheduler::SchedulerBase;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
-#[clap(
-    name = "cpc_model",
-    author = "Yutaro kobayashi",
-    version = "v1.0.0",
-    about = "Application short description."
-)]
+#[clap()]
 
 /// Application arguments definition using clap crate
 struct AppArg {
