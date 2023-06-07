@@ -13,7 +13,7 @@ use lib::scheduler::SchedulerBase;
 #[clap()]
 
 /// Application arguments definition using clap crate
-struct AppArg {
+struct ArgParser {
     #[clap(short = 'f', long = "dag_file_path", required = true)]
     dag_file_path: String,
     #[clap(short = 'c', long = "number_of_cores", required = true)]
@@ -22,7 +22,7 @@ struct AppArg {
     output_dir_path: String,
 }
 fn main() {
-    let arg: AppArg = AppArg::parse();
+    let arg: ArgParser = ArgParser::parse();
     let mut dag = create_dag_from_yaml(&arg.dag_file_path);
     let number_of_cores = arg.number_of_cores;
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
