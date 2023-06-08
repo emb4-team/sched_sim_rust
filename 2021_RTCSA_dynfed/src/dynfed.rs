@@ -4,7 +4,6 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use petgraph::graph::{Graph, NodeIndex};
-use rtss_cpc::prioritization_cpc_model::assign_priority_to_cpc_model;
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
@@ -33,7 +32,6 @@ pub fn calculate_minimum_cores_and_execution_order(
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    assign_priority_to_cpc_model(dag);
     let (mut schedule_length, mut execution_order) =
         FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
 
