@@ -14,27 +14,6 @@ use lib::scheduler::SchedulerBase;
 use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
 
-/// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
-///
-/// # Arguments
-///
-/// * `dag` - The DAG to be scheduled.
-///
-/// # Returns
-///
-/// * The minimum number of cores required to meet the end-to-end deadline.
-/// * A vector of NodeIndex, representing the execution order of the tasks.
-///
-/// # Description
-///
-/// This function calculates the minimum number of cores required to meet the end-to-end deadline of the DAG.
-/// In addition, it returns the execution order of the tasks when the minimum number of cores are used.
-///
-/// # Example
-///
-/// Refer to the examples in the tests code.
-///
-#[allow(dead_code)] // TODO: remove
 fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<HomogeneousProcessor>,
