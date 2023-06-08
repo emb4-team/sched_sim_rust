@@ -13,7 +13,6 @@ use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
-use rtss_shudai_zhao::prioritization_cpc_model::assign_priority_to_cpc_model;
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
@@ -36,7 +35,7 @@ use rtss_shudai_zhao::prioritization_cpc_model::assign_priority_to_cpc_model;
 /// Refer to the examples in the tests code.
 ///
 #[allow(dead_code)] // TODO: remove
-pub fn calculate_minimum_cores_and_execution_order(
+fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<HomogeneousProcessor>,
 ) -> (usize, Vec<NodeIndex>) {
@@ -60,7 +59,11 @@ fn get_dag_id(dag: &Graph<NodeData, i32>) -> usize {
 }
 
 #[allow(dead_code, clippy::ptr_arg)] // TODO: remove
-pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl ProcessorBase) {
+pub fn dynfed(
+    dag_set: &mut Vec<Graph<NodeData, i32>>,
+    processor: &mut impl ProcessorBase,
+    scheduler: &mut impl SchedulerBase<HomogeneousProcessor>,
+) {
     let mut current_time = 0;
     let processor_cores = processor.get_number_of_cores() as i32;
     let hyper_period = get_hyper_period(dag_set);
@@ -77,7 +80,8 @@ pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl Proc
         is_dag_started[i] = false;
         //Managing index of dag with param because Hash cannot be used for key of Hash.
         dag.add_param(NodeIndex::new(0), "dag_id", i as i32);
-        let (required_core, execution_orders) = calculate_minimum_cores_and_execution_order(dag);
+        let (required_core, execution_orders) =
+            calculate_minimum_cores_and_execution_order(dag, scheduler);
         required_cores[i] = required_core as i32;
         execution_order[i] = execution_orders;
     }
@@ -221,7 +225,7 @@ mod tests {
     fn test_calculate_minimum_cores_and_execution_order_normal() {
         let mut dag = create_sample_dag();
         let mut scheduler = FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let (finished_time, execution_order) =
+        let (minimum_cores, execution_order) =
             calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
 
         assert_eq!(minimum_cores, 1);
@@ -229,9 +233,9 @@ mod tests {
             execution_order,
             vec![
                 NodeIndex::new(0),
-                NodeIndex::new(1),
-                NodeIndex::new(3),
                 NodeIndex::new(4),
+                NodeIndex::new(3),
+                NodeIndex::new(1),
                 NodeIndex::new(2)
             ]
         );

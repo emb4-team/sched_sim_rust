@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 petgraph = "0.6.3"
 lib = { path = "../lib"}
-rtss_shudai_zhao = { path = "../2020_RTSS_Shuai_Zhao"}
 log = "0.4.14"
 env_logger = "0.9.0"
 num-integer = "0.1"
