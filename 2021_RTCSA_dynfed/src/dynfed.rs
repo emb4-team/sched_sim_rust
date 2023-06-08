@@ -1,5 +1,6 @@
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
+use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use petgraph::graph::{Graph, NodeIndex};
 
@@ -23,8 +24,7 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// Refer to the examples in the tests code.
 ///
-#[allow(dead_code)]
-// TODO: remove
+#[allow(dead_code)] // TODO: remove
 pub fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<HomogeneousProcessor>,
@@ -32,10 +32,12 @@ pub fn calculate_minimum_cores_and_execution_order(
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
+    scheduler.update_processor(&HomogeneousProcessor::new(minimum_cores));
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
+        scheduler.update_processor(&HomogeneousProcessor::new(minimum_cores));
         (schedule_length, execution_order) = scheduler.schedule();
     }
 
