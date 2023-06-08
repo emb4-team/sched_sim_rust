@@ -13,6 +13,7 @@ use petgraph::graph::{Graph, NodeIndex};
 /// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
 /// Algorithm 1: Step1 identifying capacity providers.
 /// capacity provider is a sub paths of the critical path
+#[allow(dead_code)] // TODO: remove
 pub fn get_providers(
     dag: &Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
@@ -34,6 +35,7 @@ pub fn get_providers(
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
+#[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
