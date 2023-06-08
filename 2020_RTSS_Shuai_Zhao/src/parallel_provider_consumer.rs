@@ -34,7 +34,6 @@ pub fn get_providers(
 /// Algorithm 1: Step2 identifying capacity consumers.
 /// Capacity consumers represent specific non-critical nodes.
 /// F_consumers is a consumer set that can be simultaneous executed capacity providers, and whose execution delays the start of the next capacity providers.
-#[allow(dead_code)] // TODO: remove
 pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
@@ -57,7 +56,7 @@ pub fn get_f_consumers(
                 }
             }
         }
-        f_consumers.insert(providers[p_i].clone(), f_consumer.clone());
+        f_consumers.insert(providers[p_i].clone(), f_consumer);
     }
 
     f_consumers
@@ -66,14 +65,13 @@ pub fn get_f_consumers(
 /// G_consumers is a consumer set belongs to the consumer set of the later providers, but can run in parallel with the capacity provider.
 /// Commented out because it is used only for the priority decision algorithm, rules of α-β pair analysis, Lemma, and equations, and is not involved in this simulator implementation.
 /// However, since there is a possibility that analytical α-β pair analysis will be implemented in the future, it has not been removed.
-/// #[allow(dead_code)] // TODO: remove
 /*
 pub fn get_g_consumers(
     mut dag: Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
 ) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
-    let mut providers = get_providers(&dag, critical_path.clone());
-    let f_consumers = get_f_consumers(&mut dag, critical_path.clone());
+    let mut providers = get_providers(&dag, critical_path);
+    let f_consumers = get_f_consumers(&mut dag, critical_path);
     let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     while !providers.is_empty() {
@@ -257,7 +255,7 @@ mod tests {
     fn test_get_g_consumers_normal() {
         let dag = create_sample_dag();
         let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, critical_path.clone());
+        let providers = get_providers(&dag, critical_path);
         let g_consumers = get_g_consumers(dag, critical_path);
 
         assert_eq!(g_consumers.len(), 4);

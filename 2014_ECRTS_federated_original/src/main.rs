@@ -11,12 +11,7 @@ mod outputs_result;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
-#[clap(
-    name = "sched_sim",
-    author = "Yutaro kobayashi",
-    version = "v1.0.0",
-    about = "Application short description."
-)]
+#[clap()]
 
 /// Application arguments definition using clap crate
 struct AppArg {
@@ -35,8 +30,8 @@ fn main() {
     let arg: AppArg = AppArg::parse();
     if let Some(dag_dir_path) = arg.dag_dir_path {
         let number_of_cores = arg.number_of_cores;
-        let dag_set = create_dag_set_from_dir(&dag_dir_path);
-        let result = federated::federated(dag_set.clone(), number_of_cores);
+        let mut dag_set = create_dag_set_from_dir(&dag_dir_path);
+        let result = federated::federated(&mut dag_set, number_of_cores);
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-federated", date);

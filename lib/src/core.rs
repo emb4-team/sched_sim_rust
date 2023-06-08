@@ -30,7 +30,7 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
-    pub fn allocate(&mut self, node_data: NodeData) -> bool {
+    pub fn allocate(&mut self, node_data: &NodeData) -> bool {
         if !self.is_idle {
             warn!("Core is already allocated to a node");
             return false;
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_core_allocate_normal() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10));
+        core.allocate(&create_node(0, "execution_time", 10));
         assert!(!core.is_idle);
         assert_eq!(core.processing_node, Some(0));
         assert_eq!(core.remain_proc_time, 10);
@@ -92,20 +92,20 @@ mod tests {
     #[test]
     fn test_core_allocate_already_allocated() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10));
-        assert!(!core.allocate(create_node(1, "execution_time", 10)));
+        core.allocate(&create_node(0, "execution_time", 10));
+        assert!(!core.allocate(&create_node(1, "execution_time", 10)));
     }
 
     #[test]
     fn test_core_allocate_node_no_has_execution_time() {
         let mut core = Core::default();
-        assert!(!core.allocate(create_node(0, "no_execution_time", 10)));
+        assert!(!core.allocate(&create_node(0, "no_execution_time", 10)));
     }
 
     #[test]
     fn test_core_process_normal() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 10));
+        core.allocate(&create_node(0, "execution_time", 10));
         assert_eq!(core.process(), Continue);
         assert_eq!(core.remain_proc_time, 9);
         core.process();
@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_core_process_when_finished() {
         let mut core = Core::default();
-        core.allocate(create_node(0, "execution_time", 2));
+        core.allocate(&create_node(0, "execution_time", 2));
         core.process();
         assert_eq!(core.process(), Done(NodeIndex::new(0)));
         assert!(core.is_idle);
