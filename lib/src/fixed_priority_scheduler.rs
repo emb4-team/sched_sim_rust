@@ -213,7 +213,7 @@ mod tests {
         add_params(&mut dag, c0, "priority", 0);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
         add_params(&mut dag, n0_0, "priority", 2);
         add_params(&mut dag, n1_0, "priority", 1);
