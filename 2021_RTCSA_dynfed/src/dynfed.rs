@@ -1,9 +1,19 @@
+//! dynfed.
+//! Paper Information
+//! -----------------
+//! Title: Timing-Anomaly Free Dynamic Scheduling of Periodic DAG Tasks with Non-Preemptive
+//! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
+//! Conference: RTCSA 2021
+//! -----------------
+
+use lib::core::ProcessResult;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
-use petgraph::graph::{Graph, NodeIndex};
+use lib::util::get_hyper_period;
+use petgraph::{graph::NodeIndex, Graph};
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
@@ -43,76 +53,6 @@ pub fn calculate_minimum_cores_and_execution_order(
 
     (minimum_cores, execution_order)
 }
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-
-    use super::*;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
-
-    fn create_sample_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 52));
-        let c1 = dag.add_node(create_node(1, "execution_time", 40));
-        dag.add_param(c0, "priority", 0);
-        dag.add_param(c1, "priority", 0);
-        dag.add_param(c0, "end_to_end_deadline", 100);
-        //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(2, "execution_time", 30));
-        let n1_0 = dag.add_node(create_node(3, "execution_time", 30));
-        dag.add_param(n0_0, "priority", 2);
-        dag.add_param(n1_0, "priority", 1);
-
-        //create critical path edges
-        dag.add_edge(c0, c1, 1);
-
-        //create non-critical path edges
-        dag.add_edge(c0, n0_0, 1);
-        dag.add_edge(c0, n1_0, 1);
-
-        dag
-    }
-
-    #[test]
-    fn test_calculate_minimum_cores_and_execution_order_normal() {
-        let mut dag = create_sample_dag();
-        let (finished_time, execution_order) =
-            calculate_minimum_cores_and_execution_order(&mut dag);
-
-        assert_eq!(finished_time, 3);
-        assert_eq!(
-            execution_order,
-            vec![
-                NodeIndex::new(0),
-                NodeIndex::new(1),
-                NodeIndex::new(3),
-                NodeIndex::new(2)
-            ]
-        );
-    }
-}
-//! dynfed.
-//! Paper Information
-//! -----------------
-//! Title: Timing-Anomaly Free Dynamic Scheduling of Periodic DAG Tasks with Non-Preemptive
-//! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
-//! Conference: RTCSA 2021
-//! -----------------
-
-use lib::{
-    core::ProcessResult,
-    graph_extension::{GraphExtension, NodeData},
-    processor::ProcessorBase,
-    util::get_hyper_period,
-};
-use petgraph::{graph::NodeIndex, Graph};
 
 fn get_dag_id(dag: &Graph<NodeData, i32>) -> usize {
     dag[NodeIndex::new(0)].params["dag_id"] as usize
@@ -193,7 +133,7 @@ pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl Proc
                     {
                         number_nodes_cores[dag_id] += 1;
                         if let Some(core_index) = processor.get_idle_core_index() {
-                            processor.allocate(core_index, dag[*node].clone());
+                            processor.allocate(core_index, &dag[*node]);
                             core_dag_id[core_index] = dag_id as i32;
                             dag_execution_order.remove(0);
                         }
@@ -237,4 +177,56 @@ pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl Proc
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+
+    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+        let mut params = HashMap::new();
+        params.insert(key.to_string(), value);
+        NodeData { id, params }
+    }
+
+    fn create_sample_dag() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
+        //cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 52));
+        let c1 = dag.add_node(create_node(1, "execution_time", 40));
+        dag.add_param(c0, "priority", 0);
+        dag.add_param(c1, "priority", 0);
+        dag.add_param(c0, "end_to_end_deadline", 100);
+        //nY_X is the Yth suc node of cX.
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 30));
+        let n1_0 = dag.add_node(create_node(3, "execution_time", 30));
+        dag.add_param(n0_0, "priority", 2);
+        dag.add_param(n1_0, "priority", 1);
+
+        //create critical path edges
+        dag.add_edge(c0, c1, 1);
+
+        //create non-critical path edges
+        dag.add_edge(c0, n0_0, 1);
+        dag.add_edge(c0, n1_0, 1);
+
+        dag
+    }
+
+    #[test]
+    fn test_calculate_minimum_cores_and_execution_order_normal() {
+        let mut dag = create_sample_dag();
+        let (finished_time, execution_order) =
+            calculate_minimum_cores_and_execution_order(&mut dag);
+
+        assert_eq!(finished_time, 3);
+        assert_eq!(
+            execution_order,
+            vec![
+                NodeIndex::new(0),
+                NodeIndex::new(1),
+                NodeIndex::new(3),
+                NodeIndex::new(2)
+            ]
+        );
+    }
+}
