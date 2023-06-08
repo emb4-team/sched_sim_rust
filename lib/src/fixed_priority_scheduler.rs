@@ -29,6 +29,14 @@ where
         }
     }
 
+    fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
+        self.dag = dag.clone();
+    }
+
+    fn update_processor(&mut self, processor: &T) {
+        self.processor = processor.clone();
+    }
+
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
     ///
     /// # Arguments
@@ -177,6 +185,39 @@ mod tests {
     fn add_params(dag: &mut Graph<NodeData, i32>, node: NodeIndex, key: &str, value: i32) {
         let node_added = dag.node_weight_mut(node).unwrap();
         node_added.params.insert(key.to_string(), value);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_new_normal() {
+        let dag = Graph::<NodeData, i32>::new();
+        let processor = HomogeneousProcessor::new(1);
+        let scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 0);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_update_dag() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "execution_time", 0));
+        let processor = HomogeneousProcessor::new(1);
+        let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 1);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+        scheduler.update_dag(&Graph::<NodeData, i32>::new());
+        assert_eq!(scheduler.dag.node_count(), 0);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_update_processor() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "execution_time", 0));
+        let processor = HomogeneousProcessor::new(1);
+        let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 1);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+        scheduler.update_processor(&HomogeneousProcessor::new(2));
+        assert_eq!(scheduler.processor.get_number_of_cores(), 2);
     }
 
     #[test]
