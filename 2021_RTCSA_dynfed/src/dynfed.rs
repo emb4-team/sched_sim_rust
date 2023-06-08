@@ -14,6 +14,7 @@ use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
+use rtss_shudai_zhao::prioritization_cpc_model::assign_priority_to_cpc_model;
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
@@ -68,7 +69,7 @@ pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl Proc
     let mut number_nodes_cores: Vec<i32> = Vec::new();
     let mut number_dag_cores: Vec<i32> = Vec::new();
     let mut execution_order: Vec<Vec<NodeIndex>> = Vec::new();
-    let required_cores: Vec<i32> = Vec::new();
+    let mut required_cores: Vec<i32> = Vec::new();
     let mut is_dag_started: Vec<bool> = Vec::new();
     let mut core_dag_id: Vec<i32> = Vec::new();
 
@@ -76,6 +77,10 @@ pub fn dynfed(dag_set: &mut Vec<Graph<NodeData, i32>>, processor: &mut impl Proc
         is_dag_started[i] = false;
         //Managing index of dag with param because Hash cannot be used for key of Hash.
         dag.add_param(NodeIndex::new(0), "dag_id", i as i32);
+        assign_priority_to_cpc_model(dag);
+        let (required_core, execution_orders) = calculate_minimum_cores_and_execution_order(dag);
+        required_cores[i] = required_core as i32;
+        execution_order[i] = execution_orders;
     }
 
     //Since the evaluation of the original paper is one hyper period.

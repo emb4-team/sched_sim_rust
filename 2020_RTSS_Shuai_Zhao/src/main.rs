@@ -1,6 +1,6 @@
 use clap::Parser;
 mod parallel_provider_consumer;
-mod prioritization_cpc_model;
+use rtss_shudai_zhao::prioritization_cpc_model;
 
 use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
