@@ -37,7 +37,7 @@ fn get_dag_id(dag: &Graph<NodeData, i32>) -> usize {
     dag[NodeIndex::new(0)].params["dag_id"] as usize
 }
 
-#[allow(dead_code, clippy::ptr_arg)] // TODO: remove
+#[allow(dead_code)]
 pub fn dynfed(
     dag_set: &mut Vec<Graph<NodeData, i32>>,
     processor: &mut impl ProcessorBase,
@@ -162,6 +162,7 @@ pub fn dynfed(
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
