@@ -26,8 +26,7 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// Refer to the examples in the tests code.
 ///
-#[allow(dead_code)]
-// TODO: remove
+#[allow(dead_code)] // TODO: remove
 pub fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
 ) -> (usize, Vec<NodeIndex>) {
