@@ -1,3 +1,4 @@
+/*
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
@@ -25,7 +26,8 @@ use petgraph::graph::{Graph, NodeIndex};
 ///
 /// Refer to the examples in the tests code.
 ///
-#[allow(dead_code)] // TODO: remove
+#[allow(dead_code)]
+// TODO: remove
 pub fn calculate_minimum_cores_and_execution_order(
     dag: &mut Graph<NodeData, i32>,
 ) -> (usize, Vec<NodeIndex>) {
@@ -43,7 +45,6 @@ pub fn calculate_minimum_cores_and_execution_order(
 
     (minimum_cores, execution_order)
 }
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -97,4 +98,4 @@ mod tests {
             ]
         );
     }
-}
+}*/

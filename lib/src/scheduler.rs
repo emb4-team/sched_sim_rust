@@ -4,6 +4,6 @@ pub trait SchedulerBase<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new() -> Self;
-    fn schedule(dag: &mut Graph<NodeData, i32>, processor: T) -> (i32, Vec<NodeIndex>);
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+    fn schedule(&mut self) -> (i32, Vec<NodeIndex>);
 }
