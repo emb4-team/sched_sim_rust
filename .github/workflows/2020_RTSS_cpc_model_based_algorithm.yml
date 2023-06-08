@@ -10,7 +10,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: build
         run: cargo build
-        working-directory: 2020_RTSS_Shuai_Zhao
+        working-directory: 2020_RTSS_cpc_model_based_algorithm
 
   fmt:
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: fmt
         run: cargo fmt --all -- --check
-        working-directory: 2020_RTSS_Shuai_Zhao
+        working-directory: 2020_RTSS_cpc_model_based_algorithm
 
   clippy:
     runs-on: ubuntu-latest
@@ -34,7 +34,7 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
-        working-directory: 2020_RTSS_Shuai_Zhao
+        working-directory: 2020_RTSS_cpc_model_based_algorithm
 
   test:
     runs-on: ubuntu-latest
@@ -57,4 +57,4 @@ jobs:
       - uses: ./.github/actions/cache_cargo
       - name: test
         run: cargo test --all -- --nocapture
-        working-directory: 2020_RTSS_Shuai_Zhao
+        working-directory: 2020_RTSS_cpc_model_based_algorithm
