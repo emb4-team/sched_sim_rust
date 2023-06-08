@@ -26,5 +26,7 @@ fn main() {
     let mut dag = create_dag_from_yaml(&arg.dag_file_path);
     let number_of_cores = arg.number_of_cores;
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
-    FixedPriorityScheduler::schedule(&mut dag, HomogeneousProcessor::new(number_of_cores));
+    let mut fixed_priority_scheduler =
+        FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(number_of_cores));
+    let _result = fixed_priority_scheduler.schedule();
 }
