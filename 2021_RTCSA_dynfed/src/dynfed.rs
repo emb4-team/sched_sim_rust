@@ -92,9 +92,9 @@ mod tests {
             execution_order,
             vec![
                 NodeIndex::new(0),
-                NodeIndex::new(1),
-                NodeIndex::new(3),
                 NodeIndex::new(4),
+                NodeIndex::new(3),
+                NodeIndex::new(1),
                 NodeIndex::new(2)
             ]
         );
