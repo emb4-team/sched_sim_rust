@@ -85,10 +85,10 @@ mod tests {
     fn test_calculate_minimum_cores_and_execution_order_normal() {
         let mut dag = create_sample_dag();
         let mut scheduler = FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let (finished_time, execution_order) =
+        let (minimum_cores, execution_order) =
             calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
 
-        assert_eq!(finished_time, 3);
+        assert_eq!(minimum_cores, 3);
         assert_eq!(
             execution_order,
             vec![
