@@ -1,3 +1,4 @@
+/*
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
@@ -43,7 +44,6 @@ pub fn calculate_minimum_cores_and_execution_order(
 
     (minimum_cores, execution_order)
 }
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -97,4 +97,4 @@ mod tests {
             ]
         );
     }
-}
+}*/

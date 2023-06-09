@@ -10,14 +10,27 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-pub struct FixedPriorityScheduler {}
-
-impl<T> SchedulerBase<T> for FixedPriorityScheduler
+pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new() -> Self {
-        FixedPriorityScheduler {}
+    pub dag: Graph<NodeData, i32>,
+    pub processor: T,
+}
+
+impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
+where
+    T: ProcessorBase + Clone,
+{
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
+        Self {
+            dag: dag.clone(),
+            processor: processor.clone(),
+        }
+    }
+
+    fn set_processor(&mut self, processor: &T) {
+        self.processor = processor.clone();
     }
 
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
@@ -53,8 +66,8 @@ where
     ///
     /// Refer to the examples in the tests code.
     ///
-    fn schedule(dag: &mut Graph<NodeData, i32>, mut processor: T) -> (i32, Vec<NodeIndex>) {
-        let mut dag = dag.clone(); //To avoid adding pre_node_count to the original DAG
+    fn schedule(&mut self) -> (i32, Vec<NodeIndex>) {
+        let mut dag = self.dag.clone(); //To avoid adding pre_node_count to the original DAG
         let mut current_time = 0;
         let mut execution_order = Vec::new();
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
@@ -83,9 +96,9 @@ where
             });
 
             //Assign the highest priority task first to the first idle core found.
-            while let Some(core_index) = processor.get_idle_core_index() {
+            while let Some(core_index) = self.processor.get_idle_core_index() {
                 if let Some(task) = ready_queue.pop_front() {
-                    processor.allocate(core_index, &dag[task]);
+                    self.processor.allocate(core_index, &dag[task]);
                     execution_order.push(task);
                 } else {
                     break;
@@ -93,7 +106,7 @@ where
             }
 
             //Move one unit time so that the core state of the previous loop does not remain.
-            let mut process_result = processor.process();
+            let mut process_result = self.processor.process();
             current_time += 1;
 
             //Process until there is a task finished.
@@ -101,7 +114,7 @@ where
                 .iter()
                 .any(|result| matches!(result, ProcessResult::Done(_)))
             {
-                process_result = processor.process();
+                process_result = self.processor.process();
                 current_time += 1;
             }
 
@@ -171,6 +184,27 @@ mod tests {
     }
 
     #[test]
+    fn test_fixed_priority_scheduler_new_normal() {
+        let dag = Graph::<NodeData, i32>::new();
+        let processor = HomogeneousProcessor::new(1);
+        let scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 0);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_update_processor() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "execution_time", 0));
+        let processor = HomogeneousProcessor::new(1);
+        let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 1);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+        scheduler.set_processor(&HomogeneousProcessor::new(2));
+        assert_eq!(scheduler.processor.get_number_of_cores(), 2);
+    }
+
+    #[test]
     fn test_fixed_priority_scheduler_schedule_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
@@ -179,7 +213,7 @@ mod tests {
         add_params(&mut dag, c0, "priority", 0);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
         add_params(&mut dag, n0_0, "priority", 2);
         add_params(&mut dag, n1_0, "priority", 1);
@@ -191,7 +225,9 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let result = FixedPriorityScheduler::schedule(&mut dag, HomogeneousProcessor::new(2));
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
 
@@ -227,7 +263,9 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let result = FixedPriorityScheduler::schedule(&mut dag, HomogeneousProcessor::new(3));
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
+        let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
         assert_eq!(
@@ -247,11 +285,15 @@ mod tests {
         //cX is the Xth critical node.
         dag.add_node(create_node(0, "execution_time", 1));
 
-        let result = FixedPriorityScheduler::schedule(&mut dag, HomogeneousProcessor::new(1));
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
-        let result = FixedPriorityScheduler::schedule(&mut dag, HomogeneousProcessor::new(1));
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
