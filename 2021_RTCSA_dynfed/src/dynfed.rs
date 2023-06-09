@@ -1,7 +1,4 @@
-/*
-use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::{GraphExtension, NodeData};
-use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use petgraph::graph::{Graph, NodeIndex};
@@ -27,28 +24,33 @@ use petgraph::graph::{Graph, NodeIndex};
 /// Refer to the examples in the tests code.
 ///
 #[allow(dead_code)] // TODO: remove
-pub fn calculate_minimum_cores_and_execution_order(
+pub fn calculate_minimum_cores_and_execution_order<T>(
     dag: &mut Graph<NodeData, i32>,
-) -> (usize, Vec<NodeIndex>) {
+    scheduler: &mut impl SchedulerBase<T>,
+) -> (usize, Vec<NodeIndex>)
+where
+    T: ProcessorBase + Clone,
+{
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    let (mut schedule_length, mut execution_order) =
-        FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
+    scheduler.set_processor(&T::new(minimum_cores));
+    let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
-        (schedule_length, execution_order) =
-            FixedPriorityScheduler::schedule(dag, HomogeneousProcessor::new(minimum_cores));
+        scheduler.set_processor(&T::new(minimum_cores));
+        (schedule_length, execution_order) = scheduler.schedule();
     }
 
     (minimum_cores, execution_order)
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
+    use lib::homogeneous::HomogeneousProcessor;
+    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
+    use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -83,10 +85,11 @@ mod tests {
     #[test]
     fn test_calculate_minimum_cores_and_execution_order_normal() {
         let mut dag = create_sample_dag();
-        let (finished_time, execution_order) =
-            calculate_minimum_cores_and_execution_order(&mut dag);
+        let mut scheduler = FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let (minimum_cores, execution_order) =
+            calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
 
-        assert_eq!(finished_time, 3);
+        assert_eq!(minimum_cores, 3);
         assert_eq!(
             execution_order,
             vec![
@@ -97,4 +100,4 @@ mod tests {
             ]
         );
     }
-}*/
+}
