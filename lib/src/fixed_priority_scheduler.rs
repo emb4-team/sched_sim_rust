@@ -29,6 +29,10 @@ where
         }
     }
 
+    fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
+        self.dag = dag.clone();
+    }
+
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
     }
