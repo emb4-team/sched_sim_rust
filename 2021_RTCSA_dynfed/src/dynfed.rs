@@ -45,11 +45,9 @@ pub fn calculate_minimum_cores_and_execution_order(
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
-
     use super::*;
+    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
+    use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
