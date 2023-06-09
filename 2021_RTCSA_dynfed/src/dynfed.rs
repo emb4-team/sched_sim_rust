@@ -21,12 +21,12 @@ fn calculate_minimum_cores_and_execution_order(
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
-    scheduler.update_processor(&HomogeneousProcessor::new(minimum_cores));
+    scheduler.set_processor(&HomogeneousProcessor::new(minimum_cores));
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
-        scheduler.update_processor(&HomogeneousProcessor::new(minimum_cores));
+        scheduler.set_processor(&HomogeneousProcessor::new(minimum_cores));
         (schedule_length, execution_order) = scheduler.schedule();
     }
 
@@ -165,11 +165,9 @@ pub fn dynfed(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
-
     use super::*;
+    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
+    use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();

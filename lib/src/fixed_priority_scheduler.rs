@@ -29,11 +29,7 @@ where
         }
     }
 
-    fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.dag = dag.clone();
-    }
-
-    fn update_processor(&mut self, processor: &T) {
+    fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
     }
 
@@ -197,18 +193,6 @@ mod tests {
     }
 
     #[test]
-    fn test_fixed_priority_scheduler_update_dag() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        dag.add_node(create_node(0, "execution_time", 0));
-        let processor = HomogeneousProcessor::new(1);
-        let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
-        assert_eq!(scheduler.dag.node_count(), 1);
-        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
-        scheduler.update_dag(&Graph::<NodeData, i32>::new());
-        assert_eq!(scheduler.dag.node_count(), 0);
-    }
-
-    #[test]
     fn test_fixed_priority_scheduler_update_processor() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
@@ -216,7 +200,7 @@ mod tests {
         let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
         assert_eq!(scheduler.dag.node_count(), 1);
         assert_eq!(scheduler.processor.get_number_of_cores(), 1);
-        scheduler.update_processor(&HomogeneousProcessor::new(2));
+        scheduler.set_processor(&HomogeneousProcessor::new(2));
         assert_eq!(scheduler.processor.get_number_of_cores(), 2);
     }
 
@@ -229,7 +213,7 @@ mod tests {
         add_params(&mut dag, c0, "priority", 0);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
         add_params(&mut dag, n0_0, "priority", 2);
         add_params(&mut dag, n1_0, "priority", 1);
