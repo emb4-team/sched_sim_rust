@@ -86,7 +86,6 @@ where
     for (i, dag) in dag_set.iter_mut().enumerate() {
         //Managing index of dag with param because Hash cannot be used for key of Hash.
         dag.add_param(NodeIndex::new(0), "dag_id", i as i32);
-        scheduler.set_dag(dag);
         let (required_core, execution_orders) =
             calculate_minimum_cores_and_execution_order(dag, scheduler);
         required_cores[i] = required_core as i32;
