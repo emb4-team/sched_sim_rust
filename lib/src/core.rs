@@ -11,7 +11,7 @@ pub enum ProcessResult {
     Done(NodeIndex),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<i32>,

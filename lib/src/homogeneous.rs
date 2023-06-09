@@ -1,7 +1,7 @@
 //! Homogeneous processor module. This module uses Core struct.
 use crate::{core::Core, core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HomogeneousProcessor {
     pub cores: Vec<Core>,
 }
