@@ -45,6 +45,7 @@ where
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
+    scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
@@ -276,7 +277,10 @@ mod tests {
     #[test]
     fn test_calculate_minimum_cores_and_execution_order_normal() {
         let mut dag = create_sample_dag();
-        let mut scheduler = FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let mut scheduler = FixedPriorityScheduler::new(
+            &Graph::<NodeData, i32>::new(),
+            &HomogeneousProcessor::new(1),
+        );
         let (minimum_cores, execution_order) =
             calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
 
