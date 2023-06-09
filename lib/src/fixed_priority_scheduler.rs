@@ -29,6 +29,10 @@ where
         }
     }
 
+    fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
+        self.dag = dag.clone();
+    }
+
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
     }
@@ -193,7 +197,19 @@ mod tests {
     }
 
     #[test]
-    fn test_fixed_priority_scheduler_update_processor() {
+    fn test_fixed_priority_scheduler_set_dag() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "execution_time", 0));
+        let processor = HomogeneousProcessor::new(1);
+        let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
+        assert_eq!(scheduler.dag.node_count(), 1);
+        assert_eq!(scheduler.processor.get_number_of_cores(), 1);
+        scheduler.set_dag(&Graph::<NodeData, i32>::new());
+        assert_eq!(scheduler.dag.node_count(), 0);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_set_processor() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         let processor = HomogeneousProcessor::new(1);
