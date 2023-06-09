@@ -242,12 +242,12 @@ mod tests {
     fn create_sample_dag2() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 10));
-        let c1 = dag.add_node(create_node(1, "execution_time", 20));
-        let c2 = dag.add_node(create_node(2, "execution_time", 20));
-        dag.add_param(c0, "end_to_end_deadline", 50);
+        let c0 = dag.add_node(create_node(0, "execution_time", 11));
+        let c1 = dag.add_node(create_node(1, "execution_time", 21));
+        let c2 = dag.add_node(create_node(2, "execution_time", 21));
+        dag.add_param(c0, "end_to_end_deadline", 53);
         //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
+        let n0_0 = dag.add_node(create_node(3, "execution_time", 11));
 
         //create critical path edges
         dag.add_edge(c0, c1, 1);
