@@ -29,7 +29,7 @@ where
         }
     }
 
-    fn update_processor(&mut self, processor: &T) {
+    fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
     }
 
@@ -200,7 +200,7 @@ mod tests {
         let mut scheduler = FixedPriorityScheduler::new(&dag, &processor);
         assert_eq!(scheduler.dag.node_count(), 1);
         assert_eq!(scheduler.processor.get_number_of_cores(), 1);
-        scheduler.update_processor(&HomogeneousProcessor::new(2));
+        scheduler.set_processor(&HomogeneousProcessor::new(2));
         assert_eq!(scheduler.processor.get_number_of_cores(), 2);
     }
 
