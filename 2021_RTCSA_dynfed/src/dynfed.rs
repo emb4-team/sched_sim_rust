@@ -59,7 +59,7 @@ fn get_dag_id(dag: &Graph<NodeData, i32>) -> usize {
 }
 
 #[allow(dead_code)]
-pub fn dynfed<T>(
+pub fn dynamic_federated<T>(
     dag_set: &mut [Graph<NodeData, i32>],
     processor: &mut T,
     scheduler: &mut impl SchedulerBase<T>,
@@ -261,7 +261,7 @@ mod tests {
             &Graph::<NodeData, i32>::new(),
             &HomogeneousProcessor::new(1),
         );
-        let time = dynfed(
+        let time = dynamic_federated(
             &mut dag_set,
             &mut HomogeneousProcessor::new(5),
             &mut scheduler,
