@@ -141,9 +141,8 @@ where
             if !is_dag_started_by_dag[dag_id] {
                 continue;
             }
-            while !execution_orders_by_dag[dag_id].is_empty() {
-                let dag_execution_order = &mut execution_orders_by_dag[dag_id];
-                let node = dag_execution_order.get(0).unwrap();
+            let dag_execution_order = &mut execution_orders_by_dag[dag_id];
+            while let Some(node) = dag_execution_order.first() {
                 let pre_nodes = dag.get_pre_nodes(*node).unwrap_or_default();
                 if pre_nodes.len() as i32 == *dag[*node].params.get("pre_done_count").unwrap_or(&0)
                     && using_cores_by_dag[dag_id] < allocated_cores_by_dag[dag_id]
