@@ -112,7 +112,6 @@ where
         for dag in &mut *dag_set {
             let dag_id = get_dag_id(dag);
             using_cores[dag_id] -= finished_nodes[dag_id].len() as i32;
-
             finished_nodes[dag_id].clear();
         }
 
@@ -177,10 +176,12 @@ where
             finished_nodes[dag_id].push(node_i);
 
             let suc_nodes = dag.get_suc_nodes(node_i).unwrap_or_default();
+
             if suc_nodes.is_empty() {
                 finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
                 allocated_cores[dag_id] = 0; //When the last node is finished, the core allocated to dag is released.
             }
+
             for suc_node in suc_nodes {
                 if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
                     *value += 1;
@@ -190,7 +191,6 @@ where
             }
         }
     }
-
     current_time
 }
 
