@@ -151,7 +151,7 @@ where
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node]);
                     using_cores[dag_id] += 1;
-                    dag_id_assigned_to_core[core_i] = dag_id as i32;
+                    assigned_dag_id[core_i] = dag_id as i32;
                     dag_execution_order.remove(0);
                 } else {
                     break;
@@ -175,7 +175,7 @@ where
             .collect();
 
         for (core_i, node_i) in finish_nodes {
-            let dag_id = dag_id_assigned_to_core[core_i] as usize;
+            let dag_id = assigned_dag_id[core_i] as usize;
             let dag = &mut dag_set[dag_id];
 
             finished_nodes[dag_id].push(node_i);
