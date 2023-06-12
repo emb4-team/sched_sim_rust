@@ -1,6 +1,6 @@
 use clap::Parser;
 mod parallel_provider_consumer;
-use rtss_cpc::prioritization_cpc_model;
+mod prioritization_cpc_model;
 
 use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;

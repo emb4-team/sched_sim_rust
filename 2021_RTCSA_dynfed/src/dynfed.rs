@@ -5,9 +5,6 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
-
-use std::fmt::Debug;
-
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::processor::ProcessorBase;
@@ -69,7 +66,7 @@ pub fn dynfed<T>(
     scheduler: &mut impl SchedulerBase<T>,
 ) -> i32
 where
-    T: ProcessorBase + Clone + Debug,
+    T: ProcessorBase + Clone,
 {
     let mut current_time = 0;
     let processor_cores = processor.get_number_of_cores() as i32;
