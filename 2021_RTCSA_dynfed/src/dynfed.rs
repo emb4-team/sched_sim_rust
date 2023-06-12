@@ -31,8 +31,7 @@ use petgraph::{graph::NodeIndex, Graph};
 ///
 /// Refer to the examples in the tests code.
 ///
-#[allow(dead_code)] // TODO: remove
-pub fn calculate_minimum_cores_and_execution_order<T>(
+fn calculate_minimum_cores_and_execution_order<T>(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<T>,
 ) -> (usize, Vec<NodeIndex>)
