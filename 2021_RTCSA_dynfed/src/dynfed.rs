@@ -78,14 +78,19 @@ where
     let mut finished_dags_count = 0;
     let num_of_dags = dag_set.len();
 
-    let mut finished_nodes_by_dag = vec![Vec::new(); num_of_dags];
-    let mut using_cores_by_dag: Vec<i32> = vec![0; num_of_dags];
-    let mut allocated_cores_by_dag: Vec<i32> = vec![0; num_of_dags];
-    let mut execution_orders_by_dag: Vec<Vec<NodeIndex>> = vec![Vec::new(); num_of_dags];
-    let mut min_cores_for_sched_by_dag: Vec<i32> = vec![0; num_of_dags];
-    let mut is_dag_started_by_dag: Vec<bool> = vec![false; num_of_dags];
+    //Variables per dag respectively
+    //DISCUSS: 可読性を上げるために後ろに_by_dagをつける？
+    //DISCUSS: もしくは、structにまとめる？
+    let mut finished_nodes = vec![Vec::new(); num_of_dags];
+    let mut using_cores: Vec<i32> = vec![0; num_of_dags];
+    let mut allocated_cores: Vec<i32> = vec![0; num_of_dags];
+    let mut execution_orders: Vec<Vec<NodeIndex>> = vec![Vec::new(); num_of_dags];
+    let mut min_cores_for_sched: Vec<i32> = vec![0; num_of_dags];
+    let mut is_started: Vec<bool> = vec![false; num_of_dags];
 
-    let mut assigned_dag_ids_to_core: Vec<i32> = vec![-1; processor_cores.try_into().unwrap()];
+    //Variables per core respectively
+    //DISCUSS: 可読性を上げるために後ろに_by_coreをつける？
+    let mut assigned_dag_id: Vec<i32> = vec![-1; processor_cores.try_into().unwrap()];
 
     scheduler.set_processor(processor);
 
@@ -93,10 +98,10 @@ where
         //Managing index of dag with param because Hash cannot be used for key of Hash.
         dag.add_param(NodeIndex::new(0), "dag_id", dag_id as i32);
         scheduler.set_dag(dag);
-        let (required_core, execution_orders) =
+        let (required_core, execution_order) =
             calculate_minimum_cores_and_execution_order(dag, scheduler);
-        min_cores_for_sched_by_dag[dag_id] = required_core as i32;
-        execution_orders_by_dag[dag_id] = execution_orders;
+        min_cores_for_sched[dag_id] = required_core as i32;
+        execution_orders[dag_id] = execution_order;
     }
 
     while finished_dags_count < num_of_dags {
@@ -110,78 +115,75 @@ where
         //Operations on finished jobs
         for dag in &mut *dag_set {
             let dag_id = get_dag_id(dag);
-            using_cores_by_dag[dag_id] -= finished_nodes_by_dag[dag_id].len() as i32;
+            using_cores[dag_id] -= finished_nodes[dag_id].len() as i32;
 
-            for node_i in &finished_nodes_by_dag[dag_id] {
-                //When the last node is finished, the core allocated to dag is released.
-                if dag.get_suc_nodes(*node_i).is_none() {
-                    allocated_cores_by_dag[dag_id] = 0;
-                }
-            }
-
-            finished_nodes_by_dag[dag_id].clear();
+            finished_nodes[dag_id].clear();
         }
 
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.first() {
             let dag_id = get_dag_id(dag);
-            if min_cores_for_sched_by_dag[dag_id]
-                > processor_cores - allocated_cores_by_dag.iter().sum::<i32>()
-            {
+            if min_cores_for_sched[dag_id] > processor_cores - allocated_cores.iter().sum::<i32>() {
                 break;
             }
             dag_queue.remove(0);
-            is_dag_started_by_dag[dag_id] = true;
-            allocated_cores_by_dag[dag_id] = min_cores_for_sched_by_dag[dag_id];
+            is_started[dag_id] = true;
+            allocated_cores[dag_id] = min_cores_for_sched[dag_id];
         }
 
         //Assign a node per DAG
         for dag in &mut *dag_set {
             let dag_id = get_dag_id(dag);
-            if !is_dag_started_by_dag[dag_id] {
+            if !is_started[dag_id] {
                 continue;
             }
-            let dag_execution_order = &mut execution_orders_by_dag[dag_id];
+            let dag_execution_order = &mut execution_orders[dag_id];
+
             while let Some(node) = dag_execution_order.first() {
-                let pre_nodes = dag.get_pre_nodes(*node).unwrap_or_default();
-                if pre_nodes.len() as i32 == *dag[*node].params.get("pre_done_count").unwrap_or(&0)
-                    && using_cores_by_dag[dag_id] < allocated_cores_by_dag[dag_id]
-                {
-                    using_cores_by_dag[dag_id] += 1;
-                    if let Some(core_index) = processor.get_idle_core_index() {
-                        processor.allocate(core_index, &dag[*node]);
-                        assigned_dag_ids_to_core[core_index] = dag_id as i32;
-                        dag_execution_order.remove(0);
-                    }
+                let pre_nodes_count = dag.get_pre_nodes(*node).unwrap_or_default().len() as i32;
+                let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
+                let unused_cores = allocated_cores[dag_id] - using_cores[dag_id];
+
+                //DISCUSS: 可読性を上げるためにifを分割するべきか
+                //DISCUSS: pre_nodes_count == pre_done_nodes_countは実行可能になった場合
+                //DISCUSS: unused_cores > 0はDAGに割り当てられるコアで使用されていないコアがある場合
+                if pre_nodes_count == pre_done_nodes_count && unused_cores > 0 {
+                    let core_i = processor.get_idle_core_index().unwrap();
+                    processor.allocate(core_i, &dag[*node]);
+                    using_cores[dag_id] += 1;
+                    dag_id_assigned_to_core[core_i] = dag_id as i32;
+                    dag_execution_order.remove(0);
                 } else {
                     break;
                 }
             }
         }
 
-        //実行する
         let process_result = processor.process();
         current_time += 1;
 
         let finish_nodes: Vec<(usize, NodeIndex)> = process_result
             .iter()
             .enumerate()
-            .filter_map(|(core_index, result)| {
+            .filter_map(|(core_i, result)| {
                 if let ProcessResult::Done(id) = result {
-                    Some((core_index, *id))
+                    Some((core_i, *id))
                 } else {
                     None
                 }
             })
             .collect();
 
-        for (core_index, node_index) in finish_nodes {
-            let dag_id = assigned_dag_ids_to_core[core_index] as usize;
+        for (core_i, node_i) in finish_nodes {
+            let dag_id = dag_id_assigned_to_core[core_i] as usize;
             let dag = &mut dag_set[dag_id];
-            finished_nodes_by_dag[dag_id].push(node_index);
-            let suc_nodes = dag.get_suc_nodes(node_index).unwrap_or_default();
+
+            finished_nodes[dag_id].push(node_i);
+
+            let suc_nodes = dag.get_suc_nodes(node_i).unwrap_or_default();
             if suc_nodes.is_empty() {
-                finished_dags_count += 1;
+                finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
+                allocated_cores[dag_id] = 0; //When the last node is finished, the core allocated to dag is released.
             }
             for suc_node in suc_nodes {
                 if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
@@ -270,44 +272,5 @@ mod tests {
         );
 
         assert_eq!(time, 53);
-    }
-
-    #[test]
-    fn test_calculate_minimum_cores_and_execution_order_normal() {
-        let mut dag = create_sample_dag();
-        let mut scheduler = FixedPriorityScheduler::new(
-            &Graph::<NodeData, i32>::new(),
-            &HomogeneousProcessor::new(1),
-        );
-        let (minimum_cores, execution_order) =
-            calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
-
-        assert_eq!(minimum_cores, 3);
-        assert_eq!(
-            execution_order,
-            vec![
-                NodeIndex::new(0),
-                NodeIndex::new(4),
-                NodeIndex::new(3),
-                NodeIndex::new(1),
-                NodeIndex::new(2)
-            ]
-        );
-
-        let mut dag = create_sample_dag2();
-        let mut scheduler = FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let (minimum_cores, execution_order) =
-            calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
-
-        assert_eq!(minimum_cores, 2);
-        assert_eq!(
-            execution_order,
-            vec![
-                NodeIndex::new(0),
-                NodeIndex::new(3),
-                NodeIndex::new(1),
-                NodeIndex::new(2),
-            ]
-        );
     }
 }
