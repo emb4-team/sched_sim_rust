@@ -45,6 +45,8 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_dag_id(&self) -> usize;
+    fn set_dag_id(&mut self, dag_id: usize);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
 }
 
@@ -477,6 +479,14 @@ impl GraphExtension for Graph<NodeData, i32> {
         } else {
             Some(parallel_process_nodes)
         }
+    }
+
+    fn get_dag_id(&self) -> usize {
+        self[NodeIndex::new(0)].params["dag_id"] as usize
+    }
+
+    fn set_dag_id(&mut self, dag_id: usize) {
+        self.add_param(NodeIndex::new(0), "dag_id", dag_id as i32);
     }
 
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex {

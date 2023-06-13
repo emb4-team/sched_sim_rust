@@ -54,10 +54,6 @@ where
     (minimum_cores, execution_order)
 }
 
-fn get_dag_id(dag: &Graph<NodeData, i32>) -> usize {
-    dag[NodeIndex::new(0)].params["dag_id"] as usize
-}
-
 #[allow(dead_code)]
 pub fn dynamic_federated<T>(
     dag_set: &mut [Graph<NodeData, i32>],
@@ -92,7 +88,7 @@ where
 
     for (dag_id, dag) in dag_set.iter_mut().enumerate() {
         //Managing index of dag with param because Hash cannot be used for key of Hash.
-        dag.add_param(NodeIndex::new(0), "dag_id", dag_id as i32);
+        dag.set_dag_id(dag_id);
         scheduler.set_dag(dag);
         let (required_core, execution_order) =
             calculate_minimum_cores_and_execution_order(dag, scheduler);
@@ -110,14 +106,14 @@ where
 
         //Operations on finished jobs
         for dag in &mut *dag_set {
-            let dag_id = get_dag_id(dag);
+            let dag_id = dag.get_dag_id();
             using_cores[dag_id] -= finished_nodes[dag_id].len() as i32;
             finished_nodes[dag_id].clear();
         }
 
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.first() {
-            let dag_id = get_dag_id(dag);
+            let dag_id = dag.get_dag_id();
             if min_cores_for_sched[dag_id] > processor_cores - allocated_cores.iter().sum::<i32>() {
                 break;
             }
@@ -128,7 +124,7 @@ where
 
         //Assign a node per DAG
         for dag in &mut *dag_set {
-            let dag_id = get_dag_id(dag);
+            let dag_id = dag.get_dag_id();
             if !is_started[dag_id] {
                 continue;
             }
