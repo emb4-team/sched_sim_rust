@@ -145,7 +145,7 @@ where
                     processor.allocate(core_i, &dag[*node]);
                     using_cores[dag_id] += 1;
                     assigned_dag_id[core_i] = dag_id as i32;
-                    dag_execution_order.remove(0);
+                    dag_execution_order.pop_front();
                 } else {
                     break;
                 }
