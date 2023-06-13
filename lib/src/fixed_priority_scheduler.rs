@@ -10,6 +10,16 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
+/*
+#[derive(Clone, Default)] // This allows us to clone/copy the struct
+pub struct ScheduleData {
+    pub core_id: usize,
+    pub node_id: i32,
+    pub start_time: i32,
+    pub end_time: i32,
+}
+*/
+
 pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
@@ -77,6 +87,8 @@ where
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
         let source_node = dag.add_dummy_source_node();
 
+        /*let mut schedule_data: Vec<ScheduleData> = vec![Default::default(); dag.node_count()];*/
+
         dag[source_node]
             .params
             .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
@@ -103,6 +115,14 @@ where
             while let Some(core_index) = self.processor.get_idle_core_index() {
                 if let Some(task) = ready_queue.pop_front() {
                     self.processor.allocate(core_index, &dag[task]);
+
+                    /*
+                    let task_id = dag[task].id;
+                    schedule_data[task_id as usize].core_id = core_index;
+                    schedule_data[task_id as usize].node_id = task_id;
+                    schedule_data[task_id as usize].start_time = current_time;
+                    */
+
                     execution_order.push(task);
                 } else {
                     break;
@@ -127,6 +147,7 @@ where
                 .filter_map(|result| {
                     if let ProcessResult::Done(id) = result {
                         Some(*id)
+                        //schedule_data[*id as usize].end_time = current_time;
                     } else {
                         None
                     }
