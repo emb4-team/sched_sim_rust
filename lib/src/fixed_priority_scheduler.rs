@@ -70,10 +70,10 @@ where
     ///
     /// Refer to the examples in the tests code.
     ///
-    fn schedule(&mut self) -> (i32, Vec<NodeIndex>) {
+    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         let mut dag = self.dag.clone(); //To avoid adding pre_node_count to the original DAG
         let mut current_time = 0;
-        let mut execution_order = Vec::new();
+        let mut execution_order = VecDeque::new();
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
         let source_node = dag.add_dummy_source_node();
 
@@ -103,7 +103,7 @@ where
             while let Some(core_index) = self.processor.get_idle_core_index() {
                 if let Some(task) = ready_queue.pop_front() {
                     self.processor.allocate(core_index, &dag[task]);
-                    execution_order.push(task);
+                    execution_order.push_back(task);
                 } else {
                     break;
                 }
@@ -159,9 +159,9 @@ where
         dag.remove_dummy_source_node();
 
         //Remove the dummy source node from the execution order.
-        execution_order.remove(0);
+        execution_order.pop_back();
         //Remove the dummy sink node from the execution order.
-        execution_order.pop();
+        execution_order.pop_front();
 
         //Return the normalized total time taken to finish all tasks.
         (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)

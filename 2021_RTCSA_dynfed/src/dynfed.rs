@@ -5,6 +5,8 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
+use std::collections::VecDeque;
+
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::processor::ProcessorBase;
@@ -34,7 +36,7 @@ use petgraph::{graph::NodeIndex, Graph};
 fn calculate_minimum_cores_and_execution_order<T>(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<T>,
-) -> (usize, Vec<NodeIndex>)
+) -> (usize, VecDeque<NodeIndex>)
 where
     T: ProcessorBase + Clone,
 {
@@ -66,7 +68,7 @@ where
     let mut current_time = 0;
     let processor_cores = processor.get_number_of_cores() as i32;
 
-    let mut dag_queue: Vec<Graph<NodeData, i32>> = Vec::new();
+    let mut dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
     let mut finished_dags_count = 0;
     let num_of_dags = dag_set.len();
 
@@ -76,7 +78,7 @@ where
     let mut finished_nodes = vec![Vec::new(); num_of_dags];
     let mut using_cores: Vec<i32> = vec![0; num_of_dags];
     let mut allocated_cores: Vec<i32> = vec![0; num_of_dags];
-    let mut execution_orders: Vec<Vec<NodeIndex>> = vec![Vec::new(); num_of_dags];
+    let mut execution_orders: Vec<VecDeque<NodeIndex>> = vec![VecDeque::new(); num_of_dags];
     let mut min_cores_for_sched: Vec<i32> = vec![0; num_of_dags];
     let mut is_started: Vec<bool> = vec![false; num_of_dags];
 
@@ -100,7 +102,7 @@ where
         //Queue the dag when it is released.
         for dag in &mut *dag_set {
             if current_time == dag.get_head_offset() {
-                dag_queue.push(dag.clone());
+                dag_queue.push_back(dag.clone());
             }
         }
 
@@ -112,12 +114,12 @@ where
         }
 
         //Start DAG if there are enough free cores
-        while let Some(dag) = dag_queue.first() {
+        while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
             if min_cores_for_sched[dag_id] > processor_cores - allocated_cores.iter().sum::<i32>() {
                 break;
             }
-            dag_queue.remove(0);
+            dag_queue.pop_front();
             is_started[dag_id] = true;
             allocated_cores[dag_id] = min_cores_for_sched[dag_id];
         }
@@ -130,7 +132,7 @@ where
             }
             let dag_execution_order = &mut execution_orders[dag_id];
 
-            while let Some(node) = dag_execution_order.first() {
+            while let Some(node) = dag_execution_order.front() {
                 let pre_nodes_count = dag.get_pre_nodes(*node).unwrap_or_default().len() as i32;
                 let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
                 let unused_cores = allocated_cores[dag_id] - using_cores[dag_id];
