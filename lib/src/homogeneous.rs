@@ -33,6 +33,10 @@ impl ProcessorBase for HomogeneousProcessor {
         }
         None
     }
+
+    fn get_total_proc_time_by_core(&self, core_id: usize) -> i32 {
+        self.cores[core_id].total_proc_time
+    }
 }
 
 #[cfg(test)]
@@ -143,5 +147,22 @@ mod tests {
         homogeneous_processor.allocate(1, &n1);
 
         assert_eq!(homogeneous_processor.get_idle_core_index(), None);
+    }
+
+    #[test]
+    fn test_processor_get_total_proc_time_by_core_normal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+        let n1 = create_node(0, "execution_time", 2);
+        let n2 = create_node(0, "execution_time", 3);
+
+        homogeneous_processor.allocate(0, &n1);
+        homogeneous_processor.allocate(1, &n2);
+
+        homogeneous_processor.process();
+        homogeneous_processor.process();
+        homogeneous_processor.process();
+
+        assert_eq!(homogeneous_processor.get_total_proc_time_by_core(0), 2);
+        assert_eq!(homogeneous_processor.get_total_proc_time_by_core(1), 3);
     }
 }
