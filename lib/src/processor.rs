@@ -6,5 +6,4 @@ pub trait ProcessorBase {
     fn process(&mut self) -> Vec<ProcessResult>;
     fn get_number_of_cores(&self) -> usize;
     fn get_idle_core_index(&self) -> Option<usize>;
-    fn get_total_proc_time_by_core(&self, core_id: usize) -> i32;
 }

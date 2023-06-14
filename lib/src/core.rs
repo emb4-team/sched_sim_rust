@@ -16,7 +16,6 @@ pub struct Core {
     pub is_idle: bool,
     pub processing_node: Option<i32>,
     pub remain_proc_time: i32,
-    pub total_proc_time: i32,
 }
 
 impl Default for Core {
@@ -25,7 +24,6 @@ impl Default for Core {
             is_idle: true,
             processing_node: None,
             remain_proc_time: 0,
-            total_proc_time: 0,
         }
     }
 }
@@ -53,7 +51,6 @@ impl Core {
             return Idle;
         }
         self.remain_proc_time -= 1;
-        self.total_proc_time += 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
             let finish_node_id = self.processing_node.unwrap() as usize;
@@ -111,10 +108,8 @@ mod tests {
         core.allocate(&create_node(0, "execution_time", 10));
         assert_eq!(core.process(), Continue);
         assert_eq!(core.remain_proc_time, 9);
-        assert_eq!(core.total_proc_time, 1);
         core.process();
         assert_eq!(core.remain_proc_time, 8);
-        assert_eq!(core.total_proc_time, 2);
     }
 
     #[test]
@@ -129,7 +124,6 @@ mod tests {
         core.allocate(&create_node(0, "execution_time", 2));
         core.process();
         assert_eq!(core.process(), Done(NodeIndex::new(0)));
-        assert_eq!(core.total_proc_time, 2);
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);

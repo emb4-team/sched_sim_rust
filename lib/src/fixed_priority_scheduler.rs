@@ -182,7 +182,7 @@ where
         //Remove the dummy sink node from the execution order.
         execution_order.pop();
 
-        let num_of_cores = self.processor.get_number_of_cores();
+        /*let num_of_cores = self.processor.get_number_of_cores();
         let mut utilization_rate = vec![0.0; num_of_cores];
         for (core_id, rate) in utilization_rate.iter_mut().enumerate().take(num_of_cores) {
             let total_proc_time = self.processor.get_total_proc_time_by_core(core_id);
@@ -194,7 +194,7 @@ where
             .iter()
             .map(|rate| (rate - average_utilization_rate).powi(2))
             .sum::<f32>()
-            / num_of_cores as f32;
+            / num_of_cores as f32;*/
 
         //Return the normalized total time taken to finish all tasks.
         (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
