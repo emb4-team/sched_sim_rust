@@ -13,6 +13,37 @@ use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
 use petgraph::{graph::NodeIndex, Graph};
 
+#[derive(Clone, Debug)]
+pub struct DynamicFederatedHandler {
+    pub finished_nodes: Vec<NodeIndex>,
+    pub using_cores: i32,
+    pub allocated_cores: i32,
+    pub execution_orders: VecDeque<NodeIndex>,
+    pub min_cores_for_sched: i32,
+    pub is_started: bool,
+}
+
+impl DynamicFederatedHandler {
+    fn new() -> Self {
+        Self {
+            finished_nodes: Vec::new(),
+            using_cores: 0,
+            allocated_cores: 0,
+            execution_orders: VecDeque::new(),
+            min_cores_for_sched: 0,
+            is_started: false,
+        }
+    }
+}
+
+fn get_total_allocated_cores(dyn_feds: &[DynamicFederatedHandler]) -> i32 {
+    let mut total_allocated_cores = 0;
+    for dyn_fed in dyn_feds {
+        total_allocated_cores += dyn_fed.allocated_cores;
+    }
+    total_allocated_cores
+}
+
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
 /// # Arguments
@@ -67,20 +98,11 @@ where
 {
     let mut current_time = 0;
     let processor_cores = processor.get_number_of_cores() as i32;
+    let num_of_dags = dag_set.len();
+    let mut dynamic_federated_handlers = vec![DynamicFederatedHandler::new(); num_of_dags];
 
     let mut dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
     let mut finished_dags_count = 0;
-    let num_of_dags = dag_set.len();
-
-    //Variables per dag respectively
-    //DISCUSS: 可読性を上げるために後ろに_by_dagをつける？
-    //DISCUSS: もしくは、structにまとめる？
-    let mut finished_nodes = vec![Vec::new(); num_of_dags];
-    let mut using_cores: Vec<i32> = vec![0; num_of_dags];
-    let mut allocated_cores: Vec<i32> = vec![0; num_of_dags];
-    let mut execution_orders: Vec<VecDeque<NodeIndex>> = vec![VecDeque::new(); num_of_dags];
-    let mut min_cores_for_sched: Vec<i32> = vec![0; num_of_dags];
-    let mut is_started: Vec<bool> = vec![false; num_of_dags];
 
     scheduler.set_processor(processor);
 
@@ -90,8 +112,8 @@ where
         scheduler.set_dag(dag);
         let (required_core, execution_order) =
             calculate_minimum_cores_and_execution_order(dag, scheduler);
-        min_cores_for_sched[dag_id] = required_core as i32;
-        execution_orders[dag_id] = execution_order;
+        dynamic_federated_handlers[dag_id].min_cores_for_sched = required_core as i32;
+        dynamic_federated_handlers[dag_id].execution_orders = execution_order;
     }
 
     while finished_dags_count < num_of_dags {
@@ -105,39 +127,45 @@ where
         //Operations on finished jobs
         for dag in &mut *dag_set {
             let dag_id = dag.get_dag_id();
-            using_cores[dag_id] -= finished_nodes[dag_id].len() as i32;
-            finished_nodes[dag_id].clear();
+            dynamic_federated_handlers[dag_id].using_cores -=
+                dynamic_federated_handlers[dag_id].finished_nodes.len() as i32;
+            dynamic_federated_handlers[dag_id].finished_nodes.clear();
         }
 
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
-            if min_cores_for_sched[dag_id] > processor_cores - allocated_cores.iter().sum::<i32>() {
+            if dynamic_federated_handlers[dag_id].min_cores_for_sched
+                > processor_cores - get_total_allocated_cores(&dynamic_federated_handlers)
+            {
                 break;
             }
             dag_queue.pop_front();
-            is_started[dag_id] = true;
-            allocated_cores[dag_id] = min_cores_for_sched[dag_id];
+            dynamic_federated_handlers[dag_id].is_started = true;
+            dynamic_federated_handlers[dag_id].allocated_cores =
+                dynamic_federated_handlers[dag_id].min_cores_for_sched;
         }
 
         //Assign a node per DAG
         for dag in &mut *dag_set {
             let dag_id = dag.get_dag_id();
-            if !is_started[dag_id] {
+            if !dynamic_federated_handlers[dag_id].is_started {
                 continue;
             }
-            let dag_execution_order = &mut execution_orders[dag_id];
 
-            while let Some(node) = dag_execution_order.front() {
+            while let Some(node) = dynamic_federated_handlers[dag_id].execution_orders.front() {
                 let pre_nodes_count = dag.get_pre_nodes(*node).unwrap_or_default().len() as i32;
                 let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
-                let unused_cores = allocated_cores[dag_id] - using_cores[dag_id];
+                let unused_cores = dynamic_federated_handlers[dag_id].allocated_cores
+                    - dynamic_federated_handlers[dag_id].using_cores;
 
                 if pre_nodes_count == pre_done_nodes_count && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node]);
-                    using_cores[dag_id] += 1;
-                    dag_execution_order.pop_front();
+                    dynamic_federated_handlers[dag_id].using_cores += 1;
+                    dynamic_federated_handlers[dag_id]
+                        .execution_orders
+                        .pop_front();
                 } else {
                     break;
                 }
@@ -162,14 +190,19 @@ where
             let dag_id = node_data.params["dag_id"] as usize;
             let dag = &mut dag_set[dag_id];
             let node_i = NodeIndex::new(node_data.id as usize);
+            dynamic_federated_handlers[dag_id]
+                .finished_nodes
+                .push(node_i);
 
-            finished_nodes[dag_id].push(node_i);
+            dynamic_federated_handlers[dag_id]
+                .finished_nodes
+                .push(node_i);
 
             let suc_nodes = dag.get_suc_nodes(node_i).unwrap_or_default();
 
             if suc_nodes.is_empty() {
                 finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                allocated_cores[dag_id] = 0; //When the last node is finished, the core allocated to dag is released.
+                dynamic_federated_handlers[dag_id].allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
             }
 
             for suc_node in suc_nodes {
