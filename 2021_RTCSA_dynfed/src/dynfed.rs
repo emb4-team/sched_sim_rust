@@ -15,24 +15,29 @@ use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Clone, Debug)]
 pub struct DynamicFederatedHandler {
-    pub finished_nodes: Vec<NodeIndex>,
+    pub is_started: bool,
     pub using_cores: i32,
     pub allocated_cores: i32,
-    pub execution_orders: VecDeque<NodeIndex>,
     pub min_cores_for_sched: i32,
-    pub is_started: bool,
+    pub finished_nodes: Vec<NodeIndex>,
+    pub execution_orders: VecDeque<NodeIndex>,
 }
 
 impl DynamicFederatedHandler {
     fn new() -> Self {
         Self {
-            finished_nodes: Vec::new(),
+            is_started: false,
             using_cores: 0,
             allocated_cores: 0,
-            execution_orders: VecDeque::new(),
             min_cores_for_sched: 0,
-            is_started: false,
+            finished_nodes: Vec::new(),
+            execution_orders: VecDeque::new(),
         }
+    }
+
+    fn update_using_cores(&mut self) {
+        self.using_cores -= self.finished_nodes.len() as i32;
+        self.finished_nodes.clear();
     }
 }
 
@@ -127,9 +132,7 @@ where
         //Operations on finished jobs
         for dag in &mut *dag_set {
             let dag_id = dag.get_dag_id();
-            dynamic_federated_handlers[dag_id].using_cores -=
-                dynamic_federated_handlers[dag_id].finished_nodes.len() as i32;
-            dynamic_federated_handlers[dag_id].finished_nodes.clear();
+            dynamic_federated_handlers[dag_id].update_using_cores();
         }
 
         //Start DAG if there are enough free cores
