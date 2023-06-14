@@ -53,9 +53,14 @@ impl DynamicFederatedHandler {
         self.execution_order = execution_order
     }
 
-    fn start_dag(&mut self) {
+    fn start(&mut self) {
         self.is_started = true;
         self.allocated_cores = self.minimum_cores;
+    }
+
+    fn allocate(&mut self) {
+        self.using_cores += 1;
+        self.execution_order.pop_front();
     }
 }
 
@@ -153,12 +158,11 @@ where
                 break;
             }
             dag_queue.pop_front();
-            dynamic_federated_handlers[dag_id].start_dag();
+            dynamic_federated_handlers[dag_id].start();
         }
 
         //Assign a node per DAG
-        for dag in &mut *dag_set {
-            let dag_id = dag.get_dag_id();
+        for (dag_id, dag) in dag_set.iter_mut().enumerate() {
             if !dynamic_federated_handlers[dag_id].is_started {
                 continue;
             }
@@ -172,10 +176,7 @@ where
                 if pre_nodes_count == pre_done_nodes_count && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node]);
-                    dynamic_federated_handlers[dag_id].using_cores += 1;
-                    dynamic_federated_handlers[dag_id]
-                        .execution_order
-                        .pop_front();
+                    dynamic_federated_handlers[dag_id].allocate();
                 } else {
                     break;
                 }
@@ -200,10 +201,6 @@ where
             let dag_id = node_data.params["dag_id"] as usize;
             let dag = &mut dag_set[dag_id];
             let node_i = NodeIndex::new(node_data.id as usize);
-            dynamic_federated_handlers[dag_id]
-                .finished_nodes
-                .push(node_i);
-
             dynamic_federated_handlers[dag_id]
                 .finished_nodes
                 .push(node_i);
