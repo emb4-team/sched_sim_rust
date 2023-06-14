@@ -482,6 +482,9 @@ impl GraphExtension for Graph<NodeData, i32> {
     }
 
     fn get_dag_id(&self) -> usize {
+        if self.node_indices().count() == 0 {
+            panic!("Error: dag_id does not exist. Please use set_dag_id(dag_id: usize)");
+        }
         self[NodeIndex::new(0)].params["dag_id"] as usize
     }
 
