@@ -13,10 +13,6 @@ pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
     hyper_period
 }
 
-pub fn get_dag_id(node_data: &NodeData) -> usize {
-    node_data.params["dag_id"] as usize
-}
-
 #[cfg(test)]
 
 mod tests {
@@ -42,13 +38,5 @@ mod tests {
             create_dag(40),
         ];
         assert_eq!(get_hyper_period(&dag_set), 120);
-    }
-
-    #[test]
-    fn test_get_dag_id_normal() {
-        let mut params = HashMap::new();
-        params.insert("dag_id".to_owned(), 1);
-        let node_data = NodeData { id: 0, params };
-        assert_eq!(get_dag_id(&node_data), 1);
     }
 }
