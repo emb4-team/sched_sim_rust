@@ -10,12 +10,25 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ScheduledNodeData {
     pub core_id: usize,
     pub node_id: i32,
     pub start_time: i32,
     pub end_time: i32,
+}
+
+#[derive(Clone, Default)]
+pub struct ScheduledProcessorData {
+    pub scheduled_core_data: Vec<ScheduledCoreData>,
+    pub utilization_rate: i32,
+}
+
+#[derive(Clone, Default)]
+pub struct ScheduledCoreData {
+    pub core_id: usize,
+    pub total_proc_time: i32,
+    pub utilization_rate: i32,
 }
 
 pub struct FixedPriorityScheduler<T>
@@ -24,7 +37,8 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub schedule_data: Vec<ScheduledNodeData>,
+    pub scheduled_node_data: Vec<ScheduledNodeData>,
+    pub scheduled_processor_data: ScheduledProcessorData,
 }
 
 impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
@@ -35,7 +49,14 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            schedule_data: vec![Default::default(); dag.node_count()],
+            scheduled_node_data: vec![Default::default(); dag.node_count()],
+            scheduled_processor_data: ScheduledProcessorData {
+                scheduled_core_data: vec![
+                    ScheduledCoreData::default();
+                    processor.get_number_of_cores()
+                ],
+                utilization_rate: Default::default(),
+            },
         }
     }
 
@@ -116,9 +137,9 @@ where
 
                     if task != source_node && task != sink_node {
                         let task_id = dag[task].id as usize;
-                        self.schedule_data[task_id].core_id = core_index;
-                        self.schedule_data[task_id].node_id = task_id as i32;
-                        self.schedule_data[task_id].start_time =
+                        self.scheduled_node_data[task_id].core_id = core_index;
+                        self.scheduled_node_data[task_id].node_id = task_id as i32;
+                        self.scheduled_node_data[task_id].start_time =
                             current_time - DUMMY_EXECUTION_TIME;
                     }
                     execution_order.push(task);
@@ -288,6 +309,11 @@ mod tests {
                 NodeIndex::new(3),
                 NodeIndex::new(2)
             ]
+        );
+
+        println!(
+            "schedule: {:?}",
+            fixed_priority_scheduler.scheduled_node_data
         );
     }
 
