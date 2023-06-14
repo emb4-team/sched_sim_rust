@@ -141,13 +141,8 @@ where
             for finish_node in finish_nodes {
                 let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
                 for suc_node in suc_nodes {
-                    if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
-                        *value += 1;
-                    } else {
-                        dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
-                    }
-                    let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-                    if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
+                    dag.increment_pre_done_count(suc_node);
+                    if dag.is_node_ready(suc_node) {
                         ready_queue.push_back(suc_node);
                     }
                 }
