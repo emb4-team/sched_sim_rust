@@ -6,6 +6,7 @@ use crate::{
     processor::ProcessorBase,
     scheduler::SchedulerBase,
 };
+use log::warn;
 use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
@@ -18,17 +19,18 @@ pub struct ScheduledNodeData {
     pub end_time: i32,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ScheduledProcessorData {
     pub scheduled_core_data: Vec<ScheduledCoreData>,
-    pub utilization_rate: i32,
+    pub average_utilization_rate: f32,
+    pub variance_utilization_rate: f32,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ScheduledCoreData {
     pub core_id: usize,
     pub total_proc_time: i32,
-    pub utilization_rate: i32,
+    pub utilization_rate: f32,
 }
 
 pub struct FixedPriorityScheduler<T>
@@ -55,7 +57,8 @@ where
                     ScheduledCoreData::default();
                     processor.get_number_of_cores()
                 ],
-                utilization_rate: Default::default(),
+                average_utilization_rate: Default::default(),
+                variance_utilization_rate: Default::default(),
             },
         }
     }
@@ -141,6 +144,15 @@ where
                         self.scheduled_node_data[task_id].node_id = task_id as i32;
                         self.scheduled_node_data[task_id].start_time =
                             current_time - DUMMY_EXECUTION_TIME;
+                        self.scheduled_processor_data.scheduled_core_data[core_index]
+                            .total_proc_time +=
+                            dag[task].params.get("execution_time").unwrap_or_else(|| {
+                                warn!(
+                                    "Warning: 'execution_time' parameter not found for node {:?}",
+                                    task
+                                );
+                                &0
+                            });
                     }
                     execution_order.push(task);
                 } else {
@@ -165,7 +177,13 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
-                        Some(NodeIndex::new(node_data.id as usize))
+                        let task = NodeIndex::new(node_data.id as usize);
+                        let node_id = node_data.id as usize;
+                        if task != source_node && task != sink_node {
+                            self.scheduled_node_data[node_id].end_time =
+                                current_time - DUMMY_EXECUTION_TIME;
+                        }
+                        Some(NodeIndex::new(node_id))
                     } else {
                         None
                     }
@@ -201,6 +219,33 @@ where
         execution_order.remove(0);
         //Remove the dummy sink node from the execution order.
         execution_order.pop();
+
+        for core_id in 0..self.scheduled_processor_data.scheduled_core_data.len() {
+            self.scheduled_processor_data.scheduled_core_data[core_id].core_id = core_id;
+            self.scheduled_processor_data.scheduled_core_data[core_id].utilization_rate =
+                self.scheduled_processor_data.scheduled_core_data[core_id].total_proc_time as f32
+                    / (current_time - DUMMY_EXECUTION_TIME * 2) as f32;
+        }
+
+        self.scheduled_processor_data.average_utilization_rate = self
+            .scheduled_processor_data
+            .scheduled_core_data
+            .iter()
+            .map(|core_data| core_data.utilization_rate)
+            .sum::<f32>()
+            / self.scheduled_processor_data.scheduled_core_data.len() as f32;
+
+        self.scheduled_processor_data.variance_utilization_rate = self
+            .scheduled_processor_data
+            .scheduled_core_data
+            .iter()
+            .map(|core_data| {
+                (core_data.utilization_rate
+                    - self.scheduled_processor_data.average_utilization_rate)
+                    .powi(2)
+            })
+            .sum::<f32>()
+            / self.scheduled_processor_data.scheduled_core_data.len() as f32;
 
         /*let num_of_cores = self.processor.get_number_of_cores();
         let mut utilization_rate = vec![0.0; num_of_cores];
@@ -308,11 +353,6 @@ mod tests {
                 NodeIndex::new(3),
                 NodeIndex::new(2)
             ]
-        );
-
-        println!(
-            "schedule: {:?}",
-            fixed_priority_scheduler.scheduled_node_data
         );
     }
 
