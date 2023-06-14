@@ -48,6 +48,7 @@ pub trait GraphExtension {
     fn get_dag_id(&self) -> usize;
     fn set_dag_id(&mut self, dag_id: usize);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
+    fn is_node_ready(&self, node_i: NodeIndex) -> bool;
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
@@ -507,6 +508,12 @@ impl GraphExtension for Graph<NodeData, i32> {
         );
 
         node_index
+    }
+
+    fn is_node_ready(&self, node_i: NodeIndex) -> bool {
+        let pre_nodes_count = self.get_pre_nodes(node_i).unwrap_or_default().len() as i32;
+        let pre_done_nodes_count = self[node_i].params.get("pre_done_count").unwrap_or(&0);
+        pre_nodes_count == *pre_done_nodes_count
     }
 }
 
@@ -1129,5 +1136,18 @@ mod tests {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node_with_id_consistency(create_node(0, "execution_time", 3));
         dag.add_node_with_id_consistency(create_node(0, "execution_time", 3));
+    }
+
+    #[test]
+    fn test_can_node_start_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 0));
+        let n1 = dag.add_node(create_node(1, "execution_time", 0));
+        dag.add_edge(n0, n1, 1);
+
+        assert!(dag.is_node_ready(n0));
+        assert!(!dag.is_node_ready(n1));
+        dag.add_param(n1, "pre_done_count", 1);
+        assert!(dag.is_node_ready(n1));
     }
 }

@@ -146,8 +146,7 @@ where
                     } else {
                         dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
                     }
-                    let pre_nodes = dag.get_pre_nodes(suc_node).unwrap_or_default();
-                    if pre_nodes.len() as i32 == dag[suc_node].params["pre_done_count"] {
+                    if dag.is_node_ready(suc_node) {
                         ready_queue.push_back(suc_node);
                     }
                 }
