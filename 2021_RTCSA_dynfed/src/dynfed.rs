@@ -66,6 +66,10 @@ impl DynamicFederatedHandler {
         self.using_cores += 1;
         self.execution_order.pop_front();
     }
+
+    fn get_unused_cores(&self) -> i32 {
+        self.allocated_cores - self.using_cores
+    }
 }
 
 fn get_total_allocated_cores(dyn_feds: &[DynamicFederatedHandler]) -> i32 {
@@ -173,9 +177,7 @@ where
             }
 
             while let Some(node_i) = dynamic_federated_handlers[dag_id].execution_order.front() {
-                let unused_cores = dynamic_federated_handlers[dag_id].allocated_cores
-                    - dynamic_federated_handlers[dag_id].using_cores;
-
+                let unused_cores = dynamic_federated_handlers[dag_id].get_unused_cores();
                 if dag.is_node_ready(*node_i) && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node_i]);
@@ -216,11 +218,7 @@ where
             }
 
             for suc_node in suc_nodes {
-                if let Some(value) = dag[suc_node].params.get_mut("pre_done_count") {
-                    *value += 1;
-                } else {
-                    dag[suc_node].params.insert("pre_done_count".to_owned(), 1);
-                }
+                dag.increment_pre_done_count(suc_node);
             }
         }
     }
