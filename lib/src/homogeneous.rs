@@ -17,6 +17,14 @@ impl ProcessorBase for HomogeneousProcessor {
         self.cores[core_id].allocate(node_data)
     }
 
+    fn allocate_idle_core(&mut self, node_data: &NodeData) -> bool {
+        if let Some(idle_core_i) = self.get_idle_core_index() {
+            self.cores[idle_core_i].allocate(node_data)
+        } else {
+            false
+        }
+    }
+
     fn process(&mut self) -> Vec<ProcessResult> {
         self.cores.iter_mut().map(|core| core.process()).collect()
     }
@@ -79,6 +87,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_processor_allocate_no_exist_core() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+
+        homogeneous_processor.allocate(2, &create_node(0, "execution_time", 2));
+    }
+
+    #[test]
+    fn test_processor_allocate_idle_core_normal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+
+        assert!(homogeneous_processor.allocate_idle_core(&create_node(0, "execution_time", 2)));
+        assert!(!homogeneous_processor.cores[0].is_idle);
+        assert!(homogeneous_processor.cores[1].is_idle);
+        assert!(homogeneous_processor.allocate_idle_core(&create_node(1, "execution_time", 2)));
+        assert!(!homogeneous_processor.cores[1].is_idle);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_processor_allocate_idle_core_no_exist() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
         homogeneous_processor.allocate(2, &create_node(0, "execution_time", 2));
