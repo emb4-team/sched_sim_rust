@@ -82,10 +82,6 @@ where
     let mut min_cores_for_sched: Vec<i32> = vec![0; num_of_dags];
     let mut is_started: Vec<bool> = vec![false; num_of_dags];
 
-    //Variables per core respectively
-    //DISCUSS: 可読性を上げるために後ろに_by_coreをつける？
-    let mut assigned_dag_id: Vec<i32> = vec![-1; processor_cores.try_into().unwrap()];
-
     scheduler.set_processor(processor);
 
     for (dag_id, dag) in dag_set.iter_mut().enumerate() {
@@ -137,14 +133,10 @@ where
                 let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
                 let unused_cores = allocated_cores[dag_id] - using_cores[dag_id];
 
-                //DISCUSS: 可読性を上げるためにifを分割するべきか
-                //DISCUSS: pre_nodes_count == pre_done_nodes_countは実行可能になった場合
-                //DISCUSS: unused_cores > 0はDAGに割り当てられるコアで使用されていないコアがある場合
                 if pre_nodes_count == pre_done_nodes_count && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node]);
                     using_cores[dag_id] += 1;
-                    assigned_dag_id[core_i] = dag_id as i32;
                     dag_execution_order.pop_front();
                 } else {
                     break;
@@ -155,21 +147,21 @@ where
         let process_result = processor.process();
         current_time += 1;
 
-        let finish_nodes: Vec<(usize, NodeIndex)> = process_result
+        let finish_nodes: Vec<NodeData> = process_result
             .iter()
-            .enumerate()
-            .filter_map(|(core_i, result)| {
-                if let ProcessResult::Done(id) = result {
-                    Some((core_i, *id))
+            .filter_map(|result| {
+                if let ProcessResult::Done(node_data) = result {
+                    Some(node_data.clone())
                 } else {
                     None
                 }
             })
             .collect();
 
-        for (core_i, node_i) in finish_nodes {
-            let dag_id = assigned_dag_id[core_i] as usize;
+        for node_data in finish_nodes {
+            let dag_id = node_data.params["dag_id"] as usize;
             let dag = &mut dag_set[dag_id];
+            let node_i = NodeIndex::new(node_data.id as usize);
 
             finished_nodes[dag_id].push(node_i);
 
