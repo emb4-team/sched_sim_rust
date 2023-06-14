@@ -1,20 +1,19 @@
 //! This module contains the definition of the core and the process result enum
 use crate::{core::ProcessResult::*, graph_extension::NodeData};
 use log::warn;
-use petgraph::graph::NodeIndex;
 ///enum to represent three types of states
 ///execution not possible because not allocate, execution in progress, execution finished
 #[derive(Debug, PartialEq, Clone)]
 pub enum ProcessResult {
     Idle,
     Continue,
-    Done(NodeIndex),
+    Done(NodeData),
 }
 
 #[derive(Clone)]
 pub struct Core {
     pub is_idle: bool,
-    pub processing_node: Option<i32>,
+    pub processing_node: Option<NodeData>,
     pub remain_proc_time: i32,
 }
 
@@ -36,7 +35,7 @@ impl Core {
             return false;
         }
         self.is_idle = false;
-        self.processing_node = Some(node_data.id);
+        self.processing_node = Some(node_data.clone());
         if let Some(exec_time) = node_data.params.get("execution_time") {
             self.remain_proc_time = *exec_time;
             true
@@ -53,9 +52,9 @@ impl Core {
         self.remain_proc_time -= 1;
         if self.remain_proc_time == 0 {
             self.is_idle = true;
-            let finish_node_id = self.processing_node.unwrap() as usize;
+            let finish_node_data = self.processing_node.clone().unwrap();
             self.processing_node = None;
-            return Done(NodeIndex::new(finish_node_id));
+            return Done(finish_node_data);
         }
         Continue
     }
@@ -85,7 +84,10 @@ mod tests {
         let mut core = Core::default();
         core.allocate(&create_node(0, "execution_time", 10));
         assert!(!core.is_idle);
-        assert_eq!(core.processing_node, Some(0));
+        assert_eq!(
+            core.processing_node,
+            Some(create_node(0, "execution_time", 10))
+        );
         assert_eq!(core.remain_proc_time, 10);
     }
 
@@ -123,7 +125,7 @@ mod tests {
         let mut core = Core::default();
         core.allocate(&create_node(0, "execution_time", 2));
         core.process();
-        assert_eq!(core.process(), Done(NodeIndex::new(0)));
+        assert_eq!(core.process(), Done(create_node(0, "execution_time", 2)));
         assert!(core.is_idle);
         assert_eq!(core.processing_node, None);
         assert_eq!(core.remain_proc_time, 0);

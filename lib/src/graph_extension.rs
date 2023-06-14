@@ -45,6 +45,8 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
+    fn get_dag_id(&self) -> usize;
+    fn set_dag_id(&mut self, dag_id: usize);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
 }
 
@@ -476,6 +478,22 @@ impl GraphExtension for Graph<NodeData, i32> {
             None
         } else {
             Some(parallel_process_nodes)
+        }
+    }
+
+    fn get_dag_id(&self) -> usize {
+        if self.node_indices().count() == 0 {
+            panic!("Error: dag_id does not exist. Please use set_dag_id(dag_id: usize)");
+        }
+        self[NodeIndex::new(0)].params["dag_id"] as usize
+    }
+
+    fn set_dag_id(&mut self, dag_id: usize) {
+        if self.node_indices().count() == 0 {
+            panic!("No node found.");
+        }
+        for node_i in self.node_indices() {
+            self.add_param(node_i, "dag_id", dag_id as i32);
         }
     }
 
@@ -1059,6 +1077,39 @@ mod tests {
         let n0 = dag.add_node(create_node(0, "parallel_process", 0));
 
         assert_eq!(dag.get_parallel_process_nodes(n0), None);
+    }
+
+    #[test]
+    fn test_get_dag_id_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "dag_id", 0));
+        assert_eq!(dag.get_dag_id(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_dag_id_no_exist_node() {
+        let dag = Graph::<NodeData, i32>::new();
+        dag.get_dag_id();
+    }
+
+    #[test]
+    fn test_set_dag_id_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.add_node(create_node(0, "execution_time", 0));
+        dag.add_node(create_node(1, "execution_time", 0));
+        dag.set_dag_id(0);
+
+        for node_i in dag.node_indices() {
+            assert_eq!(dag[node_i].params["dag_id"], 0);
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_set_dag_id_no_exist_node() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        dag.set_dag_id(0);
     }
 
     #[test]
