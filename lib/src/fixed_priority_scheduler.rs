@@ -164,9 +164,8 @@ where
             let finish_nodes: Vec<NodeIndex> = process_result
                 .iter()
                 .filter_map(|result| {
-                    if let ProcessResult::Done(id) = result {
-                        //self.schedule_data[*id as usize].end_time = current_time;
-                        Some(*id)
+                    if let ProcessResult::Done(node_data) = result {
+                        Some(NodeIndex::new(node_data.id as usize))
                     } else {
                         None
                     }
