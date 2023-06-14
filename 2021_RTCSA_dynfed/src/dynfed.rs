@@ -172,15 +172,13 @@ where
                 continue;
             }
 
-            while let Some(node) = dynamic_federated_handlers[dag_id].execution_order.front() {
-                let pre_nodes_count = dag.get_pre_nodes(*node).unwrap_or_default().len() as i32;
-                let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
+            while let Some(node_i) = dynamic_federated_handlers[dag_id].execution_order.front() {
                 let unused_cores = dynamic_federated_handlers[dag_id].allocated_cores
                     - dynamic_federated_handlers[dag_id].using_cores;
 
-                if pre_nodes_count == pre_done_nodes_count && unused_cores > 0 {
+                if dag.is_node_ready(*node_i) && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
-                    processor.allocate(core_i, &dag[*node]);
+                    processor.allocate(core_i, &dag[*node_i]);
                     dynamic_federated_handlers[dag_id].allocate();
                 } else {
                     break;
