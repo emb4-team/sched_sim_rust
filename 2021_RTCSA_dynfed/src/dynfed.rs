@@ -120,7 +120,6 @@ where
     T: ProcessorBase + Clone,
 {
     let mut current_time = 0;
-    let processor_cores = processor.get_number_of_cores() as i32;
     let num_of_dags = dag_set.len();
     let mut dynamic_federated_handlers = vec![DynamicFederatedHandler::new(); num_of_dags];
 
@@ -148,7 +147,8 @@ where
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
             if dynamic_federated_handlers[dag_id].minimum_cores
-                > processor_cores - get_total_allocated_cores(&dynamic_federated_handlers)
+                > processor.get_number_of_cores() as i32
+                    - get_total_allocated_cores(&dynamic_federated_handlers)
             {
                 break;
             }
