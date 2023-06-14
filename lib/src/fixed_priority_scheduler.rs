@@ -10,15 +10,13 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-/*
-#[derive(Clone, Default)] // This allows us to clone/copy the struct
-pub struct ScheduleData {
+#[derive(Clone, Default)]
+pub struct ScheduledNodeData {
     pub core_id: usize,
     pub node_id: i32,
     pub start_time: i32,
     pub end_time: i32,
 }
-*/
 
 pub struct FixedPriorityScheduler<T>
 where
@@ -26,6 +24,7 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
+    pub schedule_data: Vec<ScheduledNodeData>,
 }
 
 impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
@@ -36,6 +35,7 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
+            schedule_data: vec![Default::default(); dag.node_count()],
         }
     }
 
@@ -87,8 +87,6 @@ where
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
         let source_node = dag.add_dummy_source_node();
 
-        /*let mut schedule_data: Vec<ScheduleData> = vec![Default::default(); dag.node_count()];*/
-
         dag[source_node]
             .params
             .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
@@ -116,13 +114,13 @@ where
                 if let Some(task) = ready_queue.pop_front() {
                     self.processor.allocate(core_index, &dag[task]);
 
-                    /*
-                    let task_id = dag[task].id;
-                    schedule_data[task_id as usize].core_id = core_index;
-                    schedule_data[task_id as usize].node_id = task_id;
-                    schedule_data[task_id as usize].start_time = current_time;
-                    */
-
+                    if task != source_node && task != sink_node {
+                        let task_id = dag[task].id as usize;
+                        self.schedule_data[task_id].core_id = core_index;
+                        self.schedule_data[task_id].node_id = task_id as i32;
+                        self.schedule_data[task_id].start_time =
+                            current_time - DUMMY_EXECUTION_TIME;
+                    }
                     execution_order.push(task);
                 } else {
                     break;
@@ -146,8 +144,8 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(id) = result {
+                        //self.schedule_data[*id as usize].end_time = current_time;
                         Some(*id)
-                        //schedule_data[*id as usize].end_time = current_time;
                     } else {
                         None
                     }
@@ -184,7 +182,6 @@ where
         //Remove the dummy sink node from the execution order.
         execution_order.pop();
 
-        /*
         let num_of_cores = self.processor.get_number_of_cores();
         let mut utilization_rate = vec![0.0; num_of_cores];
         for (core_id, rate) in utilization_rate.iter_mut().enumerate().take(num_of_cores) {
@@ -198,7 +195,6 @@ where
             .map(|rate| (rate - average_utilization_rate).powi(2))
             .sum::<f32>()
             / num_of_cores as f32;
-        */
 
         //Return the normalized total time taken to finish all tasks.
         (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
