@@ -134,7 +134,7 @@ where
 {
     let mut current_time = 0;
     let num_of_dags = dag_set.len();
-    let mut dynamic_federated_handlers = vec![DynamicFederatedHandler::new(); num_of_dags];
+    let mut dyn_fed_handlers = vec![DynamicFederatedHandler::new(); num_of_dags];
 
     let mut dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
     let mut finished_dags_count = 0;
@@ -143,7 +143,7 @@ where
 
     for (dag_id, dag) in dag_set.iter_mut().enumerate() {
         dag.set_dag_id(dag_id);
-        dynamic_federated_handlers[dag_id].set_minimum_cores_and_execution_order(dag, scheduler);
+        dyn_fed_handlers[dag_id].set_minimum_cores_and_execution_order(dag, scheduler);
     }
 
     while finished_dags_count < num_of_dags {
@@ -152,7 +152,7 @@ where
             .filter(|dag| current_time == dag.get_head_offset())
             .for_each(|dag| dag_queue.push_back(dag.clone()));
 
-        for dynamic_federated_handler in dynamic_federated_handlers.iter_mut() {
+        for dynamic_federated_handler in dyn_fed_handlers.iter_mut() {
             dynamic_federated_handler.update_using_cores();
         }
 
@@ -160,11 +160,11 @@ where
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
             let processor_cores = processor.get_number_of_cores() as i32;
-            let allocated_cores = get_total_allocated_cores(&dynamic_federated_handlers);
+            let allocated_cores = get_total_allocated_cores(&dyn_fed_handlers);
 
-            if dynamic_federated_handlers[dag_id].can_start(processor_cores, allocated_cores) {
+            if dyn_fed_handlers[dag_id].can_start(processor_cores, allocated_cores) {
                 dag_queue.pop_front();
-                dynamic_federated_handlers[dag_id].start();
+                dyn_fed_handlers[dag_id].start();
             } else {
                 break;
             }
@@ -172,16 +172,16 @@ where
 
         //Assign a node per DAG
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            if !dynamic_federated_handlers[dag_id].is_started {
+            if !dyn_fed_handlers[dag_id].is_started {
                 continue;
             }
 
-            while let Some(node_i) = dynamic_federated_handlers[dag_id].execution_order.front() {
-                let unused_cores = dynamic_federated_handlers[dag_id].get_unused_cores();
+            while let Some(node_i) = dyn_fed_handlers[dag_id].execution_order.front() {
+                let unused_cores = dyn_fed_handlers[dag_id].get_unused_cores();
                 if dag.is_node_ready(*node_i) && unused_cores > 0 {
                     let core_i = processor.get_idle_core_index().unwrap();
                     processor.allocate(core_i, &dag[*node_i]);
-                    dynamic_federated_handlers[dag_id].allocate();
+                    dyn_fed_handlers[dag_id].allocate();
                 } else {
                     break;
                 }
@@ -202,19 +202,17 @@ where
             })
             .collect();
 
-        for node_data in finish_nodes {
-            let dag_id = node_data.params["dag_id"] as usize;
+        for finish_node_data in finish_nodes {
+            let dag_id = finish_node_data.params["dag_id"] as usize;
             let dag = &mut dag_set[dag_id];
-            let node_i = NodeIndex::new(node_data.id as usize);
-            dynamic_federated_handlers[dag_id]
-                .finished_nodes
-                .push(node_i);
+            let node_i = NodeIndex::new(finish_node_data.id as usize);
+            dyn_fed_handlers[dag_id].finished_nodes.push(node_i);
 
             let suc_nodes = dag.get_suc_nodes(node_i).unwrap_or_default();
 
             if suc_nodes.is_empty() {
                 finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                dynamic_federated_handlers[dag_id].allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
+                dyn_fed_handlers[dag_id].allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
             }
 
             for suc_node in suc_nodes {
