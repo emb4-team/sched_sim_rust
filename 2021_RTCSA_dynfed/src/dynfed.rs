@@ -133,7 +133,8 @@ where
     T: ProcessorBase + Clone,
 {
     let mut current_time = 0;
-    let mut dyn_fed_handlers = vec![DynamicFederatedHandler::new(); dag_set.len()];
+    let dag_set_length = dag_set.len();
+    let mut dyn_fed_handlers = vec![DynamicFederatedHandler::new(); dag_set_length];
     let mut dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
     let mut finished_dags_count = 0;
 
@@ -144,7 +145,7 @@ where
         dyn_fed_handlers[dag_id].set_minimum_cores_and_execution_order(dag, scheduler);
     }
 
-    while finished_dags_count < dag_set.len() {
+    while finished_dags_count < dag_set_length {
         dag_set
             .iter_mut()
             .filter(|dag| current_time == dag.get_head_offset())
