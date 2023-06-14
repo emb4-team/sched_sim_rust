@@ -48,6 +48,7 @@ pub trait GraphExtension {
     fn get_dag_id(&self) -> usize;
     fn set_dag_id(&mut self, dag_id: usize);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
+    fn can_node_start(&self, node_i: NodeIndex) -> bool;
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
@@ -507,6 +508,12 @@ impl GraphExtension for Graph<NodeData, i32> {
         );
 
         node_index
+    }
+
+    fn can_node_start(&self, node_i: NodeIndex) -> bool {
+        let pre_nodes_count = self.get_pre_nodes(node_i).unwrap_or_default().len() as i32;
+        let pre_done_nodes_count = self[node_i].params.get("pre_done_count").unwrap_or(&0);
+        pre_nodes_count == *pre_done_nodes_count
     }
 }
 

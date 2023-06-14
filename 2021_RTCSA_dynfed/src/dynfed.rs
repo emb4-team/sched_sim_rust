@@ -155,10 +155,10 @@ where
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
-            if dynamic_federated_handlers[dag_id].can_start(
-                processor.get_number_of_cores() as i32,
-                get_total_allocated_cores(&dynamic_federated_handlers),
-            ) {
+            let processor_cores = processor.get_number_of_cores() as i32;
+            let allocated_cores = get_total_allocated_cores(&dynamic_federated_handlers);
+
+            if dynamic_federated_handlers[dag_id].can_start(processor_cores, allocated_cores) {
                 dag_queue.pop_front();
                 dynamic_federated_handlers[dag_id].start();
             } else {
