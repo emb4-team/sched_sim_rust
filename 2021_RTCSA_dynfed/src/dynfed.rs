@@ -58,6 +58,10 @@ impl DynamicFederatedHandler {
         self.allocated_cores = self.minimum_cores;
     }
 
+    fn can_start(&self, total_processor_cores: i32, total_allocated_cores: i32) -> bool {
+        self.minimum_cores <= total_processor_cores - total_allocated_cores
+    }
+
     fn allocate(&mut self) {
         self.using_cores += 1;
         self.execution_order.pop_front();
@@ -151,14 +155,15 @@ where
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
-            if dynamic_federated_handlers[dag_id].minimum_cores
-                > processor.get_number_of_cores() as i32
-                    - get_total_allocated_cores(&dynamic_federated_handlers)
-            {
+            if dynamic_federated_handlers[dag_id].can_start(
+                processor.get_number_of_cores() as i32,
+                get_total_allocated_cores(&dynamic_federated_handlers),
+            ) {
+                dag_queue.pop_front();
+                dynamic_federated_handlers[dag_id].start();
+            } else {
                 break;
             }
-            dag_queue.pop_front();
-            dynamic_federated_handlers[dag_id].start();
         }
 
         //Assign a node per DAG
