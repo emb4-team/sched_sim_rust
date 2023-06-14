@@ -18,9 +18,9 @@ pub struct DynamicFederatedHandler {
     pub is_started: bool,
     pub using_cores: i32,
     pub allocated_cores: i32,
-    pub min_cores_for_sched: i32,
+    pub minimum_cores: i32,
     pub finished_nodes: Vec<NodeIndex>,
-    pub execution_orders: VecDeque<NodeIndex>,
+    pub execution_order: VecDeque<NodeIndex>,
 }
 
 impl DynamicFederatedHandler {
@@ -29,15 +29,28 @@ impl DynamicFederatedHandler {
             is_started: false,
             using_cores: 0,
             allocated_cores: 0,
-            min_cores_for_sched: 0,
+            minimum_cores: 0,
             finished_nodes: Vec::new(),
-            execution_orders: VecDeque::new(),
+            execution_order: VecDeque::new(),
         }
     }
 
     fn update_using_cores(&mut self) {
         self.using_cores -= self.finished_nodes.len() as i32;
         self.finished_nodes.clear();
+    }
+
+    fn set_minimum_cores_and_execution_order<T>(
+        &mut self,
+        dag: &mut Graph<NodeData, i32>,
+        scheduler: &mut impl SchedulerBase<T>,
+    ) where
+        T: ProcessorBase + Clone,
+    {
+        let (minimum_cores, execution_order) =
+            calculate_minimum_cores_and_execution_order(dag, scheduler);
+        self.minimum_cores = minimum_cores as i32;
+        self.execution_order = execution_order
     }
 }
 
@@ -112,13 +125,8 @@ where
     scheduler.set_processor(processor);
 
     for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-        //Managing index of dag with param because Hash cannot be used for key of Hash.
         dag.set_dag_id(dag_id);
-        scheduler.set_dag(dag);
-        let (required_core, execution_order) =
-            calculate_minimum_cores_and_execution_order(dag, scheduler);
-        dynamic_federated_handlers[dag_id].min_cores_for_sched = required_core as i32;
-        dynamic_federated_handlers[dag_id].execution_orders = execution_order;
+        dynamic_federated_handlers[dag_id].set_minimum_cores_and_execution_order(dag, scheduler);
     }
 
     while finished_dags_count < num_of_dags {
@@ -127,10 +135,7 @@ where
             if current_time == dag.get_head_offset() {
                 dag_queue.push_back(dag.clone());
             }
-        }
 
-        //Operations on finished jobs
-        for dag in &mut *dag_set {
             let dag_id = dag.get_dag_id();
             dynamic_federated_handlers[dag_id].update_using_cores();
         }
@@ -138,7 +143,7 @@ where
         //Start DAG if there are enough free cores
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
-            if dynamic_federated_handlers[dag_id].min_cores_for_sched
+            if dynamic_federated_handlers[dag_id].minimum_cores
                 > processor_cores - get_total_allocated_cores(&dynamic_federated_handlers)
             {
                 break;
@@ -146,7 +151,7 @@ where
             dag_queue.pop_front();
             dynamic_federated_handlers[dag_id].is_started = true;
             dynamic_federated_handlers[dag_id].allocated_cores =
-                dynamic_federated_handlers[dag_id].min_cores_for_sched;
+                dynamic_federated_handlers[dag_id].minimum_cores;
         }
 
         //Assign a node per DAG
@@ -156,7 +161,7 @@ where
                 continue;
             }
 
-            while let Some(node) = dynamic_federated_handlers[dag_id].execution_orders.front() {
+            while let Some(node) = dynamic_federated_handlers[dag_id].execution_order.front() {
                 let pre_nodes_count = dag.get_pre_nodes(*node).unwrap_or_default().len() as i32;
                 let pre_done_nodes_count = *dag[*node].params.get("pre_done_count").unwrap_or(&0);
                 let unused_cores = dynamic_federated_handlers[dag_id].allocated_cores
@@ -167,7 +172,7 @@ where
                     processor.allocate(core_i, &dag[*node]);
                     dynamic_federated_handlers[dag_id].using_cores += 1;
                     dynamic_federated_handlers[dag_id]
-                        .execution_orders
+                        .execution_order
                         .pop_front();
                 } else {
                     break;
