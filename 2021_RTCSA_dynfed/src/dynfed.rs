@@ -21,7 +21,6 @@ pub struct DAGStateManager {
     pub num_using_cores: i32,
     pub num_allocated_cores: i32,
     pub minimum_cores: i32,
-    pub finished_nodes: Vec<NodeIndex>,
     pub execution_order: VecDeque<NodeIndex>,
 }
 
@@ -32,14 +31,8 @@ impl DAGStateManager {
             num_using_cores: 0,
             num_allocated_cores: 0,
             minimum_cores: 0,
-            finished_nodes: Vec::new(),
             execution_order: VecDeque::new(),
         }
-    }
-
-    fn update_using_cores(&mut self) {
-        self.num_using_cores -= self.finished_nodes.len() as i32;
-        self.finished_nodes.clear();
     }
 
     fn set_minimum_cores_and_execution_order<T>(
@@ -167,10 +160,6 @@ pub fn dynamic_federated(
             offsets.pop_front();
         }
 
-        for dynamic_federated_handler in dyn_fed_handlers.iter_mut() {
-            dynamic_federated_handler.update_using_cores();
-        }
-
         //Start DAG if there are enough free core
         while let Some(dag) = ready_dag_queue.front() {
             let dag_id = dag.get_dag_id();
@@ -219,11 +208,13 @@ pub fn dynamic_federated(
 
         for finish_node_data in finish_nodes {
             let dag_id = finish_node_data.params["dag_id"] as usize;
-            let dag = &mut dag_set[dag_id];
-            let node_i = NodeIndex::new(finish_node_data.id as usize);
-            dyn_fed_handlers[dag_id].finished_nodes.push(node_i);
+            dyn_fed_handlers[dag_id].num_using_cores -= 1;
 
-            let suc_nodes = dag.get_suc_nodes(node_i).unwrap_or_default();
+            let dag = &mut dag_set[dag_id];
+
+            let suc_nodes = dag
+                .get_suc_nodes(NodeIndex::new(finish_node_data.id as usize))
+                .unwrap_or_default();
 
             if suc_nodes.is_empty() {
                 finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
