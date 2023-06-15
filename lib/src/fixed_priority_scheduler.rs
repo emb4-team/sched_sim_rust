@@ -4,7 +4,7 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
-    scheduler::{ScheduledCoreData, ScheduledNodeData, ScheduledProcessorData, SchedulerBase},
+    scheduler::{CoreLog, NodeLog, ProcessorLog, SchedulerBase},
 };
 
 use petgraph::{graph::NodeIndex, Graph};
@@ -18,8 +18,8 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub scheduled_node_data: Vec<ScheduledNodeData>,
-    pub scheduled_processor_data: ScheduledProcessorData,
+    pub node_log: Vec<NodeLog>,
+    pub processor_log: ProcessorLog,
 }
 
 impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
@@ -30,12 +30,9 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            scheduled_node_data: vec![ScheduledNodeData::default(); dag.node_count()],
-            scheduled_processor_data: ScheduledProcessorData {
-                scheduled_core_data: vec![
-                    ScheduledCoreData::default();
-                    processor.get_number_of_cores()
-                ],
+            node_log: vec![NodeLog::default(); dag.node_count()],
+            processor_log: ProcessorLog {
+                core_log: vec![CoreLog::default(); processor.get_number_of_cores()],
                 average_utilization_rate: Default::default(),
                 variance_utilization_rate: Default::default(),
             },
@@ -44,16 +41,13 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.scheduled_node_data = vec![ScheduledNodeData::default(); dag.node_count()];
+        self.node_log = vec![NodeLog::default(); dag.node_count()];
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.scheduled_processor_data = ScheduledProcessorData {
-            scheduled_core_data: vec![
-                ScheduledCoreData::default();
-                processor.get_number_of_cores()
-            ],
+        self.processor_log = ProcessorLog {
+            core_log: vec![CoreLog::default(); processor.get_number_of_cores()],
             average_utilization_rate: Default::default(),
             variance_utilization_rate: Default::default(),
         };
@@ -129,12 +123,10 @@ where
 
                     if task != source_node && task != sink_node {
                         let task_id = dag[task].id as usize;
-                        self.scheduled_node_data[task_id].core_id = core_index;
-                        self.scheduled_node_data[task_id].node_id = task_id as i32;
-                        self.scheduled_node_data[task_id].start_time =
-                            current_time - DUMMY_EXECUTION_TIME;
-                        self.scheduled_processor_data.scheduled_core_data[core_index]
-                            .total_proc_time +=
+                        self.node_log[task_id].core_id = core_index;
+                        self.node_log[task_id].node_id = task_id as i32;
+                        self.node_log[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
+                        self.processor_log.core_log[core_index].total_proc_time +=
                             dag[task].params.get("execution_time").unwrap_or(&0);
                     }
                     execution_order.push_back(task);
@@ -163,8 +155,7 @@ where
                         let node_id = node_data.id as usize;
                         let task = NodeIndex::new(node_id);
                         if task != source_node && task != sink_node {
-                            self.scheduled_node_data[node_id].end_time =
-                                current_time - DUMMY_EXECUTION_TIME;
+                            self.node_log[node_id].end_time = current_time - DUMMY_EXECUTION_TIME;
                         }
                         Some(task)
                     } else {
@@ -199,20 +190,14 @@ where
         execution_order.pop_front();
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-        for (core_id, core_data) in self
-            .scheduled_processor_data
-            .scheduled_core_data
-            .iter_mut()
-            .enumerate()
-        {
+        for (core_id, core_data) in self.processor_log.core_log.iter_mut().enumerate() {
             core_data.core_id = core_id;
             core_data.set_utilization_rate(schedule_length);
         }
 
-        self.scheduled_processor_data.set_average_utilization_rate();
+        self.processor_log.set_average_utilization_rate();
 
-        self.scheduled_processor_data
-            .set_variance_utilization_rate();
+        self.processor_log.set_variance_utilization_rate();
 
         //Return the normalized total time taken to finish all tasks.
         (schedule_length, execution_order)
