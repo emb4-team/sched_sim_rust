@@ -155,7 +155,7 @@ where
             dynamic_federated_handler.update_using_cores();
         }
 
-        //Start DAG if there are enough free cores
+        //Start DAG if there are enough free core
         while let Some(dag) = dag_queue.front() {
             let dag_id = dag.get_dag_id();
             let processor_cores = processor.get_number_of_cores() as i32;
