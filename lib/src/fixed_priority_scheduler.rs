@@ -177,13 +177,13 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
-                        let task = NodeIndex::new(node_data.id as usize);
                         let node_id = node_data.id as usize;
+                        let task = NodeIndex::new(node_id);
                         if task != source_node && task != sink_node {
                             self.scheduled_node_data[node_id].end_time =
                                 current_time - DUMMY_EXECUTION_TIME;
                         }
-                        Some(NodeIndex::new(node_id))
+                        Some(task)
                     } else {
                         None
                     }
