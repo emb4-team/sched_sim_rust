@@ -39,7 +39,6 @@ where
     scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
-
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
@@ -92,6 +91,7 @@ mod tests {
             &Graph::<NodeData, i32>::new(),
             &HomogeneousProcessor::new(1),
         );
+
         let (minimum_cores, execution_order) =
             calculate_minimum_cores_and_execution_order(&mut dag, &mut scheduler);
 

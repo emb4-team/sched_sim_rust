@@ -4,35 +4,14 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
-    scheduler::SchedulerBase,
+    scheduler::{ScheduledCoreData, ScheduledNodeData, ScheduledProcessorData, SchedulerBase},
 };
-use log::warn;
+
 use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-#[derive(Clone, Default, Debug)]
-pub struct ScheduledNodeData {
-    pub core_id: usize,
-    pub node_id: i32,
-    pub start_time: i32,
-    pub end_time: i32,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct ScheduledProcessorData {
-    pub scheduled_core_data: Vec<ScheduledCoreData>,
-    pub average_utilization_rate: f32,
-    pub variance_utilization_rate: f32,
-}
-
-#[derive(Clone, Default, Debug)]
-pub struct ScheduledCoreData {
-    pub core_id: usize,
-    pub total_proc_time: i32,
-    pub utilization_rate: f32,
-}
-
+#[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
@@ -51,7 +30,7 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            scheduled_node_data: vec![Default::default(); dag.node_count()],
+            scheduled_node_data: vec![ScheduledNodeData::default(); dag.node_count()],
             scheduled_processor_data: ScheduledProcessorData {
                 scheduled_core_data: vec![
                     ScheduledCoreData::default();
@@ -65,10 +44,19 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
+        self.scheduled_node_data = vec![ScheduledNodeData::default(); dag.node_count()];
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
+        self.scheduled_processor_data = ScheduledProcessorData {
+            scheduled_core_data: vec![
+                ScheduledCoreData::default();
+                processor.get_number_of_cores()
+            ],
+            average_utilization_rate: Default::default(),
+            variance_utilization_rate: Default::default(),
+        };
     }
 
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
@@ -147,13 +135,7 @@ where
                             current_time - DUMMY_EXECUTION_TIME;
                         self.scheduled_processor_data.scheduled_core_data[core_index]
                             .total_proc_time +=
-                            dag[task].params.get("execution_time").unwrap_or_else(|| {
-                                warn!(
-                                    "Warning: 'execution_time' parameter not found for node {:?}",
-                                    task
-                                );
-                                &0
-                            });
+                            dag[task].params.get("execution_time").unwrap_or(&0);
                     }
                     execution_order.push_back(task);
                 } else {
@@ -223,25 +205,10 @@ where
                     / (current_time - DUMMY_EXECUTION_TIME * 2) as f32;
         }
 
-        self.scheduled_processor_data.average_utilization_rate = self
-            .scheduled_processor_data
-            .scheduled_core_data
-            .iter()
-            .map(|core_data| core_data.utilization_rate)
-            .sum::<f32>()
-            / self.scheduled_processor_data.scheduled_core_data.len() as f32;
+        self.scheduled_processor_data.set_average_utilization_rate();
 
-        self.scheduled_processor_data.variance_utilization_rate = self
-            .scheduled_processor_data
-            .scheduled_core_data
-            .iter()
-            .map(|core_data| {
-                (core_data.utilization_rate
-                    - self.scheduled_processor_data.average_utilization_rate)
-                    .powi(2)
-            })
-            .sum::<f32>()
-            / self.scheduled_processor_data.scheduled_core_data.len() as f32;
+        self.scheduled_processor_data
+            .set_variance_utilization_rate();
 
         //Return the normalized total time taken to finish all tasks.
         (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
