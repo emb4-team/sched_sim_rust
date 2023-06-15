@@ -178,7 +178,10 @@ where
             while let Some(node_i) = dyn_fed_handlers[dag_id].execution_order.front() {
                 let unused_cores = dyn_fed_handlers[dag_id].get_unused_cores();
                 if dag.is_node_ready(*node_i) && unused_cores > 0 {
-                    processor.allocate(processor.get_idle_core_index().unwrap(), &dag[*node_i]);
+                    processor.allocate_specific_core(
+                        processor.get_idle_core_index().unwrap(),
+                        &dag[*node_i],
+                    );
                     dyn_fed_handlers[dag_id].allocate();
                 } else {
                     break;
