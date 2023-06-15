@@ -102,7 +102,8 @@ where
             //Assign the highest priority task first to the first idle core found.
             while let Some(core_index) = self.processor.get_idle_core_index() {
                 if let Some(task) = ready_queue.pop_front() {
-                    self.processor.allocate(core_index, &dag[task]);
+                    self.processor
+                        .allocate_specific_core(core_index, &dag[task]);
                     execution_order.push_back(task);
                 } else {
                     break;
