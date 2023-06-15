@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::processor::ProcessorBase;
 use lib::scheduler::SchedulerBase;
@@ -27,7 +29,7 @@ use petgraph::graph::{Graph, NodeIndex};
 pub fn calculate_minimum_cores_and_execution_order<T>(
     dag: &mut Graph<NodeData, i32>,
     scheduler: &mut impl SchedulerBase<T>,
-) -> (usize, Vec<NodeIndex>)
+) -> (usize, VecDeque<NodeIndex>)
 where
     T: ProcessorBase + Clone,
 {
