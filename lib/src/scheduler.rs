@@ -53,3 +53,9 @@ pub struct ScheduledCoreData {
     pub total_proc_time: i32,
     pub utilization_rate: f32,
 }
+
+impl ScheduledCoreData {
+    pub fn set_utilization_rate(&mut self, schedule_length: i32) {
+        self.utilization_rate = self.total_proc_time as f32 / schedule_length as f32;
+    }
+}

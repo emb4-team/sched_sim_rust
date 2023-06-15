@@ -198,11 +198,15 @@ where
         //Remove the dummy sink node from the execution order.
         execution_order.pop_front();
 
-        for core_id in 0..self.scheduled_processor_data.scheduled_core_data.len() {
-            self.scheduled_processor_data.scheduled_core_data[core_id].core_id = core_id;
-            self.scheduled_processor_data.scheduled_core_data[core_id].utilization_rate =
-                self.scheduled_processor_data.scheduled_core_data[core_id].total_proc_time as f32
-                    / (current_time - DUMMY_EXECUTION_TIME * 2) as f32;
+        let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
+        for (core_id, core_data) in self
+            .scheduled_processor_data
+            .scheduled_core_data
+            .iter_mut()
+            .enumerate()
+        {
+            core_data.core_id = core_id;
+            core_data.set_utilization_rate(schedule_length);
         }
 
         self.scheduled_processor_data.set_average_utilization_rate();
@@ -211,7 +215,7 @@ where
             .set_variance_utilization_rate();
 
         //Return the normalized total time taken to finish all tasks.
-        (current_time - DUMMY_EXECUTION_TIME * 2, execution_order)
+        (schedule_length, execution_order)
     }
 }
 
