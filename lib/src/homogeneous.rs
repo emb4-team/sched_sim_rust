@@ -97,7 +97,7 @@ mod tests {
     fn test_processor_allocate_no_exist_core() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
-        homogeneous_processor.allocate_specific_core(2, &create_node(0, "execution_time", 2));
+        homogeneous_processor.allocate_specific_core(3, &create_node(0, "execution_time", 2));
     }
 
     #[test]
@@ -109,14 +109,11 @@ mod tests {
         assert!(homogeneous_processor.cores[1].is_idle);
         assert!(homogeneous_processor.allocate_any_idle_core(&create_node(1, "execution_time", 2)));
         assert!(!homogeneous_processor.cores[1].is_idle);
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_processor_allocate_idle_core_no_exist() {
-        let mut homogeneous_processor = HomogeneousProcessor::new(2);
-
-        homogeneous_processor.allocate_any_idle_core(&create_node(0, "execution_time", 2));
+        assert!(!homogeneous_processor.allocate_any_idle_core(&create_node(
+            2,
+            "execution_time",
+            2
+        )));
     }
 
     #[test]
