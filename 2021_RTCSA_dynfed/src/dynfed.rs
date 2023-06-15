@@ -137,27 +137,24 @@ pub fn dynamic_federated(
         dyn_fed_handlers[dag_id].set_minimum_cores_and_execution_order(dag, scheduler);
     }
 
-    //dag_setに含まれるoffsetを取得
-
-    let mut offsets: Vec<i32> = dag_set
+    let mut head_offsets: Vec<i32> = dag_set
         .iter()
         .map(|dag| dag.get_head_offset())
         .collect::<HashSet<i32>>()
         .into_iter()
         .collect::<Vec<i32>>();
-
-    offsets.sort();
-    let mut offsets: VecDeque<i32> = offsets.into_iter().collect();
+    head_offsets.sort();
+    let mut head_offsets: VecDeque<i32> = head_offsets.into_iter().collect();
 
     while finished_dags_count < dag_set_length {
-        if !offsets.is_empty() && *offsets.front().unwrap() == current_time {
+        if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
             dag_set
                 .iter_mut()
                 .filter(|dag| current_time == dag.get_head_offset())
                 .for_each(|dag| {
                     ready_dag_queue.push_back(dag.clone());
                 });
-            offsets.pop_front();
+            head_offsets.pop_front();
         }
 
         //Start DAG if there are enough free core
