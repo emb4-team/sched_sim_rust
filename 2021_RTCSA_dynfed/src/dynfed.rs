@@ -36,9 +36,12 @@ where
     let volume = dag.get_volume();
     let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap();
     let mut minimum_cores = (volume as f32 / end_to_end_deadline as f32).ceil() as usize;
+
     scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
+
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
+
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
