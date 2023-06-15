@@ -50,6 +50,7 @@ where
 
     (minimum_cores, execution_order)
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
