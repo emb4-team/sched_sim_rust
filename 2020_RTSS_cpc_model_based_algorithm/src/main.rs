@@ -42,4 +42,6 @@ fn main() {
     let result = schedule_length < dag.get_head_period().unwrap();
 
     dump_cpc_result_to_file(&file_path, schedule_length, result);
+    dump_processor_log_to_yaml(&file_path, fixed_priority_scheduler.processor_log);
+    dump_node_logs_to_yaml(&file_path, fixed_priority_scheduler.node_logs);
 }
