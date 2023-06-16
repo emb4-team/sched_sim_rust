@@ -17,33 +17,33 @@ pub struct NodeLog {
     pub core_id: usize,
     pub node_id: i32,
     pub start_time: i32,
-    pub end_time: i32,
+    pub finish_time: i32,
 }
 
 #[derive(Clone, Default)]
 pub struct ProcessorLog {
-    pub core_log: Vec<CoreLog>,
+    pub core_logs: Vec<CoreLog>,
     pub average_utilization_rate: f32,
     pub variance_utilization_rate: f32,
 }
 
 impl ProcessorLog {
-    pub fn set_average_utilization_rate(&mut self) {
+    pub fn calculate_average_utilization(&mut self) {
         self.average_utilization_rate = self
-            .core_log
+            .core_logs
             .iter()
-            .map(|core_data| core_data.utilization_rate)
+            .map(|core_log| core_log.utilization_rate)
             .sum::<f32>()
-            / self.core_log.len() as f32;
+            / self.core_logs.len() as f32;
     }
 
-    pub fn set_variance_utilization_rate(&mut self) {
+    pub fn calculate_variance_utilization(&mut self) {
         self.variance_utilization_rate = self
-            .core_log
+            .core_logs
             .iter()
-            .map(|core_data| (core_data.utilization_rate - self.average_utilization_rate).powi(2))
+            .map(|core_log| (core_log.utilization_rate - self.average_utilization_rate).powi(2))
             .sum::<f32>()
-            / self.core_log.len() as f32;
+            / self.core_logs.len() as f32;
     }
 }
 
@@ -55,7 +55,7 @@ pub struct CoreLog {
 }
 
 impl CoreLog {
-    pub fn set_utilization_rate(&mut self, schedule_length: i32) {
+    pub fn calculate_utilization(&mut self, schedule_length: i32) {
         self.utilization_rate = self.total_proc_time as f32 / schedule_length as f32;
     }
 }

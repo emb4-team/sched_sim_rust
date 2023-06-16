@@ -18,7 +18,7 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub node_log: Vec<NodeLog>,
+    pub node_logs: Vec<NodeLog>,
     pub processor_log: ProcessorLog,
 }
 
@@ -30,9 +30,9 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            node_log: vec![NodeLog::default(); dag.node_count()],
+            node_logs: vec![NodeLog::default(); dag.node_count()],
             processor_log: ProcessorLog {
-                core_log: vec![CoreLog::default(); processor.get_number_of_cores()],
+                core_logs: vec![CoreLog::default(); processor.get_number_of_cores()],
                 average_utilization_rate: Default::default(),
                 variance_utilization_rate: Default::default(),
             },
@@ -41,13 +41,13 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.node_log = vec![NodeLog::default(); dag.node_count()];
+        self.node_logs = vec![NodeLog::default(); dag.node_count()];
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
         self.processor_log = ProcessorLog {
-            core_log: vec![CoreLog::default(); processor.get_number_of_cores()],
+            core_logs: vec![CoreLog::default(); processor.get_number_of_cores()],
             average_utilization_rate: Default::default(),
             variance_utilization_rate: Default::default(),
         };
@@ -123,10 +123,10 @@ where
 
                     if task != source_node && task != sink_node {
                         let task_id = dag[task].id as usize;
-                        self.node_log[task_id].core_id = core_index;
-                        self.node_log[task_id].node_id = task_id as i32;
-                        self.node_log[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
-                        self.processor_log.core_log[core_index].total_proc_time +=
+                        self.node_logs[task_id].core_id = core_index;
+                        self.node_logs[task_id].node_id = task_id as i32;
+                        self.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
+                        self.processor_log.core_logs[core_index].total_proc_time +=
                             dag[task].params.get("execution_time").unwrap_or(&0);
                     }
                     execution_order.push_back(task);
@@ -155,7 +155,8 @@ where
                         let node_id = node_data.id as usize;
                         let task = NodeIndex::new(node_id);
                         if task != source_node && task != sink_node {
-                            self.node_log[node_id].end_time = current_time - DUMMY_EXECUTION_TIME;
+                            self.node_logs[node_id].finish_time =
+                                current_time - DUMMY_EXECUTION_TIME;
                         }
                         Some(task)
                     } else {
@@ -190,14 +191,14 @@ where
         execution_order.pop_front();
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-        for (core_id, core_data) in self.processor_log.core_log.iter_mut().enumerate() {
+        for (core_id, core_data) in self.processor_log.core_logs.iter_mut().enumerate() {
             core_data.core_id = core_id;
-            core_data.set_utilization_rate(schedule_length);
+            core_data.calculate_utilization(schedule_length);
         }
 
-        self.processor_log.set_average_utilization_rate();
+        self.processor_log.calculate_average_utilization();
 
-        self.processor_log.set_variance_utilization_rate();
+        self.processor_log.calculate_variance_utilization();
 
         //Return the normalized total time taken to finish all tasks.
         (schedule_length, execution_order)
