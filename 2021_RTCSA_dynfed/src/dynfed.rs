@@ -12,7 +12,7 @@ use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
-use lib::scheduler::SchedulerBase;
+use lib::scheduler::*;
 use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Clone, Debug)]
@@ -38,7 +38,7 @@ impl DAGStateManager {
     fn set_minimum_cores_and_execution_order<T>(
         &mut self,
         dag: &mut Graph<NodeData, i32>,
-        scheduler: &mut impl SchedulerBase<T>,
+        scheduler: &mut impl DAGSchedulerBase<T>,
     ) where
         T: ProcessorBase + Clone,
     {
@@ -100,7 +100,7 @@ fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
 ///
 fn calculate_minimum_cores_and_execution_order<T>(
     dag: &mut Graph<NodeData, i32>,
-    scheduler: &mut impl SchedulerBase<T>,
+    scheduler: &mut impl DAGSchedulerBase<T>,
 ) -> (usize, VecDeque<NodeIndex>)
 where
     T: ProcessorBase + Clone,
@@ -125,18 +125,141 @@ where
 
 pub struct DynamicFederatedScheduler<T>
 where
-    T: SchedulerBase<HomogeneousProcessor>,
+    T: DAGSchedulerBase<HomogeneousProcessor>,
 {
     pub dag_set: Vec<Graph<NodeData, i32>>,
     pub processor: HomogeneousProcessor,
     pub scheduler: T,
 }
 
+impl<T> DAGSetSchedulerBase<HomogeneousProcessor, T> for DynamicFederatedScheduler<T>
+where
+    T: DAGSchedulerBase<HomogeneousProcessor>,
+{
+    fn new(
+        dag_set: Vec<Graph<NodeData, i32>>,
+        processor: HomogeneousProcessor,
+        scheduler: T,
+    ) -> Self {
+        Self {
+            dag_set,
+            processor,
+            scheduler,
+        }
+    }
+
+    fn schedule(&mut self) -> i32 {
+        let mut current_time = 0;
+        let dag_set_length = self.dag_set.len();
+        let mut dyn_fed_handlers = vec![DAGStateManager::new(); dag_set_length];
+        let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
+        let mut finished_dags_count = 0;
+
+        self.scheduler.set_processor(&self.processor);
+
+        for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
+            dag.set_dag_id(dag_id);
+            dyn_fed_handlers[dag_id]
+                .set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
+        }
+
+        let mut head_offsets: Vec<i32> = self
+            .dag_set
+            .iter()
+            .map(|dag| dag.get_head_offset())
+            .collect::<HashSet<i32>>()
+            .into_iter()
+            .collect::<Vec<i32>>();
+        head_offsets.sort();
+        let mut head_offsets: VecDeque<i32> = head_offsets.into_iter().collect();
+
+        while finished_dags_count < dag_set_length {
+            if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
+                self.dag_set
+                    .iter_mut()
+                    .filter(|dag| current_time == dag.get_head_offset())
+                    .for_each(|dag| {
+                        ready_dag_queue.push_back(dag.clone());
+                    });
+                head_offsets.pop_front();
+            }
+
+            //Start DAG if there are enough free core
+            while let Some(dag) = ready_dag_queue.front() {
+                let dag_id = dag.get_dag_id();
+                let num_processor_cores = self.processor.get_number_of_cores() as i32;
+                let total_allocated_cores = get_total_allocated_cores(&dyn_fed_handlers);
+
+                if dyn_fed_handlers[dag_id].can_start(num_processor_cores, total_allocated_cores) {
+                    ready_dag_queue.pop_front();
+                    dyn_fed_handlers[dag_id].start();
+                } else {
+                    break;
+                }
+            }
+
+            //Allocate the nodes of each DAG
+            for dag in self.dag_set.iter() {
+                let dag_id = dag.get_dag_id();
+                if !dyn_fed_handlers[dag_id].is_started {
+                    continue;
+                }
+
+                while let Some(node_i) = dyn_fed_handlers[dag_id].execution_order.front() {
+                    let unused_cores = dyn_fed_handlers[dag_id].get_unused_cores();
+                    if dag.is_node_ready(*node_i) && unused_cores > 0 {
+                        self.processor
+                            .allocate_any_idle_core(&dag[dyn_fed_handlers[dag_id].allocate_head()]);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            let process_result = self.processor.process();
+            current_time += 1;
+
+            let finish_nodes: Vec<NodeData> = process_result
+                .iter()
+                .filter_map(|result| {
+                    if let ProcessResult::Done(node_data) = result {
+                        Some(node_data.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            for finish_node_data in finish_nodes {
+                let dag_id = finish_node_data.params["dag_id"] as usize;
+                dyn_fed_handlers[dag_id].num_using_cores -= 1;
+
+                let dag = &mut self.dag_set[dag_id];
+
+                let suc_nodes = dag
+                    .get_suc_nodes(NodeIndex::new(finish_node_data.id as usize))
+                    .unwrap_or_default();
+
+                if suc_nodes.is_empty() {
+                    finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
+                    dyn_fed_handlers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
+                }
+
+                for suc_node in suc_nodes {
+                    dag.increment_pre_done_count(suc_node);
+                }
+            }
+        }
+        current_time
+    }
+}
+
+/*
 #[allow(dead_code)] // TODO: remove
 pub fn dynamic_federated(
     dag_set: &mut [Graph<NodeData, i32>],
     processor: &mut HomogeneousProcessor,
-    scheduler: &mut impl SchedulerBase<HomogeneousProcessor>,
+    scheduler: &mut impl DAGSchedulerBase<HomogeneousProcessor>,
 ) -> i32 {
     let mut current_time = 0;
     let dag_set_length = dag_set.len();
@@ -238,7 +361,7 @@ pub fn dynamic_federated(
         }
     }
     current_time
-}
+}*/
 
 #[cfg(test)]
 mod tests {
@@ -302,17 +425,15 @@ mod tests {
     fn test_dynfed_normal() {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
-        let mut dag_set = vec![dag, dag2];
-        let mut scheduler = FixedPriorityScheduler::new(
+        let dag_set = vec![dag, dag2];
+        let scheduler = FixedPriorityScheduler::new(
             &Graph::<NodeData, i32>::new(),
             &HomogeneousProcessor::new(1),
         );
-        let time = dynamic_federated(
-            &mut dag_set,
-            &mut HomogeneousProcessor::new(5),
-            &mut scheduler,
-        );
+        let mut dynfed =
+            DynamicFederatedScheduler::new(dag_set, HomogeneousProcessor::new(5), scheduler);
 
+        let time = dynfed.schedule();
         assert_eq!(time, 53);
     }
 }

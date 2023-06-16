@@ -6,7 +6,7 @@ use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
-use lib::scheduler::SchedulerBase;
+use lib::scheduler::DAGSchedulerBase;
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]
