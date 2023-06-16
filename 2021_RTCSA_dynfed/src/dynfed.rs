@@ -123,6 +123,15 @@ where
     (minimum_cores, execution_order)
 }
 
+pub struct DynamicFederatedScheduler<T>
+where
+    T: SchedulerBase<HomogeneousProcessor>,
+{
+    pub dag_set: Vec<Graph<NodeData, i32>>,
+    pub processor: HomogeneousProcessor,
+    pub scheduler: T,
+}
+
 #[allow(dead_code)] // TODO: remove
 pub fn dynamic_federated(
     dag_set: &mut [Graph<NodeData, i32>],
