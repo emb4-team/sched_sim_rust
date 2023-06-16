@@ -93,6 +93,9 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
     append_info_to_yaml(file_path, &yaml);
 }
 
+pub fn dump_node_log_to_yaml() {}
+pub fn dump_processor_log_to_yaml() {}
+
 #[cfg(test)]
 mod tests {
     use crate::homogeneous;
