@@ -1,7 +1,7 @@
-use std::collections::VecDeque;
-
 use crate::{graph_extension::NodeData, processor::ProcessorBase};
 use petgraph::graph::{Graph, NodeIndex};
+use serde_derive::{Deserialize, Serialize};
+use std::collections::VecDeque;
 pub trait SchedulerBase<T>
 where
     T: ProcessorBase + Clone,
@@ -12,7 +12,7 @@ where
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
     pub core_id: usize,
     pub node_id: usize,
@@ -31,19 +31,19 @@ impl NodeLog {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ProcessorLog {
-    pub core_logs: Vec<CoreLog>,
     pub average_utilization: f32,
     pub variance_utilization: f32,
+    pub core_logs: Vec<CoreLog>,
 }
 
 impl ProcessorLog {
     pub fn new(num_cores: usize) -> Self {
         Self {
-            core_logs: (0..num_cores).map(CoreLog::new).collect(),
             average_utilization: Default::default(),
             variance_utilization: Default::default(),
+            core_logs: (0..num_cores).map(CoreLog::new).collect(),
         }
     }
     pub fn calculate_average_utilization(&mut self) {
@@ -71,7 +71,7 @@ impl ProcessorLog {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct CoreLog {
     pub core_id: usize,
     pub total_proc_time: i32,

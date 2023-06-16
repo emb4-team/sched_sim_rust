@@ -7,6 +7,7 @@ use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
 use crate::processor::ProcessorBase;
+use crate::scheduler::{NodeLog, ProcessorLog};
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -15,7 +16,6 @@ struct DAGSetInfo {
 }
 
 #[derive(Serialize, Deserialize)]
-#[allow(clippy::upper_case_acronyms)]
 struct DAGInfo {
     critical_path_length: i32,
     end_to_end_deadline: i32,
@@ -25,6 +25,11 @@ struct DAGInfo {
 #[derive(Serialize, Deserialize)]
 struct ProcessorInfo {
     number_of_cores: usize,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NodeLogs {
+    node_logs: Vec<NodeLog>,
 }
 
 pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
@@ -93,12 +98,21 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
     append_info_to_yaml(file_path, &yaml);
 }
 
-pub fn dump_node_log_to_yaml() {}
-pub fn dump_processor_log_to_yaml() {}
+pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: Vec<NodeLog>) {
+    let node_logs = NodeLogs { node_logs };
+    let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_processor_log_to_yaml(file_path: &str, processor_log: ProcessorLog) {
+    let yaml =
+        serde_yaml::to_string(&processor_log).expect("Failed to serialize ProcessorLog to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::homogeneous;
+    use crate::homogeneous::{self};
 
     use super::*;
     use std::{collections::HashMap, fs::remove_file};
@@ -155,6 +169,43 @@ mod tests {
         let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
 
         assert_eq!(number_of_cores.number_of_cores, 4);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_node_logs_to_yaml() {
+        let file_path = create_yaml_file("tests", "tests3");
+        let node_log = NodeLog::new(0);
+        let node_logs = vec![node_log];
+
+        dump_node_logs_to_yaml(&file_path, node_logs);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_node_logs: NodeLogs = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_node_logs.node_logs[0].core_id, 0);
+        assert_eq!(yaml_node_logs.node_logs[0].node_id, 0);
+        assert_eq!(yaml_node_logs.node_logs[0].start_time, 0);
+        assert_eq!(yaml_node_logs.node_logs[0].finish_time, 0);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_processor_log_to_yaml() {
+        let file_path = create_yaml_file("tests", "tests4");
+        let processor_log = ProcessorLog::new(1);
+        dump_processor_log_to_yaml(&file_path, processor_log);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_processor_log: ProcessorLog = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_processor_log.average_utilization, 0.0);
+        assert_eq!(yaml_processor_log.variance_utilization, 0.0);
+        assert_eq!(yaml_processor_log.core_logs[0].core_id, 0);
+        assert_eq!(yaml_processor_log.core_logs[0].total_proc_time, 0);
+        assert_eq!(yaml_processor_log.core_logs[0].utilization, 0.0);
 
         remove_file(file_path).unwrap();
     }
