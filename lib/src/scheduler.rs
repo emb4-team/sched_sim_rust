@@ -1,7 +1,9 @@
+use std::collections::VecDeque;
+
 use crate::{graph_extension::NodeData, processor::ProcessorBase};
 use petgraph::graph::{Graph, NodeIndex};
 use serde_derive::{Deserialize, Serialize};
-use std::collections::VecDeque;
+
 pub trait SchedulerBase<T>
 where
     T: ProcessorBase + Clone,
