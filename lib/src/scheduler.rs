@@ -50,7 +50,7 @@ impl ProcessorLog {
         self.average_utilization = self
             .core_logs
             .iter()
-            .map(|core_log| core_log.utilization_rate)
+            .map(|core_log| core_log.utilization)
             .sum::<f32>()
             / self.core_logs.len() as f32;
     }
@@ -59,7 +59,7 @@ impl ProcessorLog {
         self.variance_utilization = self
             .core_logs
             .iter()
-            .map(|core_log| (core_log.utilization_rate - self.average_utilization).powi(2))
+            .map(|core_log| (core_log.utilization - self.average_utilization).powi(2))
             .sum::<f32>()
             / self.core_logs.len() as f32;
     }
@@ -69,7 +69,7 @@ impl ProcessorLog {
 pub struct CoreLog {
     pub core_id: usize,
     pub total_proc_time: i32,
-    pub utilization_rate: f32,
+    pub utilization: f32,
 }
 
 impl CoreLog {
@@ -77,10 +77,10 @@ impl CoreLog {
         Self {
             core_id,
             total_proc_time: Default::default(),
-            utilization_rate: Default::default(),
+            utilization: Default::default(),
         }
     }
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
-        self.utilization_rate = self.total_proc_time as f32 / schedule_length as f32;
+        self.utilization = self.total_proc_time as f32 / schedule_length as f32;
     }
 }

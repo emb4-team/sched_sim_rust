@@ -375,7 +375,7 @@ mod tests {
             92
         );
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].utilization_rate,
+            fixed_priority_scheduler.processor_log.core_logs[0].utilization,
             1.0
         );
 
