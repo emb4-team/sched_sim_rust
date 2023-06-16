@@ -4,14 +4,14 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
-    scheduler::{CoreLog, NodeLog, ProcessorLog, SchedulerBase},
+    scheduler::{NodeLog, ProcessorLog, SchedulerBase},
 };
 
 use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
@@ -30,23 +30,19 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            node_logs: vec![NodeLog::default(); dag.node_count()],
+            node_logs: (0..dag.node_count()).map(NodeLog::new).collect(),
             processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.node_logs = vec![NodeLog::default(); dag.node_count()];
+        self.node_logs = (0..dag.node_count()).map(NodeLog::new).collect();
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.processor_log = ProcessorLog {
-            core_logs: vec![CoreLog::default(); processor.get_number_of_cores()],
-            average_utilization: Default::default(),
-            variance_utilization: Default::default(),
-        };
+        self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
@@ -120,7 +116,7 @@ where
                     if task != source_node && task != sink_node {
                         let task_id = dag[task].id as usize;
                         self.node_logs[task_id].core_id = core_index;
-                        self.node_logs[task_id].node_id = task_id as i32;
+                        self.node_logs[task_id].node_id = task_id;
                         self.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
                         self.processor_log.core_logs[core_index].total_proc_time +=
                             dag[task].params.get("execution_time").unwrap_or(&0);
@@ -187,9 +183,8 @@ where
         execution_order.pop_front();
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-        for (core_id, core_data) in self.processor_log.core_logs.iter_mut().enumerate() {
-            core_data.core_id = core_id;
-            core_data.calculate_utilization(schedule_length);
+        for core_log in self.processor_log.core_logs.iter_mut() {
+            core_log.calculate_utilization(schedule_length);
         }
 
         self.processor_log.calculate_average_utilization();
@@ -289,9 +284,6 @@ mod tests {
                 NodeIndex::new(2)
             ]
         );
-
-        println!("{:#?}", fixed_priority_scheduler.processor_log);
-        println!("{:#?}", fixed_priority_scheduler.node_logs);
     }
 
     #[test]
@@ -348,5 +340,49 @@ mod tests {
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
+    }
+
+    #[test]
+    fn test_fixed_priority_scheduler_log_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        //cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 52));
+        let c1 = dag.add_node(create_node(1, "execution_time", 40));
+        add_params(&mut dag, c0, "priority", 0);
+        add_params(&mut dag, c1, "priority", 0);
+        //nY_X is the Yth suc node of cX.
+        let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
+        let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
+        add_params(&mut dag, n0_0, "priority", 2);
+        add_params(&mut dag, n1_0, "priority", 1);
+
+        //create critical path edges
+        dag.add_edge(c0, c1, 1);
+
+        //create non-critical path edges
+        dag.add_edge(c0, n0_0, 1);
+        dag.add_edge(c0, n1_0, 1);
+
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        fixed_priority_scheduler.schedule();
+
+        assert_eq!(
+            fixed_priority_scheduler.processor_log.core_logs[0].core_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.processor_log.core_logs[0].total_proc_time,
+            92
+        );
+        assert_eq!(
+            fixed_priority_scheduler.processor_log.core_logs[0].utilization_rate,
+            1.0
+        );
+
+        assert_eq!(fixed_priority_scheduler.node_logs[0].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
     }
 }

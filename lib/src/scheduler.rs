@@ -12,15 +12,26 @@ where
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct NodeLog {
     pub core_id: usize,
-    pub node_id: i32,
+    pub node_id: usize,
     pub start_time: i32,
     pub finish_time: i32,
 }
 
-#[derive(Clone, Default, Debug)]
+impl NodeLog {
+    pub fn new(node_id: usize) -> Self {
+        Self {
+            core_id: Default::default(),
+            node_id,
+            start_time: Default::default(),
+            finish_time: Default::default(),
+        }
+    }
+}
+
+#[derive(Clone, Default)]
 pub struct ProcessorLog {
     pub core_logs: Vec<CoreLog>,
     pub average_utilization: f32,
@@ -30,7 +41,7 @@ pub struct ProcessorLog {
 impl ProcessorLog {
     pub fn new(num_cores: usize) -> Self {
         Self {
-            core_logs: vec![CoreLog::default(); num_cores],
+            core_logs: (0..num_cores).map(CoreLog::new).collect(),
             average_utilization: Default::default(),
             variance_utilization: Default::default(),
         }
@@ -54,7 +65,7 @@ impl ProcessorLog {
     }
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default)]
 pub struct CoreLog {
     pub core_id: usize,
     pub total_proc_time: i32,
@@ -62,6 +73,13 @@ pub struct CoreLog {
 }
 
 impl CoreLog {
+    pub fn new(core_id: usize) -> Self {
+        Self {
+            core_id,
+            total_proc_time: Default::default(),
+            utilization_rate: Default::default(),
+        }
+    }
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
         self.utilization_rate = self.total_proc_time as f32 / schedule_length as f32;
     }
