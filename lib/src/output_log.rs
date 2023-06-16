@@ -112,7 +112,7 @@ pub fn dump_processor_log_to_yaml(file_path: &str, processor_log: ProcessorLog) 
 
 #[cfg(test)]
 mod tests {
-    use crate::homogeneous::{self};
+    use crate::homogeneous;
 
     use super::*;
     use std::{collections::HashMap, fs::remove_file};
