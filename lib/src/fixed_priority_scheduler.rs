@@ -83,17 +83,17 @@ where
         let mut current_time = 0;
         let mut execution_order = VecDeque::new();
         let mut ready_queue: VecDeque<NodeIndex> = VecDeque::new();
-        let source_node = dag.add_dummy_source_node();
+        let source_node_i = dag.add_dummy_source_node();
 
-        dag[source_node]
+        dag[source_node_i]
             .params
             .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
-        let sink_node = dag.add_dummy_sink_node();
-        dag[sink_node]
+        let sink_node_i = dag.add_dummy_sink_node();
+        dag[sink_node_i]
             .params
             .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
 
-        ready_queue.push_back(source_node);
+        ready_queue.push_back(source_node_i);
 
         loop {
             //Sort by priority
@@ -109,19 +109,18 @@ where
 
             //Assign the highest priority task first to the first idle core found.
             while let Some(core_index) = self.processor.get_idle_core_index() {
-                if let Some(task) = ready_queue.pop_front() {
+                if let Some(node_i) = ready_queue.pop_front() {
                     self.processor
-                        .allocate_specific_core(core_index, &dag[task]);
+                        .allocate_specific_core(core_index, &dag[node_i]);
 
-                    if task != source_node && task != sink_node {
-                        let task_id = dag[task].id as usize;
+                    if node_i != source_node_i && node_i != sink_node_i {
+                        let task_id = dag[node_i].id as usize;
                         self.node_logs[task_id].core_id = core_index;
-                        self.node_logs[task_id].node_id = task_id;
                         self.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
                         self.processor_log.core_logs[core_index].total_proc_time +=
-                            dag[task].params.get("execution_time").unwrap_or(&0);
+                            dag[node_i].params.get("execution_time").unwrap_or(&0);
                     }
-                    execution_order.push_back(task);
+                    execution_order.push_back(node_i);
                 } else {
                     break;
                 }
@@ -145,12 +144,12 @@ where
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
                         let node_id = node_data.id as usize;
-                        let task = NodeIndex::new(node_id);
-                        if task != source_node && task != sink_node {
+                        let node_i = NodeIndex::new(node_id);
+                        if node_i != source_node_i && node_i != sink_node_i {
                             self.node_logs[node_id].finish_time =
                                 current_time - DUMMY_EXECUTION_TIME;
                         }
-                        Some(task)
+                        Some(node_i)
                     } else {
                         None
                     }
