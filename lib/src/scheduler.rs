@@ -63,6 +63,12 @@ impl ProcessorLog {
             .sum::<f32>()
             / self.core_logs.len() as f32;
     }
+
+    pub fn calculate_core_utilization(&mut self, schedule_length: i32) {
+        for core_log in self.core_logs.iter_mut() {
+            core_log.calculate_utilization(schedule_length);
+        }
+    }
 }
 
 #[derive(Clone, Default)]

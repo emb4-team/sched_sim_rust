@@ -182,9 +182,8 @@ where
         execution_order.pop_front();
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-        for core_log in self.processor_log.core_logs.iter_mut() {
-            core_log.calculate_utilization(schedule_length);
-        }
+        self.processor_log
+            .calculate_core_utilization(schedule_length);
 
         self.processor_log.calculate_average_utilization();
 
@@ -365,6 +364,16 @@ mod tests {
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
         fixed_priority_scheduler.schedule();
+
+        assert_eq!(
+            fixed_priority_scheduler.processor_log.average_utilization,
+            0.61956525
+        );
+
+        assert_eq!(
+            fixed_priority_scheduler.processor_log.variance_utilization,
+            0.14473063
+        );
 
         assert_eq!(
             fixed_priority_scheduler.processor_log.core_logs[0].core_id,
