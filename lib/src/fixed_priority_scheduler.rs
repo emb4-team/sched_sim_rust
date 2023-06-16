@@ -11,7 +11,7 @@ use petgraph::{graph::NodeIndex, Graph};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
@@ -31,11 +31,7 @@ where
             dag: dag.clone(),
             processor: processor.clone(),
             node_logs: vec![NodeLog::default(); dag.node_count()],
-            processor_log: ProcessorLog {
-                core_logs: vec![CoreLog::default(); processor.get_number_of_cores()],
-                average_utilization_rate: Default::default(),
-                variance_utilization_rate: Default::default(),
-            },
+            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
@@ -48,8 +44,8 @@ where
         self.processor = processor.clone();
         self.processor_log = ProcessorLog {
             core_logs: vec![CoreLog::default(); processor.get_number_of_cores()],
-            average_utilization_rate: Default::default(),
-            variance_utilization_rate: Default::default(),
+            average_utilization: Default::default(),
+            variance_utilization: Default::default(),
         };
     }
 
@@ -293,6 +289,9 @@ mod tests {
                 NodeIndex::new(2)
             ]
         );
+
+        println!("{:#?}", fixed_priority_scheduler.processor_log);
+        println!("{:#?}", fixed_priority_scheduler.node_logs);
     }
 
     #[test]

@@ -12,7 +12,7 @@ where
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct NodeLog {
     pub core_id: usize,
     pub node_id: i32,
@@ -20,16 +20,23 @@ pub struct NodeLog {
     pub finish_time: i32,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct ProcessorLog {
     pub core_logs: Vec<CoreLog>,
-    pub average_utilization_rate: f32,
-    pub variance_utilization_rate: f32,
+    pub average_utilization: f32,
+    pub variance_utilization: f32,
 }
 
 impl ProcessorLog {
+    pub fn new(num_cores: usize) -> Self {
+        Self {
+            core_logs: vec![CoreLog::default(); num_cores],
+            average_utilization: Default::default(),
+            variance_utilization: Default::default(),
+        }
+    }
     pub fn calculate_average_utilization(&mut self) {
-        self.average_utilization_rate = self
+        self.average_utilization = self
             .core_logs
             .iter()
             .map(|core_log| core_log.utilization_rate)
@@ -38,16 +45,16 @@ impl ProcessorLog {
     }
 
     pub fn calculate_variance_utilization(&mut self) {
-        self.variance_utilization_rate = self
+        self.variance_utilization = self
             .core_logs
             .iter()
-            .map(|core_log| (core_log.utilization_rate - self.average_utilization_rate).powi(2))
+            .map(|core_log| (core_log.utilization_rate - self.average_utilization).powi(2))
             .sum::<f32>()
             / self.core_logs.len() as f32;
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct CoreLog {
     pub core_id: usize,
     pub total_proc_time: i32,
