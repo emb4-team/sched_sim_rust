@@ -183,7 +183,7 @@ where
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
         self.processor_log
-            .calculate_core_utilization(schedule_length);
+            .calculate_cores_utilization(schedule_length);
 
         self.processor_log.calculate_average_utilization();
 
