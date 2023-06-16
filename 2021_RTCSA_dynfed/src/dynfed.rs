@@ -57,9 +57,12 @@ impl DAGStateManager {
         self.minimum_cores <= total_processor_cores - total_allocated_cores
     }
 
-    fn allocate_head(&mut self) {
+    fn allocate_head(&mut self) -> NodeIndex {
+        if self.execution_order.is_empty() {
+            panic!("Execution order is empty!");
+        }
         self.num_using_cores += 1;
-        self.execution_order.pop_front();
+        self.execution_order.pop_front().unwrap()
     }
 
     fn get_unused_cores(&self) -> i32 {
@@ -181,8 +184,8 @@ pub fn dynamic_federated(
             while let Some(node_i) = dyn_fed_handlers[dag_id].execution_order.front() {
                 let unused_cores = dyn_fed_handlers[dag_id].get_unused_cores();
                 if dag.is_node_ready(*node_i) && unused_cores > 0 {
-                    processor.allocate_any_idle_core(&dag[*node_i]);
-                    dyn_fed_handlers[dag_id].allocate_head();
+                    processor
+                        .allocate_any_idle_core(&dag[dyn_fed_handlers[dag_id].allocate_head()]);
                 } else {
                     break;
                 }
