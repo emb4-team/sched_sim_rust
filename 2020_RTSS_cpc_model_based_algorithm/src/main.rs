@@ -28,5 +28,5 @@ fn main() {
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
     let mut fixed_priority_scheduler =
         FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(number_of_cores));
-    let _result = fixed_priority_scheduler.schedule();
+    let (_schedule_length, _) = fixed_priority_scheduler.schedule();
 }
