@@ -19,7 +19,7 @@ pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::{graph_extension::NodeData, output_log::create_yaml_file};
+    use lib::{graph_extension::NodeData, output_log::create_scheduler_log_yaml_file};
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
 
@@ -81,7 +81,8 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml_file("../outputs", "test_dump_federated_info_normal");
+        let file_path =
+            create_scheduler_log_yaml_file("../outputs", "test_dump_federated_info_normal");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -107,7 +108,10 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_high_tasks");
+        let file_path = create_scheduler_log_yaml_file(
+            "../outputs",
+            "test_federated_lack_cores_for_high_tasks",
+        );
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -133,7 +137,8 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
+        let file_path =
+            create_scheduler_log_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -155,7 +160,8 @@ mod tests {
         let number_of_cores = 1;
         let mut dag_set = vec![create_period_exceeding_dag()];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml_file("../outputs", "test_federated_unsuited_tasks");
+        let file_path =
+            create_scheduler_log_yaml_file("../outputs", "test_federated_unsuited_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
