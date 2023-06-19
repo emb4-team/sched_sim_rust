@@ -9,6 +9,7 @@ use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSchedulerBase;
 use lib::{dag_creator::*, graph_extension::GraphExtension};
+use log::warn;
 use outputs_result::dump_cpc_result_to_file;
 
 #[derive(Parser)]
@@ -19,7 +20,7 @@ use outputs_result::dump_cpc_result_to_file;
     The CPC_Model_Based_Algorithm operates under the assumption of a constrained deadline.
     In essence, it presumes that the input Directed Acyclic Graph (DAG) incorporates and adheres to these constrained deadlines.
     If, however, the input DAG does not contain a predefined constrained deadline, 
-    the algorithm will impose one by multiplying the cycle of the input DAG by an arbitrary multiplier."
+    the algorithm will impose one by multiplying the period of the input DAG by an arbitrary multiplier."
 )]
 struct ArgParser {
     ///Path to DAG file.
@@ -52,6 +53,7 @@ fn main() {
     let constrained_end_to_end_deadline = if let Some(deadline) = dag.get_end_to_end_deadline() {
         deadline as f32
     } else {
+        warn!("Since the end-to-end deadline is not set in the input DAG, the end-to-end deadline is determined using ratio_deadline_to_period.");
         dag.get_head_period().unwrap() as f32 * arg.ratio_deadline_to_period
     };
 
