@@ -4,7 +4,7 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
-    scheduler::{NodeLog, ProcessorLog, SchedulerBase},
+    scheduler::{DAGSchedulerBase, NodeLog, ProcessorLog},
 };
 
 use petgraph::{graph::NodeIndex, Graph};
@@ -22,7 +22,7 @@ where
     pub processor_log: ProcessorLog,
 }
 
-impl<T> SchedulerBase<T> for FixedPriorityScheduler<T>
+impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {

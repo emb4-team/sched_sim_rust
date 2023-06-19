@@ -7,7 +7,7 @@ use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
-use lib::scheduler::SchedulerBase;
+use lib::scheduler::DAGSchedulerBase;
 use lib::{dag_creator::*, graph_extension::GraphExtension};
 use outputs_result::dump_cpc_result_to_file;
 
