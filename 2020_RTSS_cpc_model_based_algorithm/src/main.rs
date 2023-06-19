@@ -37,7 +37,7 @@ fn main() {
     let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
     let (schedule_length, _) = fixed_priority_scheduler.schedule();
-    let file_path = create_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
+    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
 
     let constrained_end_to_end_deadline = if let Some(deadline) = dag.get_end_to_end_deadline() {
         deadline as f32
