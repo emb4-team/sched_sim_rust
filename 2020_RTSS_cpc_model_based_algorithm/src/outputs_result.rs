@@ -4,12 +4,19 @@ use serde_derive::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 struct ResultInfo {
     schedule_length: i32,
+    period_factor: f32,
     result: bool,
 }
 
-pub fn dump_cpc_result_to_file(file_path: &str, schedule_length: i32, result: bool) {
+pub fn dump_cpc_result_to_file(
+    file_path: &str,
+    schedule_length: i32,
+    period_factor: f32,
+    result: bool,
+) {
     let result_info = ResultInfo {
         schedule_length,
+        period_factor,
         result,
     };
     let yaml =
@@ -80,7 +87,7 @@ mod tests {
 
         let file_path = create_yaml_file("../lib/tests", "test_dump_federated_info_normal");
         let result = schedule_length < dag.get_head_period().unwrap();
-        dump_cpc_result_to_file(&file_path, schedule_length, result);
+        dump_cpc_result_to_file(&file_path, schedule_length, 10.0, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo = serde_yaml::from_str(&file_contents).unwrap();
