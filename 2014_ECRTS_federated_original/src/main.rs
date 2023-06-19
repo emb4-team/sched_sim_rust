@@ -1,5 +1,3 @@
-use chrono::DateTime;
-use chrono::Utc;
 use clap::Parser;
 use lib::dag_creator::*;
 use lib::homogeneous;
@@ -32,10 +30,7 @@ fn main() {
         let number_of_cores = arg.number_of_cores;
         let mut dag_set = create_dag_set_from_dir(&dag_dir_path);
         let result = federated::federated(&mut dag_set, number_of_cores);
-        let now: DateTime<Utc> = Utc::now();
-        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-        let file_name = format!("{}-federated", date);
-        let file_path = create_yaml_file(&arg.output_dir_path, &file_name);
+        let file_path = create_log_yaml_file(&arg.output_dir_path, "federated");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(number_of_cores);
         dump_dag_set_info_to_yaml(&file_path, dag_set);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);

@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use clap::Parser;
 mod outputs_result;
 mod parallel_provider_consumer;
@@ -32,10 +31,7 @@ fn main() {
     let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
     let (schedule_length, _) = fixed_priority_scheduler.schedule();
-    let now: DateTime<Utc> = Utc::now();
-    let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-    let file_name = format!("{}-cpc-result", date);
-    let file_path = create_yaml_file(&arg.output_dir_path, &file_name);
+    let file_path = create_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
     dump_dag_set_info_to_yaml(&file_path, vec![dag.clone()]);
     dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 

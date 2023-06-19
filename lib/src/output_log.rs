@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use log::{info, warn};
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
@@ -42,6 +43,13 @@ pub fn create_yaml_file(folder_path: &str, file_name: &str) -> String {
         warn!("Failed to create file: {}", err);
     }
     file_path
+}
+
+pub fn create_log_yaml_file(folder_path: &str, sched_name: &str) -> String {
+    let now: DateTime<Utc> = Utc::now();
+    let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
+    let file_name = format!("{}-{}-log", date, sched_name);
+    create_yaml_file(folder_path, &file_name)
 }
 
 pub fn append_info_to_yaml(file_path: &str, info: &str) {
