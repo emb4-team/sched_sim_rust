@@ -127,9 +127,9 @@ pub struct DynamicFederatedScheduler<T>
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
 {
-    pub dag_set: Vec<Graph<NodeData, i32>>,
-    pub processor: HomogeneousProcessor,
-    pub scheduler: T,
+    dag_set: Vec<Graph<NodeData, i32>>,
+    processor: HomogeneousProcessor,
+    scheduler: T,
 }
 
 impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
@@ -147,13 +147,13 @@ where
     fn schedule(&mut self) -> i32 {
         let mut current_time = 0;
         let dag_set_length = self.dag_set.len();
-        let mut dyn_fed_handlers = vec![DAGStateManager::new(); dag_set_length];
+        let mut dag_state_managers = vec![DAGStateManager::new(); dag_set_length];
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut finished_dags_count = 0;
 
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
-            dyn_fed_handlers[dag_id]
+            dag_state_managers[dag_id]
                 .set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
         }
 
@@ -182,11 +182,12 @@ where
             while let Some(dag) = ready_dag_queue.front() {
                 let dag_id = dag.get_dag_id();
                 let num_processor_cores = self.processor.get_number_of_cores() as i32;
-                let total_allocated_cores = get_total_allocated_cores(&dyn_fed_handlers);
+                let total_allocated_cores = get_total_allocated_cores(&dag_state_managers);
 
-                if dyn_fed_handlers[dag_id].can_start(num_processor_cores, total_allocated_cores) {
+                if dag_state_managers[dag_id].can_start(num_processor_cores, total_allocated_cores)
+                {
                     ready_dag_queue.pop_front();
-                    dyn_fed_handlers[dag_id].start();
+                    dag_state_managers[dag_id].start();
                 } else {
                     break;
                 }
@@ -195,15 +196,16 @@ where
             //Allocate the nodes of each DAG
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();
-                if !dyn_fed_handlers[dag_id].is_started {
+                if !dag_state_managers[dag_id].is_started {
                     continue;
                 }
 
-                while let Some(node_i) = dyn_fed_handlers[dag_id].execution_order.front() {
-                    let unused_cores = dyn_fed_handlers[dag_id].get_unused_cores();
+                while let Some(node_i) = dag_state_managers[dag_id].execution_order.front() {
+                    let unused_cores = dag_state_managers[dag_id].get_unused_cores();
                     if dag.is_node_ready(*node_i) && unused_cores > 0 {
-                        self.processor
-                            .allocate_any_idle_core(&dag[dyn_fed_handlers[dag_id].allocate_head()]);
+                        self.processor.allocate_any_idle_core(
+                            &dag[dag_state_managers[dag_id].allocate_head()],
+                        );
                     } else {
                         break;
                     }
@@ -226,7 +228,7 @@ where
 
             for finish_node_data in finish_nodes {
                 let dag_id = finish_node_data.params["dag_id"] as usize;
-                dyn_fed_handlers[dag_id].num_using_cores -= 1;
+                dag_state_managers[dag_id].num_using_cores -= 1;
 
                 let dag = &mut self.dag_set[dag_id];
 
@@ -236,7 +238,7 @@ where
 
                 if suc_nodes.is_empty() {
                     finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                    dyn_fed_handlers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
+                    dag_state_managers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
                 }
 
                 for suc_node in suc_nodes {
