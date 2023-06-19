@@ -132,19 +132,15 @@ where
     pub scheduler: T,
 }
 
-impl<T> DAGSetSchedulerBase<HomogeneousProcessor, T> for DynamicFederatedScheduler<T>
+impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
 {
-    fn new(
-        dag_set: Vec<Graph<NodeData, i32>>,
-        processor: HomogeneousProcessor,
-        scheduler: T,
-    ) -> Self {
+    fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: HomogeneousProcessor) -> Self {
         Self {
             dag_set,
-            processor,
-            scheduler,
+            processor: processor.clone(),
+            scheduler: T::new(&Graph::<NodeData, i32>::new(), &processor),
         }
     }
 
@@ -154,8 +150,6 @@ where
         let mut dyn_fed_handlers = vec![DAGStateManager::new(); dag_set_length];
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut finished_dags_count = 0;
-
-        self.scheduler.set_processor(&self.processor);
 
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
@@ -317,12 +311,9 @@ mod tests {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
         let dag_set = vec![dag, dag2];
-        let scheduler = FixedPriorityScheduler::new(
-            &Graph::<NodeData, i32>::new(),
-            &HomogeneousProcessor::new(1),
-        );
-        let mut dynfed =
-            DynamicFederatedScheduler::new(dag_set, HomogeneousProcessor::new(5), scheduler);
+
+        let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
+            DynamicFederatedScheduler::new(dag_set, HomogeneousProcessor::new(5));
 
         let time = dynfed.schedule();
         assert_eq!(time, 53);

@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{graph_extension::NodeData, processor::ProcessorBase};
 use petgraph::graph::{Graph, NodeIndex};
+
 pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
@@ -12,8 +13,8 @@ where
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
 }
 
-pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, S: DAGSchedulerBase<T>> {
-    fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: T, scheduler: S) -> Self;
+pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
+    fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: T) -> Self;
     fn schedule(&mut self) -> i32;
 }
 
