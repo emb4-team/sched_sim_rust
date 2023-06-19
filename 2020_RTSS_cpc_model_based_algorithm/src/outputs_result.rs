@@ -34,7 +34,7 @@ mod tests {
         fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
-        output_log::create_yaml_file,
+        output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSchedulerBase,
     };
@@ -85,7 +85,8 @@ mod tests {
 
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 
-        let file_path = create_yaml_file("../lib/tests", "test_dump_federated_info_normal");
+        let file_path =
+            create_scheduler_log_yaml_file("../lib/tests", "test_dump_federated_info_normal");
         let result = schedule_length < dag.get_head_period().unwrap();
         dump_cpc_result_to_file(&file_path, schedule_length, 10.0, result);
 
