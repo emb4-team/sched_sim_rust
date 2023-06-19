@@ -36,7 +36,7 @@ mod tests {
         homogeneous::HomogeneousProcessor,
         output_log::create_yaml_file,
         processor::ProcessorBase,
-        scheduler::SchedulerBase,
+        scheduler::DAGSchedulerBase,
     };
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
