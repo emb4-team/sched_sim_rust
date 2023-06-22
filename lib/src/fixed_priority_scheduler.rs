@@ -32,10 +32,7 @@ where
             processor: processor.clone(),
             node_logs: dag
                 .node_indices()
-                .map(|node_index| {
-                    let node = dag.node_weight(node_index).unwrap();
-                    NodeLog::new(0, node.id as usize)
-                })
+                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
                 .collect(),
             processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
