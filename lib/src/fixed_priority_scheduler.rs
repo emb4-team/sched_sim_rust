@@ -42,8 +42,7 @@ where
         self.dag = dag.clone();
         self.node_logs = dag
             .node_indices()
-            .enumerate()
-            .map(|(dag_id, node_id)| NodeLog::new(dag_id, node_id.index()))
+            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
             .collect();
     }
 
