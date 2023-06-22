@@ -32,8 +32,10 @@ where
             processor: processor.clone(),
             node_logs: dag
                 .node_indices()
-                .enumerate()
-                .map(|(dag_id, node_id)| NodeLog::new(dag_id, node_id.index()))
+                .map(|node_index| {
+                    let node = dag.node_weight(node_index).unwrap();
+                    NodeLog::new(0, node.id as usize)
+                })
                 .collect(),
             processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
@@ -401,5 +403,11 @@ mod tests {
         assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
         assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
         assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
+
+        assert_eq!(fixed_priority_scheduler.node_logs[1].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
     }
 }
