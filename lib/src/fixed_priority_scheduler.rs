@@ -406,5 +406,11 @@ mod tests {
         assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
         assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
         assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
+
+        assert_eq!(fixed_priority_scheduler.node_logs[2].core_id, 1);
+        assert_eq!(fixed_priority_scheduler.node_logs[2].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[2].node_id, 2);
+        assert_eq!(fixed_priority_scheduler.node_logs[2].start_time, 62);
+        assert_eq!(fixed_priority_scheduler.node_logs[2].finish_time, 74);
     }
 }
