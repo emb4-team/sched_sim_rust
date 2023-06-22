@@ -30,10 +30,10 @@ pub struct NodeLog {
 }
 
 impl NodeLog {
-    pub fn new(node_id: usize) -> Self {
+    pub fn new(dag_id: usize, node_id: usize) -> Self {
         Self {
             core_id: Default::default(),
-            dag_id: Default::default(),
+            dag_id,
             node_id,
             start_time: Default::default(),
             finish_time: Default::default(),
