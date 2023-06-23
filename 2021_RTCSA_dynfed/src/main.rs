@@ -6,6 +6,7 @@ use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
+use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
 
@@ -48,7 +49,13 @@ fn main() {
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut dynfed_scheduler: DynamicFederatedScheduler<
         FixedPriorityScheduler<HomogeneousProcessor>,
-    > = DynamicFederatedScheduler::new(dag_set, homogeneous_processor);
+    > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
     let _result = dynfed_scheduler.schedule();
+
+    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
+
+    dump_dag_set_info_to_yaml(&file_path, dag_set);
+    dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+    dump_processor_log_to_yaml(&file_path, dynfed_scheduler.processor_log);
 }
