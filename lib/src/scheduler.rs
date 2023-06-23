@@ -44,7 +44,7 @@ impl DAGLog {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
     pub core_id: usize,
-    pub dag_id: usize,
+    pub dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     pub node_id: usize,
     pub start_time: i32,
     pub finish_time: i32,
