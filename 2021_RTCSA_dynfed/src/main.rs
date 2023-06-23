@@ -13,6 +13,7 @@ use lib::scheduler::DAGSetSchedulerBase;
 use lib::util::get_hyper_period;
 use log::warn;
 use outputs_result::dump_dynfed_result_to_file;
+use petgraph::graph::NodeIndex;
 
 #[derive(Parser)]
 #[clap(
@@ -53,6 +54,11 @@ fn main() {
                 .unwrap();
 
             dag.update_param(*node_i, "end_to_end_deadline", period)
+        } else if dag.get_head_period().is_none() {
+            let end_to_end_deadline = dag.get_end_to_end_deadline().expect(
+                "Either an end-to-end deadline or period of time is required for the schedule.",
+            );
+            dag.update_param(NodeIndex::new(0), "period", end_to_end_deadline);
         }
     }
 
@@ -63,7 +69,7 @@ fn main() {
 
     let schedule_length = dynfed_scheduler.schedule();
 
-    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
+    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "dynfed");
 
     dump_dynfed_result_to_file(
         &file_path,
