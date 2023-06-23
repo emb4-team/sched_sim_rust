@@ -43,12 +43,12 @@ fn main() {
                 warn!("period and end_to_end_deadline must be equal, Override end_to_end_deadline with period.");
             }
             let source_nodes = dag.get_source_nodes();
-            let first_node_i = source_nodes
+            let node_i = source_nodes
                 .iter()
-                .find(|&&node_i| dag[node_i].params.get("period").is_some())
+                .find(|&&node_i| dag[node_i].params.get("end_to_end_deadline").is_some())
                 .unwrap();
 
-            dag.update_param(*first_node_i, "end_to_end_deadline", period)
+            dag.update_param(*node_i, "end_to_end_deadline", period)
         }
     }
 
