@@ -16,7 +16,7 @@ where
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
-    fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: T) -> Self;
+    fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
 }
 

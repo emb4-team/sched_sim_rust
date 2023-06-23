@@ -136,11 +136,11 @@ impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
 {
-    fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: HomogeneousProcessor) -> Self {
+    fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         Self {
-            dag_set,
+            dag_set: dag_set.to_vec(),
             processor: processor.clone(),
-            scheduler: T::new(&Graph::<NodeData, i32>::new(), &processor),
+            scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
         }
     }
 
@@ -315,7 +315,7 @@ mod tests {
         let dag_set = vec![dag, dag2];
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
-            DynamicFederatedScheduler::new(dag_set, HomogeneousProcessor::new(5));
+            DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
 
         let time = dynfed.schedule();
         assert_eq!(time, 53);
