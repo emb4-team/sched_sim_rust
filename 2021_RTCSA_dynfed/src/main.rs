@@ -48,7 +48,7 @@ fn main() {
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut dynfed_scheduler: DynamicFederatedScheduler<
         FixedPriorityScheduler<HomogeneousProcessor>,
-    > = DynamicFederatedScheduler::new(dag_set, homogeneous_processor);
+    > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
     let _result = dynfed_scheduler.schedule(); //TODO: use result
 }
