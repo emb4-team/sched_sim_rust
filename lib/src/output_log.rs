@@ -221,6 +221,38 @@ mod tests {
         assert_eq!(yaml_dag_set_log.dag_set_log[0].finish_time, 0);
         assert_eq!(yaml_dag_set_log.dag_set_log[0].minimum_cores, 0);
 
+        assert_eq!(yaml_dag_set_log.dag_set_log[1].dag_id, 1);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_node_set_logs_to_yaml() {
+        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let node_log0_0 = NodeLog::new(0, 0);
+        let node_log0_1 = NodeLog::new(0, 1);
+        let node_logs0 = vec![node_log0_0, node_log0_1];
+        let node_log1 = NodeLog::new(1, 0);
+        let node_logs1 = vec![node_log1];
+
+        let node_set_logs = vec![node_logs0, node_logs1];
+
+        dump_node_set_logs_to_yaml(&file_path, node_set_logs);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_node_logs: NodeSetLogs = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].core_id, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].dag_id, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].node_id, 1);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].start_time, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].finish_time, 0);
+
+        assert_eq!(yaml_node_logs.node_set_logs[0][0].node_id, 0);
+
+        assert_eq!(yaml_node_logs.node_set_logs[1][0].dag_id, 1);
+        assert_eq!(yaml_node_logs.node_set_logs[1][0].node_id, 0);
+
         remove_file(file_path).unwrap();
     }
 
