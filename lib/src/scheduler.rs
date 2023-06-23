@@ -102,7 +102,7 @@ impl ProcessorLog {
     }
 }
 
-#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct CoreLog {
     pub core_id: usize,
     pub total_proc_time: i32,
