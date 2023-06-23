@@ -5,7 +5,7 @@ use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
-use lib::graph_extension::GraphExtension;
+use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
@@ -14,6 +14,7 @@ use lib::util::get_hyper_period;
 use log::warn;
 use outputs_result::dump_dynfed_result_to_file;
 use petgraph::graph::NodeIndex;
+use petgraph::Graph;
 
 #[derive(Parser)]
 #[clap(
@@ -34,6 +35,39 @@ struct ArgParser {
     ///Path to output directory.
     #[clap(short = 'o', long = "output_dir_path", default_value = "../outputs")]
     output_dir_path: String,
+}
+
+pub fn adjust_dag_set(dag_set: &mut [Graph<NodeData, i32>]) {
+    for dag in dag_set.iter_mut() {
+        if let (Some(period), Some(end_to_end_deadline)) =
+            (dag.get_head_period(), dag.get_end_to_end_deadline())
+        {
+            if end_to_end_deadline != period {
+                warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
+            }
+            let source_nodes = dag.get_source_nodes();
+            let node_i = source_nodes
+                .iter()
+                .find(|&&node_i| dag[node_i].params.get("end_to_end_deadline").is_some())
+                .unwrap();
+
+            dag.update_param(*node_i, "end_to_end_deadline", period)
+        } else if dag.get_head_period().is_none() {
+            let end_to_end_deadline = dag.get_end_to_end_deadline().expect(
+                "Either an end-to-end deadline or period of time is required for the schedule.",
+            );
+            dag.add_param(NodeIndex::new(0), "period", end_to_end_deadline);
+        } else if dag.get_end_to_end_deadline().is_none() {
+            let period = dag.get_head_period().expect(
+                "Either an end-to-end deadline or period of time is required for the schedule.",
+            );
+            dag.add_param(
+                NodeIndex::new(dag.node_count() - 1),
+                "end_to_end_deadline",
+                period,
+            );
+        }
+    }
 }
 
 fn main() {
@@ -59,6 +93,15 @@ fn main() {
                 "Either an end-to-end deadline or period of time is required for the schedule.",
             );
             dag.update_param(NodeIndex::new(0), "period", end_to_end_deadline);
+        } else if dag.get_end_to_end_deadline().is_none() {
+            let period = dag.get_head_period().expect(
+                "Either an end-to-end deadline or period of time is required for the schedule.",
+            );
+            dag.update_param(
+                NodeIndex::new(dag.node_count()),
+                "end_to_end_deadline",
+                period,
+            );
         }
     }
 
