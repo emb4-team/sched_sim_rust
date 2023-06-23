@@ -1,4 +1,5 @@
 mod dynfed;
+mod outputs_result;
 
 use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
@@ -9,6 +10,8 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
+use lib::util::get_hyper_period;
+use outputs_result::dump_dynfed_result_to_file;
 
 #[derive(Parser)]
 #[clap(
@@ -51,11 +54,20 @@ fn main() {
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
-    let _result = dynfed_scheduler.schedule();
+    let schedule_length = dynfed_scheduler.schedule();
 
     let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
 
+    dump_dynfed_result_to_file(
+        &file_path,
+        schedule_length,
+        get_hyper_period(&dag_set),
+        schedule_length < get_hyper_period(&dag_set),
+    );
+
     dump_dag_set_info_to_yaml(&file_path, dag_set);
     dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+    dump_dag_set_log_to_yaml(&file_path, dynfed_scheduler.dag_set_log);
+    dump_node_set_logs_to_yaml(&file_path, dynfed_scheduler.node_logs);
     dump_processor_log_to_yaml(&file_path, dynfed_scheduler.processor_log);
 }

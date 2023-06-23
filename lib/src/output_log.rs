@@ -8,7 +8,7 @@ use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
 use crate::processor::ProcessorBase;
-use crate::scheduler::{NodeLog, ProcessorLog};
+use crate::scheduler::{DAGLog, NodeLog, ProcessorLog};
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -29,8 +29,18 @@ struct ProcessorInfo {
 }
 
 #[derive(Serialize, Deserialize)]
+struct DAGSetLog {
+    dag_set_log: Vec<DAGLog>,
+}
+
+#[derive(Serialize, Deserialize)]
 struct NodeLogs {
     node_logs: Vec<NodeLog>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NodeSetLogs {
+    node_set_logs: Vec<Vec<NodeLog>>,
 }
 
 fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
@@ -106,9 +116,21 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
     append_info_to_yaml(file_path, &yaml);
 }
 
+pub fn dump_dag_set_log_to_yaml(file_path: &str, dag_set_log: Vec<DAGLog>) {
+    let dag_set_log = DAGSetLog { dag_set_log };
+    let yaml = serde_yaml::to_string(&dag_set_log).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
 pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: Vec<NodeLog>) {
     let node_logs = NodeLogs { node_logs };
     let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_node_set_logs_to_yaml(file_path: &str, node_set_logs: Vec<Vec<NodeLog>>) {
+    let node_set_logs = NodeSetLogs { node_set_logs };
+    let yaml = serde_yaml::to_string(&node_set_logs).expect("Failed to serialize NodeLogs to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
 
