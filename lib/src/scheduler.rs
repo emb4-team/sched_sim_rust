@@ -23,15 +23,17 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
     pub core_id: usize,
+    pub dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     pub node_id: usize,
     pub start_time: i32,
     pub finish_time: i32,
 }
 
 impl NodeLog {
-    pub fn new(node_id: usize) -> Self {
+    pub fn new(dag_id: usize, node_id: usize) -> Self {
         Self {
             core_id: Default::default(),
+            dag_id,
             node_id,
             start_time: Default::default(),
             finish_time: Default::default(),

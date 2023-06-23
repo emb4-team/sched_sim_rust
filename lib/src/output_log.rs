@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn test_dump_node_logs_to_yaml() {
         let file_path = create_scheduler_log_yaml_file("tests", "tests3");
-        let node_log = NodeLog::new(0);
+        let node_log = NodeLog::new(0, 0);
         let node_logs = vec![node_log];
 
         dump_node_logs_to_yaml(&file_path, node_logs);
@@ -193,6 +193,7 @@ mod tests {
         let yaml_node_logs: NodeLogs = serde_yaml::from_str(&file_contents).unwrap();
 
         assert_eq!(yaml_node_logs.node_logs[0].core_id, 0);
+        assert_eq!(yaml_node_logs.node_logs[0].dag_id, 0);
         assert_eq!(yaml_node_logs.node_logs[0].node_id, 0);
         assert_eq!(yaml_node_logs.node_logs[0].start_time, 0);
         assert_eq!(yaml_node_logs.node_logs[0].finish_time, 0);

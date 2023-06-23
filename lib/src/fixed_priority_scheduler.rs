@@ -30,14 +30,20 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            node_logs: (0..dag.node_count()).map(NodeLog::new).collect(),
+            node_logs: dag
+                .node_indices()
+                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+                .collect(),
             processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.node_logs = (0..dag.node_count()).map(NodeLog::new).collect();
+        self.node_logs = dag
+            .node_indices()
+            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+            .collect();
     }
 
     fn set_processor(&mut self, processor: &T) {
@@ -389,8 +395,15 @@ mod tests {
         );
 
         assert_eq!(fixed_priority_scheduler.node_logs[0].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].dag_id, 0);
         assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
         assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
         assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
+
+        assert_eq!(fixed_priority_scheduler.node_logs[1].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
     }
 }
