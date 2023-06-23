@@ -25,6 +25,18 @@ pub struct DAGLog {
     pub dag_id: usize,
     pub start_time: i32,
     pub finish_time: i32,
+    pub minimum_cores: i32,
+}
+
+impl DAGLog {
+    pub fn new(dag_id: usize) -> Self {
+        Self {
+            dag_id,
+            start_time: Default::default(),
+            finish_time: Default::default(),
+            minimum_cores: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]

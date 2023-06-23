@@ -130,6 +130,9 @@ where
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     scheduler: T,
+    pub dag_set_log: Vec<DAGLog>,
+    pub node_logs: Vec<Vec<NodeLog>>,
+    pub processor_log: ProcessorLog,
 }
 
 impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
@@ -138,9 +141,21 @@ where
 {
     fn new(dag_set: Vec<Graph<NodeData, i32>>, processor: HomogeneousProcessor) -> Self {
         Self {
-            dag_set,
+            dag_set: dag_set.clone(),
             processor: processor.clone(),
             scheduler: T::new(&Graph::<NodeData, i32>::new(), &processor),
+            dag_set_log: (0..dag_set.len()).map(DAGLog::new).collect(),
+            node_logs: dag_set
+                .iter()
+                .enumerate()
+                .map(|(dag_id, dag)| {
+                    dag.node_indices()
+                        .enumerate()
+                        .map(|(node_id, _)| NodeLog::new(dag_id, node_id))
+                        .collect()
+                })
+                .collect(),
+            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
