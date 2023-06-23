@@ -190,7 +190,7 @@ where
                     .filter(|dag| current_time == dag.get_head_offset())
                     .for_each(|dag| {
                         ready_dag_queue.push_back(dag.clone());
-                        self.dag_set_log[dag.get_dag_id()].released_time = current_time;
+                        self.dag_set_log[dag.get_dag_id()].release_time = current_time;
                     });
                 head_offsets.pop_front();
             }
@@ -357,7 +357,7 @@ mod tests {
         assert_eq!(time, 103);
 
         assert_eq!(dynfed.dag_set_log[1].dag_id, 1);
-        assert_eq!(dynfed.dag_set_log[1].released_time, 0);
+        assert_eq!(dynfed.dag_set_log[1].release_time, 0);
         assert_eq!(dynfed.dag_set_log[1].start_time, 50);
         assert_eq!(dynfed.dag_set_log[1].finish_time, 103);
         assert_eq!(dynfed.dag_set_log[1].minimum_cores, 2);

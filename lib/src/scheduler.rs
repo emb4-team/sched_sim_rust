@@ -23,7 +23,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGLog {
     pub dag_id: usize,
-    pub released_time: i32,
+    pub release_time: i32,
     pub start_time: i32,
     pub finish_time: i32,
     pub minimum_cores: i32,
@@ -33,7 +33,7 @@ impl DAGLog {
     pub fn new(dag_id: usize) -> Self {
         Self {
             dag_id,
-            released_time: Default::default(),
+            release_time: Default::default(),
             start_time: Default::default(),
             finish_time: Default::default(),
             minimum_cores: Default::default(),
