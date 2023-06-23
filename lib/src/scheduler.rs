@@ -21,6 +21,13 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
+pub struct DAGLog {
+    pub dag_id: usize,
+    pub start_time: i32,
+    pub finish_time: i32,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
     pub core_id: usize,
     pub dag_id: usize,
