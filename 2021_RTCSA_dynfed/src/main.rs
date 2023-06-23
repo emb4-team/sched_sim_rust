@@ -50,5 +50,5 @@ fn main() {
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(dag_set, homogeneous_processor);
 
-    let _result = dynfed_scheduler.schedule();
+    let _result = dynfed_scheduler.schedule(); //TODO: use result
 }
