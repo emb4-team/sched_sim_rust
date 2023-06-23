@@ -204,6 +204,27 @@ mod tests {
     }
 
     #[test]
+    fn test_dump_dag_set_log_to_yaml() {
+        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let dag_log0 = DAGLog::new(0);
+        let dag_log1 = DAGLog::new(1);
+        let dag_set_log = vec![dag_log0, dag_log1];
+
+        dump_dag_set_log_to_yaml(&file_path, dag_set_log);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_dag_set_log: DAGSetLog = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].dag_id, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].release_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].start_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].finish_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].minimum_cores, 0);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
     fn test_dump_node_logs_to_yaml() {
         let file_path = create_scheduler_log_yaml_file("tests", "tests3");
         let node_log = NodeLog::new(0, 0);
