@@ -11,6 +11,7 @@ use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
 use lib::util::get_hyper_period;
+use log::warn;
 use outputs_result::dump_dynfed_result_to_file;
 
 #[derive(Parser)]
