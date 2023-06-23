@@ -131,7 +131,7 @@ where
     processor: HomogeneousProcessor,
     scheduler: T,
     pub dag_set_log: Vec<DAGLog>,
-    pub node_logs: Vec<Vec<NodeLog>>,
+    pub node_logs: Vec<Vec<NodeLog>>, //node_logs[dag_id][node_id]
     pub processor_log: ProcessorLog,
 }
 
