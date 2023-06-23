@@ -8,6 +8,7 @@ use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
+use log::warn;
 
 #[derive(Parser)]
 #[clap(
@@ -38,10 +39,16 @@ fn main() {
         if let (Some(period), Some(end_to_end_deadline)) =
             (dag.get_head_period(), dag.get_end_to_end_deadline())
         {
-            assert_eq!(
-                end_to_end_deadline, period,
-                "period and end_to_end_deadline must be equal"
-            );
+            if end_to_end_deadline != period {
+                warn!("period and end_to_end_deadline must be equal, Override end_to_end_deadline with period.");
+            }
+            let source_nodes = dag.get_source_nodes();
+            let first_node_i = source_nodes
+                .iter()
+                .find(|&&node_i| dag[node_i].params.get("period").is_some())
+                .unwrap();
+
+            dag.update_param(*first_node_i, "end_to_end_deadline", period)
         }
     }
 
