@@ -276,9 +276,7 @@ where
             }
         }
 
-        let schedule_length = current_time;
-        self.processor_log
-            .calculate_cores_utilization(schedule_length);
+        self.processor_log.calculate_cores_utilization(current_time);
 
         self.processor_log.calculate_average_utilization();
 
