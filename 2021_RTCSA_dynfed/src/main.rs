@@ -14,9 +14,9 @@ use lib::scheduler::DAGSetSchedulerBase;
     name = "DynFed_Algorithm",
     version = "1.0",
     about = "About:
-    DynFed_Algorithm operates on the same assumption of cycles and deadlines.
-    Therefore, the period shall be considered as the deadline.
-    If there is no period, the deadline shall be obtained."
+    DynFed_Algorithm operates on the same assumption of period and end_to_end_deadline.
+    Therefore, the period shall be considered as the end_to_end_deadline.
+    If there is no period, the end_to_end_deadline shall be obtained."
 )]
 struct ArgParser {
     ///Path to DAGSet directory.
@@ -35,12 +35,12 @@ fn main() {
     let mut dag_set = create_dag_set_from_dir(&arg.dag_dir_path);
 
     for dag in dag_set.iter_mut() {
-        if let (Some(end_to_end_deadline), Some(period)) =
-            (dag.get_end_to_end_deadline(), dag.get_head_period())
+        if let (Some(period), Some(end_to_end_deadline)) =
+            (dag.get_head_period(), dag.get_end_to_end_deadline())
         {
             assert_eq!(
                 end_to_end_deadline, period,
-                "end_to_end_deadline and period must be equal"
+                "period and end_to_end_deadline must be equal"
             );
         }
     }
