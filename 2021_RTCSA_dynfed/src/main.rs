@@ -40,7 +40,7 @@ fn main() {
             (dag.get_head_period(), dag.get_end_to_end_deadline())
         {
             if end_to_end_deadline != period {
-                warn!("period and end_to_end_deadline must be equal, Override end_to_end_deadline with period.");
+                warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
             }
             let source_nodes = dag.get_source_nodes();
             let node_i = source_nodes
