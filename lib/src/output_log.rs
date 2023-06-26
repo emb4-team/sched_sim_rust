@@ -8,7 +8,7 @@ use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
 use crate::processor::ProcessorBase;
-use crate::scheduler::{NodeLog, ProcessorLog};
+use crate::scheduler::{DAGLog, NodeLog, ProcessorLog};
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -29,8 +29,18 @@ struct ProcessorInfo {
 }
 
 #[derive(Serialize, Deserialize)]
+struct DAGSetLog {
+    dag_set_log: Vec<DAGLog>,
+}
+
+#[derive(Serialize, Deserialize)]
 struct NodeLogs {
     node_logs: Vec<NodeLog>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NodeSetLogs {
+    node_set_logs: Vec<Vec<NodeLog>>,
 }
 
 fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
@@ -106,9 +116,21 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
     append_info_to_yaml(file_path, &yaml);
 }
 
+pub fn dump_dag_set_log_to_yaml(file_path: &str, dag_set_log: Vec<DAGLog>) {
+    let dag_set_log = DAGSetLog { dag_set_log };
+    let yaml = serde_yaml::to_string(&dag_set_log).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
 pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: Vec<NodeLog>) {
     let node_logs = NodeLogs { node_logs };
     let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_node_set_logs_to_yaml(file_path: &str, node_set_logs: Vec<Vec<NodeLog>>) {
+    let node_set_logs = NodeSetLogs { node_set_logs };
+    let yaml = serde_yaml::to_string(&node_set_logs).expect("Failed to serialize NodeLogs to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
 
@@ -152,7 +174,7 @@ mod tests {
     #[test]
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
-        let file_path = create_scheduler_log_yaml_file("tests", "tests1");
+        let file_path = create_scheduler_log_yaml_file("tests", "dag_set_info");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -169,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests2");
+        let file_path = create_scheduler_log_yaml_file("tests", "processor_info");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 
@@ -182,8 +204,61 @@ mod tests {
     }
 
     #[test]
+    fn test_dump_dag_set_log_to_yaml() {
+        let file_path = create_scheduler_log_yaml_file("tests", "dag_set_log");
+        let dag_log0 = DAGLog::new(0);
+        let dag_log1 = DAGLog::new(1);
+        let dag_set_log = vec![dag_log0, dag_log1];
+
+        dump_dag_set_log_to_yaml(&file_path, dag_set_log);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_dag_set_log: DAGSetLog = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].dag_id, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].release_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].start_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].finish_time, 0);
+        assert_eq!(yaml_dag_set_log.dag_set_log[0].minimum_cores, 0);
+
+        assert_eq!(yaml_dag_set_log.dag_set_log[1].dag_id, 1);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_node_set_logs_to_yaml() {
+        let file_path = create_scheduler_log_yaml_file("tests", "node_set_logs");
+        let node_log0_0 = NodeLog::new(0, 0);
+        let node_log0_1 = NodeLog::new(0, 1);
+        let node_logs0 = vec![node_log0_0, node_log0_1];
+        let node_log1 = NodeLog::new(1, 0);
+        let node_logs1 = vec![node_log1];
+
+        let node_set_logs = vec![node_logs0, node_logs1];
+
+        dump_node_set_logs_to_yaml(&file_path, node_set_logs);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let yaml_node_logs: NodeSetLogs = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].core_id, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].dag_id, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].node_id, 1);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].start_time, 0);
+        assert_eq!(yaml_node_logs.node_set_logs[0][1].finish_time, 0);
+
+        assert_eq!(yaml_node_logs.node_set_logs[0][0].node_id, 0);
+
+        assert_eq!(yaml_node_logs.node_set_logs[1][0].dag_id, 1);
+        assert_eq!(yaml_node_logs.node_set_logs[1][0].node_id, 0);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
     fn test_dump_node_logs_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let file_path = create_scheduler_log_yaml_file("tests", "node_logs");
         let node_log = NodeLog::new(0, 0);
         let node_logs = vec![node_log];
 
@@ -203,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_log_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests4");
+        let file_path = create_scheduler_log_yaml_file("tests", "processor_log");
         let processor_log = ProcessorLog::new(1);
         dump_processor_log_to_yaml(&file_path, processor_log);
 

@@ -1,14 +1,16 @@
 mod dynfed;
+mod outputs_result;
 
 use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
-use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
+use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
-use log::warn;
+use lib::util::{adjust_to_implicit_deadline, get_hyper_period};
+use outputs_result::dump_dynfed_result_to_file;
 
 #[derive(Parser)]
 #[clap(
@@ -35,27 +37,27 @@ fn main() {
     let arg: ArgParser = ArgParser::parse();
     let mut dag_set = create_dag_set_from_dir(&arg.dag_dir_path);
 
-    for dag in dag_set.iter_mut() {
-        if let (Some(period), Some(end_to_end_deadline)) =
-            (dag.get_head_period(), dag.get_end_to_end_deadline())
-        {
-            if end_to_end_deadline != period {
-                warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
-            }
-            let source_nodes = dag.get_source_nodes();
-            let node_i = source_nodes
-                .iter()
-                .find(|&&node_i| dag[node_i].params.get("end_to_end_deadline").is_some())
-                .unwrap();
-
-            dag.update_param(*node_i, "end_to_end_deadline", period)
-        }
-    }
+    adjust_to_implicit_deadline(&mut dag_set);
 
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut dynfed_scheduler: DynamicFederatedScheduler<
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
-    let _result = dynfed_scheduler.schedule(); //TODO: use result
+    let schedule_length = dynfed_scheduler.schedule();
+
+    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "dynfed");
+
+    dump_dynfed_result_to_file(
+        &file_path,
+        schedule_length,
+        get_hyper_period(&dag_set),
+        schedule_length < get_hyper_period(&dag_set),
+    );
+
+    dump_dag_set_info_to_yaml(&file_path, dag_set);
+    dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+    dump_dag_set_log_to_yaml(&file_path, dynfed_scheduler.dag_set_log);
+    dump_node_set_logs_to_yaml(&file_path, dynfed_scheduler.node_logs);
+    dump_processor_log_to_yaml(&file_path, dynfed_scheduler.processor_log);
 }
