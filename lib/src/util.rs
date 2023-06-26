@@ -32,9 +32,7 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
                 );
             }
             (None, None) => {
-                panic!(
-                    "Either an end-to-end deadline or period of time is required for the schedule."
-                );
+                panic!("Either an period or end-to-end deadline is required for the schedule.");
             }
         }
     }
