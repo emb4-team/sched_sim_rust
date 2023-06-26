@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn test_dump_dag_set_info_to_yaml_file_normal() {
         let dag_set = vec![create_dag(), create_dag()];
-        let file_path = create_scheduler_log_yaml_file("tests", "tests1");
+        let file_path = create_scheduler_log_yaml_file("tests", "dag_set_info");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -191,7 +191,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests2");
+        let file_path = create_scheduler_log_yaml_file("tests", "processor_info");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, homogeneous_processor);
 
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_dump_dag_set_log_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let file_path = create_scheduler_log_yaml_file("tests", "dag_set_log");
         let dag_log0 = DAGLog::new(0);
         let dag_log1 = DAGLog::new(1);
         let dag_set_log = vec![dag_log0, dag_log1];
@@ -228,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_dump_node_set_logs_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let file_path = create_scheduler_log_yaml_file("tests", "node_set_logs");
         let node_log0_0 = NodeLog::new(0, 0);
         let node_log0_1 = NodeLog::new(0, 1);
         let node_logs0 = vec![node_log0_0, node_log0_1];
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_dump_node_logs_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests3");
+        let file_path = create_scheduler_log_yaml_file("tests", "node_logs");
         let node_log = NodeLog::new(0, 0);
         let node_logs = vec![node_log];
 
@@ -278,7 +278,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_log_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("tests", "tests4");
+        let file_path = create_scheduler_log_yaml_file("tests", "processor_log");
         let processor_log = ProcessorLog::new(1);
         dump_processor_log_to_yaml(&file_path, processor_log);
 
