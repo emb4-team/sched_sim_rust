@@ -17,8 +17,15 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
         let period = dag.get_head_period();
         let end_to_end_deadline = dag.get_end_to_end_deadline();
         match (period, end_to_end_deadline) {
-            (Some(period_value), Some(deadline_value)) => {
-                enforce_equal_period_and_deadline(dag, period_value, deadline_value);
+            (Some(period_value), Some(_)) => {
+                if end_to_end_deadline != period {
+                    warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
+                    dag.get_sink_nodes().iter().for_each(|&sink_i| {
+                        if dag[sink_i].params.get("end_to_end_deadline").is_some() {
+                            dag.update_param(sink_i, "end_to_end_deadline", period_value);
+                        }
+                    });
+                }
             }
             (None, Some(deadline_value)) => {
                 dag.add_param(dag.get_source_nodes()[0], "period", deadline_value);
@@ -30,22 +37,6 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
                 panic!("Either an period or end-to-end deadline is required for the schedule.");
             }
         }
-    }
-}
-
-fn enforce_equal_period_and_deadline(
-    dag: &mut Graph<NodeData, i32>,
-    period: i32,
-    end_to_end_deadline: i32,
-) {
-    if end_to_end_deadline != period {
-        warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
-        let sink_nodes = dag.get_sink_nodes();
-        let node_i = sink_nodes
-            .iter()
-            .find(|&&node_i| dag[node_i].params.get("end_to_end_deadline").is_some())
-            .unwrap();
-        dag.update_param(*node_i, "end_to_end_deadline", period);
     }
 }
 
