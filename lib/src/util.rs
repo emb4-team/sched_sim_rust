@@ -2,7 +2,6 @@ use crate::graph_extension::{GraphExtension, NodeData};
 use log::warn;
 use num_integer::lcm;
 use petgraph::graph::Graph;
-use petgraph::graph::NodeIndex;
 
 pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
     let mut hyper_period = 1;
@@ -22,14 +21,10 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
                 enforce_equal_period_and_deadline(dag, period_value, deadline_value);
             }
             (None, Some(deadline_value)) => {
-                dag.add_param(NodeIndex::new(0), "period", deadline_value);
+                dag.add_param(dag.get_source_nodes()[0], "period", deadline_value);
             }
             (Some(period_value), None) => {
-                dag.add_param(
-                    NodeIndex::new(dag.node_count() - 1),
-                    "end_to_end_deadline",
-                    period_value,
-                );
+                dag.add_param(dag.get_sink_nodes()[0], "end_to_end_deadline", period_value);
             }
             (None, None) => {
                 panic!("Either an period or end-to-end deadline is required for the schedule.");
