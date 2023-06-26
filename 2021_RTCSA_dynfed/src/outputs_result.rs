@@ -28,7 +28,7 @@ pub fn dump_dynfed_result_to_file(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::adjust_dag_set;
+    use crate::adjust_to_implicit_deadline;
     use crate::dynfed::DynamicFederatedScheduler;
     use lib::{
         fixed_priority_scheduler::FixedPriorityScheduler,
@@ -102,7 +102,7 @@ mod tests {
         let dag2 = create_sample_dag2();
         let mut dag_set = vec![dag, dag2];
 
-        adjust_dag_set(&mut dag_set);
+        adjust_to_implicit_deadline(&mut dag_set);
 
         let mut dynfed_scheduler: DynamicFederatedScheduler<
             FixedPriorityScheduler<HomogeneousProcessor>,
