@@ -145,4 +145,11 @@ mod tests {
         assert_eq!(dag_set[0].get_head_period().unwrap(), 20);
         assert_eq!(dag_set[0].get_end_to_end_deadline().unwrap(), 20);
     }
+
+    #[test]
+    #[should_panic]
+    fn test_adjust_to_implicit_deadline_no_period_and_deadline() {
+        let mut dag_set = vec![create_dag()];
+        adjust_to_implicit_deadline(&mut dag_set);
+    }
 }
