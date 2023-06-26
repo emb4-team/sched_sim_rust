@@ -15,14 +15,27 @@ pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
 
 pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
     for dag in dag_set.iter_mut() {
-        if let (Some(period), Some(end_to_end_deadline)) =
-            (dag.get_head_period(), dag.get_end_to_end_deadline())
-        {
-            enforce_equal_period_and_deadline(dag, period, end_to_end_deadline);
-        } else if dag.get_head_period().is_none() {
-            add_missing_period_from_deadline(dag);
-        } else if dag.get_end_to_end_deadline().is_none() {
-            add_missing_deadline_from_period(dag);
+        let period = dag.get_head_period();
+        let end_to_end_deadline = dag.get_end_to_end_deadline();
+        match (period, end_to_end_deadline) {
+            (Some(period_value), Some(deadline_value)) => {
+                enforce_equal_period_and_deadline(dag, period_value, deadline_value);
+            }
+            (None, Some(deadline_value)) => {
+                dag.add_param(NodeIndex::new(0), "period", deadline_value);
+            }
+            (Some(period_value), None) => {
+                dag.add_param(
+                    NodeIndex::new(dag.node_count() - 1),
+                    "end_to_end_deadline",
+                    period_value,
+                );
+            }
+            (None, None) => {
+                panic!(
+                    "Either an end-to-end deadline or period of time is required for the schedule."
+                );
+            }
         }
     }
 }
@@ -34,31 +47,13 @@ fn enforce_equal_period_and_deadline(
 ) {
     if end_to_end_deadline != period {
         warn!("In this algorithm, the period and the end-to-end deadline must be equal. Therefore, the end-to-end deadline is overridden by the period.");
-        let source_nodes = dag.get_source_nodes();
-        let node_i = source_nodes
+        let sink_nodes = dag.get_sink_nodes();
+        let node_i = sink_nodes
             .iter()
             .find(|&&node_i| dag[node_i].params.get("end_to_end_deadline").is_some())
             .unwrap();
         dag.update_param(*node_i, "end_to_end_deadline", period);
     }
-}
-
-fn add_missing_period_from_deadline(dag: &mut Graph<NodeData, i32>) {
-    let end_to_end_deadline = dag
-        .get_end_to_end_deadline()
-        .expect("Either an end-to-end deadline or period of time is required for the schedule.");
-    dag.add_param(NodeIndex::new(0), "period", end_to_end_deadline);
-}
-
-fn add_missing_deadline_from_period(dag: &mut Graph<NodeData, i32>) {
-    let period = dag
-        .get_head_period()
-        .expect("Either an end-to-end deadline or period of time is required for the schedule.");
-    dag.add_param(
-        NodeIndex::new(dag.node_count() - 1),
-        "end_to_end_deadline",
-        period,
-    );
 }
 
 #[cfg(test)]
