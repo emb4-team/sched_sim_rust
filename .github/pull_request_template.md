@@ -8,7 +8,7 @@
 
 ## Pre-review checklist for the PR author
 
-- [ ] I've confirmed the [self-checklist]([https://github.com/tier4/caret/blob/main/.github/CONTRIBUTING.md](https://docs.google.com/spreadsheets/d/1p5KMcm752iCySHJz0xL1qf6fcLDKprbo/edit#gid=863618628)).
+- [ ] I've confirmed the [self-checklist](https://docs.google.com/spreadsheets/d/1p5KMcm752iCySHJz0xL1qf6fcLDKprbo/edit#gid=863618628).
 - [ ] The PR is ready for review.
 
 ## In-review checklist for the PR reviewers
