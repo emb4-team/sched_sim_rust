@@ -31,6 +31,7 @@ pub trait GraphExtension {
     fn remove_dummy_sink_node(&mut self);
     fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn calculate_earliest_start_times(&mut self) -> Vec<i32>;
+    fn calculate_earliest_finish_times(&mut self) -> Vec<i32>;
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -161,9 +162,9 @@ impl GraphExtension for Graph<NodeData, i32> {
         let sorted_nodes = toposort(&*self, None).unwrap();
         let mut earliest_start_times = vec![0; self.node_count()];
 
-        for node in sorted_nodes.iter() {
+        for node_i in sorted_nodes.iter() {
             let max_earliest_start_time = self
-                .edges_directed(*node, Incoming)
+                .edges_directed(*node_i, Incoming)
                 .map(|edge| {
                     let source_node = edge.source();
                     let exe_time = self[source_node].params["execution_time"];
@@ -172,13 +173,33 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(0);
 
-            earliest_start_times[node.index()] = max_earliest_start_time;
+            earliest_start_times[node_i.index()] = max_earliest_start_time;
+            self.add_param(*node_i, "start_time", max_earliest_start_time);
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
             "The earliest start times should be non-negative."
         );
         earliest_start_times
+    }
+
+    fn calculate_earliest_finish_times(&mut self) -> Vec<i32> {
+        let earliest_start_times = self.calculate_earliest_start_times();
+        let sorted_nodes = toposort(&*self, None).unwrap();
+
+        let mut earliest_finish_times = vec![0; self.node_count()];
+
+        for node_i in sorted_nodes.iter() {
+            let exe_time = self[*node_i].params["execution_time"];
+            earliest_finish_times[node_i.index()] = earliest_start_times[node_i.index()] + exe_time;
+            self.add_param(
+                *node_i,
+                "finish_time",
+                earliest_finish_times[node_i.index()],
+            );
+        }
+
+        earliest_finish_times
     }
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
@@ -590,6 +611,29 @@ mod tests {
         assert_eq!(result[2], 4);
         assert_eq!(result[3], 11);
         assert_eq!(result[4], 59);
+    }
+
+    #[test]
+    fn test_calculate_earliest_finish_times_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54));
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
+        dag.add_edge(n2, n4, 1);
+
+        let result = dag.calculate_earliest_finish_times();
+        println!("{:?}", result);
+        println!("{:#?}", dag);
+        assert_eq!(result[0], 4);
+        assert_eq!(result[1], 11);
+        assert_eq!(result[2], 59);
+        assert_eq!(result[3], 47);
+        assert_eq!(result[4], 113);
     }
 
     #[test]
