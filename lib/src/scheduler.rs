@@ -12,7 +12,9 @@ where
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
-    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+    fn schedule<F>(&mut self, func: F) -> (i32, VecDeque<NodeIndex>)
+    where
+        F: Fn(&Graph<NodeData, i32>, &mut VecDeque<NodeIndex>);
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {

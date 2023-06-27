@@ -290,7 +290,7 @@ where
 mod tests {
     use super::*;
     use lib::homogeneous::HomogeneousProcessor;
-    use lib::{fixed_priority_scheduler::FixedPriorityScheduler, processor::ProcessorBase};
+    use lib::{non_preemptive_scheduler::NonPreemptiveScheduler, processor::ProcessorBase};
     use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -350,7 +350,7 @@ mod tests {
         let dag2 = create_sample_dag2();
         let dag_set = vec![dag, dag2];
 
-        let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
+        let mut dynfed: DynamicFederatedScheduler<NonPreemptiveScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
 
         let time = dynfed.schedule();

@@ -31,9 +31,9 @@ mod tests {
     use crate::adjust_to_implicit_deadline;
     use crate::dynfed::DynamicFederatedScheduler;
     use lib::{
-        fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
+        non_preemptive_scheduler::NonPreemptiveScheduler,
         output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSetSchedulerBase,
@@ -105,7 +105,7 @@ mod tests {
         adjust_to_implicit_deadline(&mut dag_set);
 
         let mut dynfed_scheduler: DynamicFederatedScheduler<
-            FixedPriorityScheduler<HomogeneousProcessor>,
+            NonPreemptiveScheduler<HomogeneousProcessor>,
         > = DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
 
         let schedule_length = dynfed_scheduler.schedule();

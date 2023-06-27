@@ -31,9 +31,9 @@ mod tests {
 
     use super::*;
     use lib::{
-        fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
+        non_preemptive_scheduler::NonPreemptiveScheduler,
         output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSchedulerBase,
@@ -81,7 +81,7 @@ mod tests {
 
         let homogeneous_processor = HomogeneousProcessor::new(7);
         let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &homogeneous_processor);
+            NonPreemptiveScheduler::new(&dag, &homogeneous_processor);
 
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 

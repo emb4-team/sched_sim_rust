@@ -3,6 +3,7 @@ pub mod dag_creator;
 pub mod fixed_priority_scheduler;
 pub mod graph_extension;
 pub mod homogeneous;
+pub mod non_preemptive_scheduler;
 pub mod output_log;
 pub mod processor;
 pub mod scheduler;

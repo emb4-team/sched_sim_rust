@@ -3,8 +3,8 @@ mod outputs_result;
 mod parallel_provider_consumer;
 mod prioritization_cpc_model;
 
-use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::homogeneous::HomogeneousProcessor;
+use lib::non_preemptive_scheduler::NonPreemptiveScheduler;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSchedulerBase;
@@ -45,7 +45,7 @@ fn main() {
     let mut dag = create_dag_from_yaml(&arg.dag_file_path);
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
-    let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
+    let mut fixed_priority_scheduler = NonPreemptiveScheduler::new(&dag, &homogeneous_processor);
 
     let (schedule_length, _) = fixed_priority_scheduler.schedule();
     let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
