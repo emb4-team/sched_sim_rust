@@ -8,7 +8,7 @@
 
 ## Pre-review checklist for the PR author
 
-- [ ] I've confirmed the [self checklist]([https://github.com/tier4/caret/blob/main/.github/CONTRIBUTING.md](https://docs.google.com/spreadsheets/d/1p5KMcm752iCySHJz0xL1qf6fcLDKprbo/edit#gid=863618628)).
+- [ ] I've confirmed the [self-checklist]([https://github.com/tier4/caret/blob/main/.github/CONTRIBUTING.md](https://docs.google.com/spreadsheets/d/1p5KMcm752iCySHJz0xL1qf6fcLDKprbo/edit#gid=863618628)).
 - [ ] The PR is ready for review.
 
 ## In-review checklist for the PR reviewers
@@ -22,8 +22,7 @@ The PR reviewers **must** check the checkboxes below before approval.
 
 The PR author **must** check the checkboxes below before merging.
 
-- [ ] (Optional) The PR has been properly tested with CARET_report verification.
-- [ ] There are no open discussions or they are tracked via tickets.
+- [ ] There are no open discussions.
 - [ ] The PR is ready for merge.
 
 After all checkboxes are checked, anyone who has write access can merge the PR.
