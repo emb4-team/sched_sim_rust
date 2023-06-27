@@ -2,6 +2,7 @@
     "rust-analyzer.linkedProjects": [
         "./lib/Cargo.toml",
         "./2014_ECRTS_federated_original/Cargo.toml",
+        "./2014_TPDS_basic_decomposition_based_algorithm/Cargo.toml",
         "./2020_RTSS_cpc_model_based_algorithm/Cargo.toml",
         "./2021_RTCSA_dynfed/Cargo.toml"
     ],
