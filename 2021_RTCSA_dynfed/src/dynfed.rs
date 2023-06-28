@@ -78,6 +78,8 @@ fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
     total_allocated_cores
 }
 
+fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
+
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
 /// # Arguments
@@ -112,12 +114,12 @@ where
     scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
 
-    let (mut schedule_length, mut execution_order) = scheduler.schedule();
+    let (mut schedule_length, mut execution_order) = scheduler.schedule(test_sort);
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
-        (schedule_length, execution_order) = scheduler.schedule();
+        (schedule_length, execution_order) = scheduler.schedule(test_sort);
     }
 
     (minimum_cores, execution_order)
@@ -289,8 +291,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
-    use lib::{non_preemptive_scheduler::NonPreemptiveScheduler, processor::ProcessorBase};
+    use lib::processor::ProcessorBase;
     use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {

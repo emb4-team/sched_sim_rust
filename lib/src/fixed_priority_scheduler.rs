@@ -1,16 +1,11 @@
 use std::collections::VecDeque;
 
 use crate::{
-    core::ProcessResult,
-    graph_extension::{GraphExtension, NodeData},
-    non_preemptive_scheduler::NonPreemptiveScheduler,
-    processor::ProcessorBase,
-    scheduler::DAGSchedulerBase,
+    graph_extension::NodeData, non_preemptive_scheduler::NonPreemptiveScheduler,
+    processor::ProcessorBase, scheduler::DAGSchedulerBase,
 };
 
 use petgraph::{graph::NodeIndex, Graph};
-
-const DUMMY_EXECUTION_TIME: i32 = 1;
 
 #[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>
@@ -42,19 +37,6 @@ where
     where
         F: Fn(&Graph<NodeData, i32>, &mut VecDeque<NodeIndex>),
     {
-        unimplemented!()
-        /*let func = |dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>| {
-            sort_by_priority(dag, ready_queue)
-        };
-        self.non_preemptive_scheduler.schedule(func)*/
-    }
-}
-
-impl<T> FixedPriorityScheduler<T>
-where
-    T: ProcessorBase + Clone,
-{
-    pub fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         let func = |dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>| {
             sort_by_priority(dag, ready_queue)
         };
@@ -81,6 +63,8 @@ mod tests {
     use super::*;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
+
+    fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -116,7 +100,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        let result = fixed_priority_scheduler.schedule();
+        let result = fixed_priority_scheduler.schedule(test_sort);
 
         assert_eq!(result.0, 92);
 
@@ -154,7 +138,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
-        let result = fixed_priority_scheduler.schedule();
+        let result = fixed_priority_scheduler.schedule(test_sort);
 
         assert_eq!(result.0, 92);
         assert_eq!(
@@ -176,13 +160,13 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule();
+        let result = fixed_priority_scheduler.schedule(test_sort);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule();
+        let result = fixed_priority_scheduler.schedule(test_sort);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
@@ -210,41 +194,89 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        fixed_priority_scheduler.schedule();
+        fixed_priority_scheduler.schedule(test_sort);
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.average_utilization,
+            fixed_priority_scheduler
+                .non_preemptive_scheduler
+                .processor_log
+                .average_utilization,
             0.61956525
         );
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.variance_utilization,
+            fixed_priority_scheduler
+                .non_preemptive_scheduler
+                .processor_log
+                .variance_utilization,
             0.14473063
         );
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].core_id,
+            fixed_priority_scheduler
+                .non_preemptive_scheduler
+                .processor_log
+                .core_logs[0]
+                .core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].total_proc_time,
+            fixed_priority_scheduler
+                .non_preemptive_scheduler
+                .processor_log
+                .core_logs[0]
+                .total_proc_time,
             92
         );
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].utilization,
+            fixed_priority_scheduler
+                .non_preemptive_scheduler
+                .processor_log
+                .core_logs[0]
+                .utilization,
             1.0
         );
 
-        assert_eq!(fixed_priority_scheduler.node_logs[0].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].core_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].dag_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].node_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].start_time,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].finish_time,
+            52
+        );
 
-        assert_eq!(fixed_priority_scheduler.node_logs[1].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].core_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].dag_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].node_id,
+            1
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].start_time,
+            52
+        );
+        assert_eq!(
+            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].finish_time,
+            92
+        );
     }
 }

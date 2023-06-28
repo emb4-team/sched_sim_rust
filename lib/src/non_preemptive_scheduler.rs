@@ -210,11 +210,6 @@ mod tests {
         NodeData { id, params }
     }
 
-    fn add_params(dag: &mut Graph<NodeData, i32>, node: NodeIndex, key: &str, value: i32) {
-        let node_added = dag.node_weight_mut(node).unwrap();
-        node_added.params.insert(key.to_string(), value);
-    }
-
     #[test]
     fn test_fixed_priority_scheduler_new_normal() {
         let dag = Graph::<NodeData, i32>::new();

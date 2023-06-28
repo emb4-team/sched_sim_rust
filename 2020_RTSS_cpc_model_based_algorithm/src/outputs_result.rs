@@ -31,15 +31,20 @@ mod tests {
 
     use super::*;
     use lib::{
+        fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
-        non_preemptive_scheduler::NonPreemptiveScheduler,
         output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSchedulerBase,
     };
-    use petgraph::Graph;
-    use std::{collections::HashMap, fs::remove_file};
+    use petgraph::{graph::NodeIndex, Graph};
+    use std::{
+        collections::{HashMap, VecDeque},
+        fs::remove_file,
+    };
+
+    fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -83,7 +88,7 @@ mod tests {
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
-        let (schedule_length, _) = fixed_priority_scheduler.schedule();
+        let (schedule_length, _) = fixed_priority_scheduler.schedule(test_sort);
 
         let file_path =
             create_scheduler_log_yaml_file("../lib/tests", "test_dump_federated_info_normal");
