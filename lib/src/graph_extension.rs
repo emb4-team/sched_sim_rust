@@ -172,9 +172,9 @@ impl GraphExtension for Graph<NodeData, i32> {
         let sorted_nodes = toposort(&*self, None).unwrap();
         let mut earliest_start_times = vec![0; self.node_count()];
 
-        for node_i in sorted_nodes.iter() {
+        for &node_i in sorted_nodes.iter() {
             let max_earliest_start_time = self
-                .edges_directed(*node_i, Incoming)
+                .edges_directed(node_i, Incoming)
                 .map(|edge| {
                     let source_node = edge.source();
                     let exe_time = self[source_node].params["execution_time"];
@@ -184,7 +184,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(0);
 
             earliest_start_times[node_i.index()] = max_earliest_start_time;
-            self.set_param(*node_i, "earliest_start_time", max_earliest_start_time);
+            self.set_param(node_i, "earliest_start_time", max_earliest_start_time);
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
@@ -198,12 +198,12 @@ impl GraphExtension for Graph<NodeData, i32> {
 
         let mut earliest_finish_times = vec![0; self.node_count()];
 
-        for node_i in sorted_nodes.iter() {
-            let exe_time = self[*node_i].params["execution_time"];
-            let earliest_finish_time = self[*node_i].params["earliest_start_time"] + exe_time;
+        for &node_i in sorted_nodes.iter() {
+            let exe_time = self[node_i].params["execution_time"];
+            let earliest_finish_time = self[node_i].params["earliest_start_time"] + exe_time;
 
             earliest_finish_times[node_i.index()] = earliest_finish_time;
-            self.set_param(*node_i, "earliest_finish_time", earliest_finish_time);
+            self.set_param(node_i, "earliest_finish_time", earliest_finish_time);
         }
     }
 
@@ -217,19 +217,19 @@ impl GraphExtension for Graph<NodeData, i32> {
         latest_start_times[sink_node_index[0].index()] =
             self[sink_node_index[0]].params["earliest_start_time"];
 
-        for &node in sorted_nodes.iter().rev() {
+        for &node_i in sorted_nodes.iter().rev() {
             let min_latest_start_time = self
-                .edges_directed(node, Outgoing)
+                .edges_directed(node_i, Outgoing)
                 .map(|edge| {
                     let target_node = edge.target();
-                    let pre_exe_time = self[node].params["execution_time"];
+                    let pre_exe_time = self[node_i].params["execution_time"];
                     latest_start_times[target_node.index()] - pre_exe_time
                 })
                 .min_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(self[sink_node_index[0]].params["earliest_start_time"]);
 
-            latest_start_times[node.index()] = min_latest_start_time;
-            self.set_param(node, "latest_start_time", min_latest_start_time);
+            latest_start_times[node_i.index()] = min_latest_start_time;
+            self.set_param(node_i, "latest_start_time", min_latest_start_time);
         }
 
         assert!(
