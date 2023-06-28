@@ -175,7 +175,11 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(0);
 
             earliest_start_times[node_i.index()] = max_earliest_start_time;
-            self.add_param(*node_i, "earliest_start_time", max_earliest_start_time);
+            if self[*node_i].params.contains_key("earliest_start_time") {
+                self.update_param(*node_i, "earliest_start_time", max_earliest_start_time);
+            } else {
+                self.add_param(*node_i, "earliest_start_time", max_earliest_start_time);
+            }
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
