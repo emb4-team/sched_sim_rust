@@ -32,7 +32,7 @@ pub trait GraphExtension {
     fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn calculate_earliest_start_times(&mut self);
     fn calculate_earliest_finish_times(&mut self);
-    fn calculate_latest_start_times(&mut self) -> Vec<i32>;
+    fn calculate_latest_start_times(&mut self);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -206,7 +206,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     }
 
     /// Calculate the latest start times for each node in the DAG.
-    fn calculate_latest_start_times(&mut self) -> Vec<i32> {
+    fn calculate_latest_start_times(&mut self) {
         self.calculate_earliest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
         let node_count = self.node_count();
@@ -227,12 +227,16 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(self[sink_node_index[0]].params["earliest_start_time"]);
 
             latest_start_times[node.index()] = min_latest_start_time;
+            if self[node].params.contains_key("latest_start_time") {
+                self.update_param(node, "latest_start_time", min_latest_start_time);
+            } else {
+                self.add_param(node, "latest_start_time", min_latest_start_time);
+            }
         }
         assert!(
             !latest_start_times.iter().any(|&time| time < 0),
             "The latest start times should be non-negative."
         );
-        latest_start_times
     }
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
@@ -266,7 +270,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         self.add_dummy_sink_node();
         let start_node = self.add_dummy_source_node();
         self.calculate_earliest_start_times();
-        let latest_start_times = self.calculate_latest_start_times();
+        self.calculate_latest_start_times();
         let mut path_search_queue = VecDeque::new();
         path_search_queue.push_back((start_node, vec![start_node]));
         let mut critical_path = Vec::new();
@@ -282,7 +286,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                 for edge in outgoing_edges {
                     let target_node = edge.target();
                     if self[target_node].params["earliest_start_time"]
-                        == latest_start_times[target_node.index()]
+                        == self[target_node].params["latest_start_time"]
                     {
                         let mut new_critical_path = current_critical_path.clone();
                         new_critical_path.push(target_node);
