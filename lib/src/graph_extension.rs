@@ -31,7 +31,7 @@ pub trait GraphExtension {
     fn remove_dummy_sink_node(&mut self);
     fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
     fn calculate_earliest_start_times(&mut self);
-    fn calculate_earliest_finish_times(&mut self) -> Vec<i32>;
+    fn calculate_earliest_finish_times(&mut self);
     fn calculate_latest_start_times(&mut self) -> Vec<i32>;
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
@@ -187,7 +187,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         );
     }
 
-    fn calculate_earliest_finish_times(&mut self) -> Vec<i32> {
+    fn calculate_earliest_finish_times(&mut self) {
         self.calculate_earliest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
 
@@ -195,16 +195,14 @@ impl GraphExtension for Graph<NodeData, i32> {
 
         for node_i in sorted_nodes.iter() {
             let exe_time = self[*node_i].params["execution_time"];
-            earliest_finish_times[node_i.index()] =
-                self[*node_i].params["earliest_start_time"] + exe_time;
-            self.add_param(
-                *node_i,
-                "earliest_finish_time",
-                earliest_finish_times[node_i.index()],
-            );
+            let earliest_finish_time = self[*node_i].params["earliest_start_time"] + exe_time;
+            earliest_finish_times[node_i.index()] = earliest_finish_time;
+            if self[*node_i].params.contains_key("earliest_finish_time") {
+                self.update_param(*node_i, "earliest_finish_time", earliest_finish_time);
+            } else {
+                self.add_param(*node_i, "earliest_finish_time", earliest_finish_time);
+            }
         }
-
-        earliest_finish_times
     }
 
     /// Calculate the latest start times for each node in the DAG.
@@ -631,14 +629,12 @@ mod tests {
         dag.add_edge(n1, n3, 1);
         dag.add_edge(n2, n4, 1);
 
-        let result = dag.calculate_earliest_finish_times();
-        println!("{:?}", result);
-        println!("{:#?}", dag);
-        assert_eq!(result[0], 4);
-        assert_eq!(result[1], 11);
-        assert_eq!(result[2], 59);
-        assert_eq!(result[3], 47);
-        assert_eq!(result[4], 113);
+        dag.calculate_earliest_finish_times();
+        assert_eq!(dag[n0].params["earliest_finish_time"], 4);
+        assert_eq!(dag[n1].params["earliest_finish_time"], 11);
+        assert_eq!(dag[n2].params["earliest_finish_time"], 59);
+        assert_eq!(dag[n3].params["earliest_finish_time"], 47);
+        assert_eq!(dag[n4].params["earliest_finish_time"], 113);
     }
 
     #[test]
