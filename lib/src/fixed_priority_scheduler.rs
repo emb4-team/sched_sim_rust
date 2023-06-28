@@ -42,6 +42,19 @@ where
     where
         F: Fn(&Graph<NodeData, i32>, &mut VecDeque<NodeIndex>),
     {
+        unimplemented!()
+        /*let func = |dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>| {
+            sort_by_priority(dag, ready_queue)
+        };
+        self.non_preemptive_scheduler.schedule(func)*/
+    }
+}
+
+impl<T> FixedPriorityScheduler<T>
+where
+    T: ProcessorBase + Clone,
+{
+    pub fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         let func = |dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>| {
             sort_by_priority(dag, ready_queue)
         };
@@ -102,7 +115,7 @@ mod tests {
         dag.add_edge(c0, n1_0, 1);
 
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &HomogeneousProcessor::new(2));
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -140,7 +153,7 @@ mod tests {
         dag.add_edge(c0, n1_0, 1);
 
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &HomogeneousProcessor::new(3));
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -162,13 +175,13 @@ mod tests {
         dag.add_node(create_node(0, "execution_time", 1));
 
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &HomogeneousProcessor::new(1));
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &HomogeneousProcessor::new(1));
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
@@ -196,7 +209,7 @@ mod tests {
         dag.add_edge(c0, n1_0, 1);
 
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &HomogeneousProcessor::new(2));
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
         fixed_priority_scheduler.schedule();
 
         assert_eq!(

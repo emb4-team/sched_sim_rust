@@ -81,7 +81,7 @@ mod tests {
 
         let homogeneous_processor = HomogeneousProcessor::new(7);
         let mut fixed_priority_scheduler =
-            NonPreemptiveScheduler::new(&dag, &homogeneous_processor);
+            FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 

@@ -350,7 +350,7 @@ mod tests {
         let dag2 = create_sample_dag2();
         let dag_set = vec![dag, dag2];
 
-        let mut dynfed: DynamicFederatedScheduler<NonPreemptiveScheduler<HomogeneousProcessor>> =
+        let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
 
         let time = dynfed.schedule();
