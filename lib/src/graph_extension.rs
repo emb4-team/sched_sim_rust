@@ -184,11 +184,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(0);
 
             earliest_start_times[node_i.index()] = max_earliest_start_time;
-            if self[*node_i].params.contains_key("earliest_start_time") {
-                self.update_param(*node_i, "earliest_start_time", max_earliest_start_time);
-            } else {
-                self.add_param(*node_i, "earliest_start_time", max_earliest_start_time);
-            }
+            self.set_param(*node_i, "earliest_start_time", max_earliest_start_time);
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
@@ -205,12 +201,9 @@ impl GraphExtension for Graph<NodeData, i32> {
         for node_i in sorted_nodes.iter() {
             let exe_time = self[*node_i].params["execution_time"];
             let earliest_finish_time = self[*node_i].params["earliest_start_time"] + exe_time;
+
             earliest_finish_times[node_i.index()] = earliest_finish_time;
-            if self[*node_i].params.contains_key("earliest_finish_time") {
-                self.update_param(*node_i, "earliest_finish_time", earliest_finish_time);
-            } else {
-                self.add_param(*node_i, "earliest_finish_time", earliest_finish_time);
-            }
+            self.set_param(*node_i, "earliest_finish_time", earliest_finish_time);
         }
     }
 
@@ -236,11 +229,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(self[sink_node_index[0]].params["earliest_start_time"]);
 
             latest_start_times[node.index()] = min_latest_start_time;
-            if self[node].params.contains_key("latest_start_time") {
-                self.update_param(node, "latest_start_time", min_latest_start_time);
-            } else {
-                self.add_param(node, "latest_start_time", min_latest_start_time);
-            }
+            self.set_param(node, "latest_start_time", min_latest_start_time);
         }
         assert!(
             !latest_start_times.iter().any(|&time| time < 0),
