@@ -64,7 +64,7 @@ mod tests {
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
 
-    fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
+    fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -100,7 +100,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        let result = fixed_priority_scheduler.schedule(test_sort);
+        let result = fixed_priority_scheduler.schedule(dummy_sort);
 
         assert_eq!(result.0, 92);
 
@@ -138,7 +138,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
-        let result = fixed_priority_scheduler.schedule(test_sort);
+        let result = fixed_priority_scheduler.schedule(dummy_sort);
 
         assert_eq!(result.0, 92);
         assert_eq!(
@@ -160,13 +160,13 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule(test_sort);
+        let result = fixed_priority_scheduler.schedule(dummy_sort);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule(test_sort);
+        let result = fixed_priority_scheduler.schedule(dummy_sort);
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
@@ -194,7 +194,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        fixed_priority_scheduler.schedule(test_sort);
+        fixed_priority_scheduler.schedule(dummy_sort);
 
         assert_eq!(
             fixed_priority_scheduler

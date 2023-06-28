@@ -78,7 +78,7 @@ fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
     total_allocated_cores
 }
 
-fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
+fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
@@ -114,12 +114,12 @@ where
     scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
 
-    let (mut schedule_length, mut execution_order) = scheduler.schedule(test_sort);
+    let (mut schedule_length, mut execution_order) = scheduler.schedule(dummy_sort);
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
-        (schedule_length, execution_order) = scheduler.schedule(test_sort);
+        (schedule_length, execution_order) = scheduler.schedule(dummy_sort);
     }
 
     (minimum_cores, execution_order)

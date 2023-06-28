@@ -42,7 +42,7 @@ struct ArgParser {
     ratio_deadline_to_period: f32,
 }
 
-fn test_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
+fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
 fn main() {
     let arg: ArgParser = ArgParser::parse();
@@ -54,7 +54,7 @@ fn main() {
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
     let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
-    let (schedule_length, _) = fixed_priority_scheduler.schedule(test_sort);
+    let (schedule_length, _) = fixed_priority_scheduler.schedule(dummy_sort);
     let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
 
     let constrained_end_to_end_deadline = if let Some(deadline) = dag.get_end_to_end_deadline() {

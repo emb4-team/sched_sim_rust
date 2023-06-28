@@ -4,8 +4,8 @@ mod outputs_result;
 use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
+use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::homogeneous::HomogeneousProcessor;
-use lib::non_preemptive_scheduler::NonPreemptiveScheduler;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
@@ -41,7 +41,7 @@ fn main() {
 
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut dynfed_scheduler: DynamicFederatedScheduler<
-        NonPreemptiveScheduler<HomogeneousProcessor>,
+        FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
     let schedule_length = dynfed_scheduler.schedule();
