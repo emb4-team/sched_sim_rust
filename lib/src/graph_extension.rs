@@ -30,7 +30,7 @@ pub trait GraphExtension {
     fn remove_dummy_source_node(&mut self);
     fn remove_dummy_sink_node(&mut self);
     fn remove_nodes(&mut self, node_indices: &[NodeIndex]);
-    fn calculate_earliest_start_times(&mut self) -> Vec<i32>;
+    fn calculate_earliest_start_times(&mut self);
     fn calculate_earliest_finish_times(&mut self) -> Vec<i32>;
     fn calculate_latest_start_times(&mut self) -> Vec<i32>;
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
@@ -159,7 +159,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     }
 
     /// Calculate the earliest start times for each node in the DAG.
-    fn calculate_earliest_start_times(&mut self) -> Vec<i32> {
+    fn calculate_earliest_start_times(&mut self) {
         let sorted_nodes = toposort(&*self, None).unwrap();
         let mut earliest_start_times = vec![0; self.node_count()];
 
@@ -175,27 +175,27 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(0);
 
             earliest_start_times[node_i.index()] = max_earliest_start_time;
-            self.add_param(*node_i, "start_time", max_earliest_start_time);
+            self.add_param(*node_i, "earliest_start_time", max_earliest_start_time);
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
             "The earliest start times should be non-negative."
         );
-        earliest_start_times
     }
 
     fn calculate_earliest_finish_times(&mut self) -> Vec<i32> {
-        let earliest_start_times = self.calculate_earliest_start_times();
+        self.calculate_earliest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
 
         let mut earliest_finish_times = vec![0; self.node_count()];
 
         for node_i in sorted_nodes.iter() {
             let exe_time = self[*node_i].params["execution_time"];
-            earliest_finish_times[node_i.index()] = earliest_start_times[node_i.index()] + exe_time;
+            earliest_finish_times[node_i.index()] =
+                self[*node_i].params["earliest_start_time"] + exe_time;
             self.add_param(
                 *node_i,
-                "finish_time",
+                "earliest_finish_time",
                 earliest_finish_times[node_i.index()],
             );
         }
@@ -205,13 +205,13 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     /// Calculate the latest start times for each node in the DAG.
     fn calculate_latest_start_times(&mut self) -> Vec<i32> {
-        let earliest_start_times = self.calculate_earliest_start_times();
+        self.calculate_earliest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
         let node_count = self.node_count();
         let mut latest_start_times = vec![i32::MAX; node_count];
         let sink_node_index = self.get_sink_nodes();
         latest_start_times[sink_node_index[0].index()] =
-            earliest_start_times[sink_node_index[0].index()];
+            self[sink_node_index[0]].params["earliest_start_time"];
 
         for &node in sorted_nodes.iter().rev() {
             let min_latest_start_time = self
@@ -222,7 +222,7 @@ impl GraphExtension for Graph<NodeData, i32> {
                     latest_start_times[target_node.index()] - pre_exe_time
                 })
                 .min_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap_or(earliest_start_times[sink_node_index[0].index()]);
+                .unwrap_or(self[sink_node_index[0]].params["earliest_start_time"]);
 
             latest_start_times[node.index()] = min_latest_start_time;
         }
@@ -263,7 +263,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     fn get_critical_path(&mut self) -> Vec<NodeIndex> {
         self.add_dummy_sink_node();
         let start_node = self.add_dummy_source_node();
-        let earliest_start_times = self.calculate_earliest_start_times();
+        self.calculate_earliest_start_times();
         let latest_start_times = self.calculate_latest_start_times();
         let mut path_search_queue = VecDeque::new();
         path_search_queue.push_back((start_node, vec![start_node]));
@@ -279,7 +279,7 @@ impl GraphExtension for Graph<NodeData, i32> {
             } else {
                 for edge in outgoing_edges {
                     let target_node = edge.target();
-                    if earliest_start_times[target_node.index()]
+                    if self[target_node].params["earliest_start_time"]
                         == latest_start_times[target_node.index()]
                     {
                         let mut new_critical_path = current_critical_path.clone();
@@ -606,12 +606,12 @@ mod tests {
         dag.add_edge(n1, n3, 1);
         dag.add_edge(n2, n4, 1);
 
-        let result = dag.calculate_earliest_start_times();
-        assert_eq!(result[0], 0);
-        assert_eq!(result[1], 4);
-        assert_eq!(result[2], 4);
-        assert_eq!(result[3], 11);
-        assert_eq!(result[4], 59);
+        dag.calculate_earliest_start_times();
+        assert_eq!(dag[n0].params["earliest_start_time"], 0);
+        assert_eq!(dag[n1].params["earliest_start_time"], 4);
+        assert_eq!(dag[n2].params["earliest_start_time"], 4);
+        assert_eq!(dag[n3].params["earliest_start_time"], 11);
+        assert_eq!(dag[n4].params["earliest_start_time"], 59);
     }
 
     #[test]
