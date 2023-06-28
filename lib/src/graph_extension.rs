@@ -231,6 +231,7 @@ impl GraphExtension for Graph<NodeData, i32> {
             latest_start_times[node.index()] = min_latest_start_time;
             self.set_param(node, "latest_start_time", min_latest_start_time);
         }
+
         assert!(
             !latest_start_times.iter().any(|&time| time < 0),
             "The latest start times should be non-negative."
@@ -648,6 +649,32 @@ mod tests {
         assert_eq!(dag[n2].params["earliest_finish_time"], 59);
         assert_eq!(dag[n3].params["earliest_finish_time"], 47);
         assert_eq!(dag[n4].params["earliest_finish_time"], 113);
+    }
+
+    #[test]
+    fn test_calculate_lasted_start_times_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54));
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
+        dag.add_edge(n2, n4, 1);
+        dag.add_dummy_sink_node();
+        dag.add_dummy_source_node();
+
+        dag.calculate_latest_start_times();
+        dag.remove_dummy_sink_node();
+        dag.remove_dummy_source_node();
+
+        assert_eq!(dag[n0].params["latest_start_time"], 0);
+        assert_eq!(dag[n1].params["latest_start_time"], 70);
+        assert_eq!(dag[n2].params["latest_start_time"], 4);
+        assert_eq!(dag[n3].params["latest_start_time"], 77);
+        assert_eq!(dag[n4].params["latest_start_time"], 59);
     }
 
     #[test]
