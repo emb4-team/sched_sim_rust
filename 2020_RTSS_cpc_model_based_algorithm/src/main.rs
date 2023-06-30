@@ -70,6 +70,6 @@ fn main() {
     );
     dump_dag_set_info_to_yaml(&file_path, vec![dag.clone()]);
     dump_processor_info_to_yaml(&file_path, homogeneous_processor);
-    dump_processor_log_to_yaml(&file_path, fixed_priority_scheduler.get_processor_log());
-    dump_node_logs_to_yaml(&file_path, fixed_priority_scheduler.get_node_logs());
+    dump_processor_log_to_yaml(&file_path, &fixed_priority_scheduler.get_processor_log());
+    dump_node_logs_to_yaml(&file_path, &fixed_priority_scheduler.get_node_logs());
 }
