@@ -1,18 +1,26 @@
 use std::collections::VecDeque;
 
 use crate::{
-    graph_extension::NodeData, non_preemptive_scheduler::NonPreemptiveScheduler,
-    processor::ProcessorBase, scheduler::DAGSchedulerBase,
+    core::ProcessResult,
+    graph_extension::{GraphExtension, NodeData},
+    processor::ProcessorBase,
+    scheduler::{DAGSchedulerBase, NodeLog, ProcessorLog},
 };
 
 use petgraph::{graph::NodeIndex, Graph};
+
+const DUMMY_EXECUTION_TIME: i32 = 1;
 
 #[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    pub non_preemptive_scheduler: NonPreemptiveScheduler<T>,
+    pub dag: Graph<NodeData, i32>,
+    pub processor: T,
+    pub ready_queue: VecDeque<NodeIndex>,
+    pub node_logs: Vec<NodeLog>,
+    pub processor_log: ProcessorLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
@@ -20,40 +28,179 @@ where
     T: ProcessorBase + Clone,
 {
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
-        self::FixedPriorityScheduler {
-            non_preemptive_scheduler: NonPreemptiveScheduler::new(dag, processor),
+        Self {
+            dag: dag.clone(),
+            processor: processor.clone(),
+            ready_queue: VecDeque::new(),
+            node_logs: dag
+                .node_indices()
+                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+                .collect(),
+            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.non_preemptive_scheduler.set_dag(dag);
+        self.node_logs = dag
+            .node_indices()
+            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+            .collect();
     }
 
     fn set_processor(&mut self, processor: &T) {
-        self.non_preemptive_scheduler.set_processor(processor);
+        self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
-    fn schedule<F>(&mut self, _: F) -> (i32, VecDeque<NodeIndex>)
-    where
-        F: Fn(&Graph<NodeData, i32>, &mut VecDeque<NodeIndex>),
-    {
-        let func = |dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>| {
-            sort_by_priority(dag, ready_queue)
-        };
-        self.non_preemptive_scheduler.schedule(func)
-    }
-}
+    /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
+    ///
+    /// # Arguments
+    ///
+    /// * `processor` - An object that implements `ProcessorBase` trait, representing a CPU or a collection of CPU cores.
+    /// * `dag` - A mutable reference to a Graph object, representing the dependencies among tasks.
+    ///
+    /// # Returns
+    ///
+    /// * A floating point number representing the normalized total time taken to finish all tasks.
+    /// * A vector of NodeIndex, representing the order of tasks finished.
+    ///
+    /// # Description
+    ///
+    /// The function `fixed_priority_scheduler` is responsible for task scheduling based on a Directed Acyclic Graph (DAG).
+    /// Specifically, it schedules tasks, associated with priority, on a processor, and continues to do so until all tasks have been executed.
+    /// The tasks are scheduled in order of their priority, from highest to lowest (smaller values have higher priority).
+    ///
+    /// Initially, a processor and a DAG are passed to this function.
+    /// Dummy source and sink nodes are added to the DAG. These nodes symbolize the start and end points of the tasks, respectively.
+    /// In the main loop of the function, the following operations are carried out:
+    ///
+    /// 1. Nodes representing tasks that are ready to be scheduled are sorted by their priority.
+    /// 2. If there is an idle core available, the task with the highest priority is allocated to it.
+    /// 3. The processor processes for a single unit of time. This is repeated until all tasks are completed.
+    /// 4. Once all tasks are completed, dummy source and sink nodes are removed from the DAG.
+    ///
+    /// The function returns the total time taken to complete all tasks (excluding the execution time of the dummy tasks) and the order in which the tasks were executed.
+    ///
+    /// # Example
+    ///
+    /// Refer to the examples in the tests code.
+    ///
+    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
+        let mut dag = self.dag.clone(); //To avoid adding pre_node_count to the original DAG
+        let mut current_time = 0;
+        let mut execution_order = VecDeque::new();
 
-fn sort_by_priority(dag: &Graph<NodeData, i32>, ready_queue: &mut VecDeque<NodeIndex>) {
-    ready_queue.make_contiguous().sort_by_key(|&node| {
-        dag[node].params.get("priority").unwrap_or_else(|| {
-            eprintln!(
-                "Warning: 'priority' parameter not found for node {:?}",
-                node
-            );
-            &999 // Because sorting cannot be done well without a priority
-        })
-    });
+        let source_node_i = dag.add_dummy_source_node();
+
+        dag[source_node_i]
+            .params
+            .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
+        let sink_node_i = dag.add_dummy_sink_node();
+        dag[sink_node_i]
+            .params
+            .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
+
+        self.ready_queue.push_back(source_node_i);
+
+        loop {
+            self.sort();
+
+            //Assign the highest priority task first to the first idle core found.
+            while let Some(core_index) = self.processor.get_idle_core_index() {
+                if let Some(node_i) = self.ready_queue.pop_front() {
+                    self.processor
+                        .allocate_specific_core(core_index, &dag[node_i]);
+
+                    if node_i != source_node_i && node_i != sink_node_i {
+                        let task_id = dag[node_i].id as usize;
+                        self.node_logs[task_id].core_id = core_index;
+                        self.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
+                        self.processor_log.core_logs[core_index].total_proc_time +=
+                            dag[node_i].params.get("execution_time").unwrap_or(&0);
+                    }
+                    execution_order.push_back(node_i);
+                } else {
+                    break;
+                }
+            }
+
+            //Move one unit time so that the core state of the previous loop does not remain.
+            let mut process_result = self.processor.process();
+            current_time += 1;
+
+            //Process until there is a task finished.
+            while !process_result
+                .iter()
+                .any(|result| matches!(result, ProcessResult::Done(_)))
+            {
+                process_result = self.processor.process();
+                current_time += 1;
+            }
+
+            let finish_nodes: Vec<NodeIndex> = process_result
+                .iter()
+                .filter_map(|result| {
+                    if let ProcessResult::Done(node_data) = result {
+                        let node_id = node_data.id as usize;
+                        let node_i = NodeIndex::new(node_id);
+                        if node_i != source_node_i && node_i != sink_node_i {
+                            self.node_logs[node_id].finish_time =
+                                current_time - DUMMY_EXECUTION_TIME;
+                        }
+                        Some(node_i)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if finish_nodes.len() == 1 && dag.get_suc_nodes(finish_nodes[0]).is_none() {
+                break; // The scheduling has finished because the dummy sink node has completed.
+            }
+
+            //Executable if all predecessor nodes are done
+            for finish_node in finish_nodes {
+                let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
+                for suc_node in suc_nodes {
+                    dag.increment_pre_done_count(suc_node);
+                    if dag.is_node_ready(suc_node) {
+                        self.ready_queue.push_back(suc_node);
+                    }
+                }
+            }
+        }
+
+        //remove dummy nodes
+        dag.remove_dummy_sink_node();
+        dag.remove_dummy_source_node();
+
+        //Remove the dummy source node from the execution order.
+        execution_order.pop_back();
+        //Remove the dummy sink node from the execution order.
+        execution_order.pop_front();
+
+        let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
+        self.processor_log
+            .calculate_cores_utilization(schedule_length);
+
+        self.processor_log.calculate_average_utilization();
+
+        self.processor_log.calculate_variance_utilization();
+
+        //Return the normalized total time taken to finish all tasks.
+        (schedule_length, execution_order)
+    }
+
+    fn sort(&mut self) {
+        self.ready_queue.make_contiguous().sort_by_key(|&node| {
+            self.dag[node].params.get("priority").unwrap_or_else(|| {
+                eprintln!(
+                    "Warning: 'priority' parameter not found for node {:?}",
+                    node
+                );
+                &999 // Because sorting cannot be done well without a priority
+            })
+        });
+    }
 }
 
 #[cfg(test)]
@@ -100,7 +247,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        let result = fixed_priority_scheduler.schedule(dummy_sort);
+        let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
 
@@ -138,7 +285,7 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
-        let result = fixed_priority_scheduler.schedule(dummy_sort);
+        let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
         assert_eq!(
@@ -160,13 +307,13 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule(dummy_sort);
+        let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
-        let result = fixed_priority_scheduler.schedule(dummy_sort);
+        let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
     }
@@ -194,89 +341,41 @@ mod tests {
 
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        fixed_priority_scheduler.schedule(dummy_sort);
+        fixed_priority_scheduler.schedule();
 
         assert_eq!(
-            fixed_priority_scheduler
-                .non_preemptive_scheduler
-                .processor_log
-                .average_utilization,
+            fixed_priority_scheduler.processor_log.average_utilization,
             0.61956525
         );
 
         assert_eq!(
-            fixed_priority_scheduler
-                .non_preemptive_scheduler
-                .processor_log
-                .variance_utilization,
+            fixed_priority_scheduler.processor_log.variance_utilization,
             0.14473063
         );
 
         assert_eq!(
-            fixed_priority_scheduler
-                .non_preemptive_scheduler
-                .processor_log
-                .core_logs[0]
-                .core_id,
+            fixed_priority_scheduler.processor_log.core_logs[0].core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler
-                .non_preemptive_scheduler
-                .processor_log
-                .core_logs[0]
-                .total_proc_time,
+            fixed_priority_scheduler.processor_log.core_logs[0].total_proc_time,
             92
         );
         assert_eq!(
-            fixed_priority_scheduler
-                .non_preemptive_scheduler
-                .processor_log
-                .core_logs[0]
-                .utilization,
+            fixed_priority_scheduler.processor_log.core_logs[0].utilization,
             1.0
         );
 
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].core_id,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].dag_id,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].node_id,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].start_time,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[0].finish_time,
-            52
-        );
+        assert_eq!(fixed_priority_scheduler.node_logs[0].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
 
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].core_id,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].dag_id,
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].node_id,
-            1
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].start_time,
-            52
-        );
-        assert_eq!(
-            fixed_priority_scheduler.non_preemptive_scheduler.node_logs[1].finish_time,
-            92
-        );
+        assert_eq!(fixed_priority_scheduler.node_logs[1].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
+        assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
     }
 }

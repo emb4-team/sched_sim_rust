@@ -88,7 +88,7 @@ mod tests {
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
-        let (schedule_length, _) = fixed_priority_scheduler.schedule(dummy_sort);
+        let (schedule_length, _) = fixed_priority_scheduler.schedule();
 
         let file_path =
             create_scheduler_log_yaml_file("../lib/tests", "test_dump_federated_info_normal");

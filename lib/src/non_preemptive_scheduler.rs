@@ -86,10 +86,7 @@ where
     ///
     /// Refer to the examples in the tests code.
     ///
-    fn schedule<F>(&mut self, func: F) -> (i32, VecDeque<NodeIndex>)
-    where
-        F: Fn(&Graph<NodeData, i32>, &mut VecDeque<NodeIndex>),
-    {
+    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         let mut dag = self.dag.clone(); //To avoid adding pre_node_count to the original DAG
         let mut current_time = 0;
         let mut execution_order = VecDeque::new();
@@ -107,7 +104,7 @@ where
         self.ready_queue.push_back(source_node_i);
 
         loop {
-            func(&dag, &mut self.ready_queue);
+            self.sort();
 
             //Assign the highest priority task first to the first idle core found.
             while let Some(core_index) = self.processor.get_idle_core_index() {
@@ -194,6 +191,8 @@ where
         //Return the normalized total time taken to finish all tasks.
         (schedule_length, execution_order)
     }
+
+    fn sort(&mut self) {}
 }
 
 #[cfg(test)]

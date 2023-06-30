@@ -54,7 +54,7 @@ fn main() {
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
     let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
 
-    let (schedule_length, _) = fixed_priority_scheduler.schedule(dummy_sort);
+    let (schedule_length, _) = fixed_priority_scheduler.schedule();
     let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
 
     let constrained_end_to_end_deadline = if let Some(deadline) = dag.get_end_to_end_deadline() {
@@ -74,14 +74,6 @@ fn main() {
     );
     dump_dag_set_info_to_yaml(&file_path, vec![dag.clone()]);
     dump_processor_info_to_yaml(&file_path, homogeneous_processor);
-    dump_processor_log_to_yaml(
-        &file_path,
-        fixed_priority_scheduler
-            .non_preemptive_scheduler
-            .processor_log,
-    );
-    dump_node_logs_to_yaml(
-        &file_path,
-        fixed_priority_scheduler.non_preemptive_scheduler.node_logs,
-    );
+    dump_processor_log_to_yaml(&file_path, fixed_priority_scheduler.processor_log);
+    dump_node_logs_to_yaml(&file_path, fixed_priority_scheduler.node_logs);
 }

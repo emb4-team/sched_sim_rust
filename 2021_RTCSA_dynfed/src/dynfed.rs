@@ -114,12 +114,12 @@ where
     scheduler.set_dag(dag);
     scheduler.set_processor(&T::new(minimum_cores));
 
-    let (mut schedule_length, mut execution_order) = scheduler.schedule(dummy_sort);
+    let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
     while schedule_length > end_to_end_deadline {
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
-        (schedule_length, execution_order) = scheduler.schedule(dummy_sort);
+        (schedule_length, execution_order) = scheduler.schedule();
     }
 
     (minimum_cores, execution_order)
