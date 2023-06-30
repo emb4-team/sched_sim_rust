@@ -211,8 +211,6 @@ mod tests {
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
 
-    fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
-
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);

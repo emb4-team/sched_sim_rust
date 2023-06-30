@@ -78,8 +78,6 @@ fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
     total_allocated_cores
 }
 
-fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
-
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
 /// # Arguments

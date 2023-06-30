@@ -38,13 +38,8 @@ mod tests {
         processor::ProcessorBase,
         scheduler::DAGSchedulerBase,
     };
-    use petgraph::{graph::NodeIndex, Graph};
-    use std::{
-        collections::{HashMap, VecDeque},
-        fs::remove_file,
-    };
-
-    fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
+    use petgraph::Graph;
+    use std::{collections::HashMap, fs::remove_file};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();

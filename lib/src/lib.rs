@@ -1,4 +1,5 @@
 pub mod core;
+pub mod create_scheduler;
 pub mod dag_creator;
 pub mod fixed_priority_scheduler;
 pub mod graph_extension;

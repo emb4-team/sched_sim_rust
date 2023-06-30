@@ -1,12 +1,9 @@
-use std::collections::VecDeque;
-
 use clap::Parser;
 mod outputs_result;
 mod parallel_provider_consumer;
 mod prioritization_cpc_model;
 
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
-use lib::graph_extension::NodeData;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::output_log::*;
 use lib::processor::ProcessorBase;
@@ -14,8 +11,6 @@ use lib::scheduler::DAGSchedulerBase;
 use lib::{dag_creator::*, graph_extension::GraphExtension};
 use log::warn;
 use outputs_result::dump_cpc_result_to_file;
-
-use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Parser)]
 #[clap(
@@ -41,8 +36,6 @@ struct ArgParser {
     #[clap(short = 'r', long = "ratio_deadline_to_period", default_value = "1.0")]
     ratio_deadline_to_period: f32,
 }
-
-fn dummy_sort(_: &Graph<NodeData, i32>, _: &mut VecDeque<NodeIndex>) {}
 
 fn main() {
     let arg: ArgParser = ArgParser::parse();
