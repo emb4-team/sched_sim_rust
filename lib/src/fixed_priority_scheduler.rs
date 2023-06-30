@@ -4,7 +4,7 @@ use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     processor::ProcessorBase,
-    scheduler::{DAGSchedulerBase, NodeLog, ProcessorLog},
+    scheduler::*,
 };
 
 use petgraph::{graph::NodeIndex, Graph};
@@ -16,11 +16,8 @@ pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    pub dag: Graph<NodeData, i32>,
-    pub processor: T,
-    pub ready_queue: VecDeque<NodeIndex>,
-    pub node_logs: Vec<NodeLog>,
-    pub processor_log: ProcessorLog,
+    pub context: DAGSchedulerContext<T>,
+    pub log: DAGSchedulerLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
@@ -29,26 +26,27 @@ where
 {
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
         Self {
-            dag: dag.clone(),
-            processor: processor.clone(),
-            ready_queue: VecDeque::new(),
-            node_logs: dag
-                .node_indices()
-                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
-                .collect(),
-            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
+            context: DAGSchedulerContext::new(dag, processor),
+            log: DAGSchedulerLog::new(dag, processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.node_logs = dag
-            .node_indices()
-            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
-            .collect();
+        self.context.set_dag(dag);
+        self.log.init_node_logs(dag);
     }
 
     fn set_processor(&mut self, processor: &T) {
-        self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
+        self.context.set_processor(processor);
+        self.log.init_processor_log(processor.get_number_of_cores());
+    }
+
+    fn get_node_logs(&self) -> &Vec<NodeLog> {
+        self.log.get_node_logs()
+    }
+
+    fn get_processor_log(&self) -> &ProcessorLog {
+        self.log.get_processor_log()
     }
 
     /// This function implements a fixed priority scheduling algorithm on a DAG (Directed Acyclic Graph).
@@ -85,7 +83,7 @@ where
     /// Refer to the examples in the tests code.
     ///
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
-        let mut dag = self.dag.clone(); //To avoid adding pre_node_count to the original DAG
+        let mut dag = self.context.dag.clone(); //To avoid adding pre_node_count to the original DAG
         let mut current_time = 0;
         let mut execution_order = VecDeque::new();
 
@@ -99,22 +97,24 @@ where
             .params
             .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
 
-        self.ready_queue.push_back(source_node_i);
+        self.context.ready_queue.push_back(source_node_i);
 
         loop {
-            self.sort();
+            self.sort_ready_queue();
 
             //Assign the highest priority task first to the first idle core found.
-            while let Some(core_index) = self.processor.get_idle_core_index() {
-                if let Some(node_i) = self.ready_queue.pop_front() {
-                    self.processor
+            while let Some(core_index) = self.context.processor.get_idle_core_index() {
+                if let Some(node_i) = self.context.ready_queue.pop_front() {
+                    self.context
+                        .processor
                         .allocate_specific_core(core_index, &dag[node_i]);
 
                     if node_i != source_node_i && node_i != sink_node_i {
                         let task_id = dag[node_i].id as usize;
-                        self.node_logs[task_id].core_id = core_index;
-                        self.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
-                        self.processor_log.core_logs[core_index].total_proc_time +=
+                        self.log.node_logs[task_id].core_id = core_index;
+                        self.log.node_logs[task_id].start_time =
+                            current_time - DUMMY_EXECUTION_TIME;
+                        self.log.processor_log.core_logs[core_index].total_proc_time +=
                             dag[node_i].params.get("execution_time").unwrap_or(&0);
                     }
                     execution_order.push_back(node_i);
@@ -124,7 +124,7 @@ where
             }
 
             //Move one unit time so that the core state of the previous loop does not remain.
-            let mut process_result = self.processor.process();
+            let mut process_result = self.context.processor.process();
             current_time += 1;
 
             //Process until there is a task finished.
@@ -132,7 +132,7 @@ where
                 .iter()
                 .any(|result| matches!(result, ProcessResult::Done(_)))
             {
-                process_result = self.processor.process();
+                process_result = self.context.processor.process();
                 current_time += 1;
             }
 
@@ -143,7 +143,7 @@ where
                         let node_id = node_data.id as usize;
                         let node_i = NodeIndex::new(node_id);
                         if node_i != source_node_i && node_i != sink_node_i {
-                            self.node_logs[node_id].finish_time =
+                            self.log.node_logs[node_id].finish_time =
                                 current_time - DUMMY_EXECUTION_TIME;
                         }
                         Some(node_i)
@@ -163,7 +163,7 @@ where
                 for suc_node in suc_nodes {
                     dag.increment_pre_done_count(suc_node);
                     if dag.is_node_ready(suc_node) {
-                        self.ready_queue.push_back(suc_node);
+                        self.context.ready_queue.push_back(suc_node);
                     }
                 }
             }
@@ -173,41 +173,39 @@ where
         dag.remove_dummy_sink_node();
         dag.remove_dummy_source_node();
 
-        //Remove the dummy source node from the execution order.
+        //Remove the dummy node from the execution order.
         execution_order.pop_back();
-        //Remove the dummy sink node from the execution order.
         execution_order.pop_front();
 
         let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-        self.processor_log
+        self.log
+            .processor_log
             .calculate_cores_utilization(schedule_length);
 
-        self.processor_log.calculate_average_utilization();
+        self.log.processor_log.calculate_average_utilization();
 
-        self.processor_log.calculate_variance_utilization();
+        self.log.processor_log.calculate_variance_utilization();
 
         //Return the normalized total time taken to finish all tasks.
         (schedule_length, execution_order)
     }
 
-    fn sort(&mut self) {
-        self.ready_queue.make_contiguous().sort_by_key(|&node| {
-            self.dag[node].params.get("priority").unwrap_or_else(|| {
-                eprintln!(
-                    "Warning: 'priority' parameter not found for node {:?}",
-                    node
-                );
-                &999 // Because sorting cannot be done well without a priority
-            })
-        });
-    }
-
-    fn get_processor_log(&self) -> &ProcessorLog {
-        &self.processor_log
-    }
-
-    fn get_node_logs(&self) -> &Vec<NodeLog> {
-        &self.node_logs
+    fn sort_ready_queue(&mut self) {
+        self.context
+            .ready_queue
+            .make_contiguous()
+            .sort_by_key(|&node| {
+                self.context.dag[node]
+                    .params
+                    .get("priority")
+                    .unwrap_or_else(|| {
+                        eprintln!(
+                            "Warning: 'priority' parameter not found for node {:?}",
+                            node
+                        );
+                        &999 // Because sorting cannot be done well without a priority
+                    })
+            });
     }
 }
 

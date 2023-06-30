@@ -14,15 +14,77 @@ where
         Self: Sized;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
-    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
-    fn sort(&mut self);
-    fn get_processor_log(&self) -> &ProcessorLog;
     fn get_node_logs(&self) -> &Vec<NodeLog>;
+    fn get_processor_log(&self) -> &ProcessorLog;
+    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+    fn sort_ready_queue(&mut self);
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
+}
+
+#[derive(Clone, Default)]
+pub struct DAGSchedulerContext<T: ProcessorBase + Clone> {
+    pub dag: Graph<NodeData, i32>,
+    pub processor: T,
+    pub ready_queue: VecDeque<NodeIndex>,
+}
+
+impl<T: ProcessorBase + Clone> DAGSchedulerContext<T> {
+    pub fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
+        Self {
+            dag: dag.clone(),
+            processor: processor.clone(),
+            ready_queue: VecDeque::new(),
+        }
+    }
+
+    pub fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
+        self.dag = dag.clone();
+    }
+
+    pub fn set_processor(&mut self, processor: &T) {
+        self.processor = processor.clone();
+    }
+}
+
+#[derive(Clone, Default)]
+pub struct DAGSchedulerLog {
+    pub node_logs: Vec<NodeLog>,
+    pub processor_log: ProcessorLog,
+}
+
+impl DAGSchedulerLog {
+    pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
+        Self {
+            node_logs: dag
+                .node_indices()
+                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+                .collect(),
+            processor_log: ProcessorLog::new(num_cores),
+        }
+    }
+
+    pub fn init_node_logs(&mut self, dag: &Graph<NodeData, i32>) {
+        self.node_logs = dag
+            .node_indices()
+            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+            .collect()
+    }
+
+    pub fn init_processor_log(&mut self, num_cores: usize) {
+        self.processor_log = ProcessorLog::new(num_cores);
+    }
+
+    pub fn get_node_logs(&self) -> &Vec<NodeLog> {
+        &self.node_logs
+    }
+
+    pub fn get_processor_log(&self) -> &ProcessorLog {
+        &self.processor_log
+    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
