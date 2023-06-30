@@ -31,12 +31,11 @@ mod tests {
 
     use super::*;
     use lib::{
-        fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
         output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
-        scheduler::DAGSchedulerBase,
+        scheduler_creator::{create_scheduler, SchedulerType},
     };
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
@@ -80,8 +79,11 @@ mod tests {
         prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
 
         let homogeneous_processor = HomogeneousProcessor::new(7);
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &homogeneous_processor);
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &homogeneous_processor,
+        );
 
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 

@@ -9,11 +9,15 @@ pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
+    where
+        Self: Sized;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
     fn sort(&mut self);
+    fn get_processor_log(&self) -> &ProcessorLog;
+    fn get_node_logs(&self) -> &Vec<NodeLog>;
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {

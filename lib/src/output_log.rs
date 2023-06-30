@@ -122,8 +122,10 @@ pub fn dump_dag_set_log_to_yaml(file_path: &str, dag_set_log: Vec<DAGLog>) {
     append_info_to_yaml(file_path, &yaml);
 }
 
-pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: Vec<NodeLog>) {
-    let node_logs = NodeLogs { node_logs };
+pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: &[NodeLog]) {
+    let node_logs = NodeLogs {
+        node_logs: node_logs.to_vec(),
+    };
     let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
@@ -134,7 +136,7 @@ pub fn dump_node_set_logs_to_yaml(file_path: &str, node_set_logs: Vec<Vec<NodeLo
     append_info_to_yaml(file_path, &yaml);
 }
 
-pub fn dump_processor_log_to_yaml(file_path: &str, processor_log: ProcessorLog) {
+pub fn dump_processor_log_to_yaml(file_path: &str, processor_log: &ProcessorLog) {
     let yaml =
         serde_yaml::to_string(&processor_log).expect("Failed to serialize ProcessorLog to YAML");
     append_info_to_yaml(file_path, &yaml);
@@ -262,7 +264,7 @@ mod tests {
         let node_log = NodeLog::new(0, 0);
         let node_logs = vec![node_log];
 
-        dump_node_logs_to_yaml(&file_path, node_logs);
+        dump_node_logs_to_yaml(&file_path, &node_logs);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let yaml_node_logs: NodeLogs = serde_yaml::from_str(&file_contents).unwrap();
@@ -280,7 +282,7 @@ mod tests {
     fn test_dump_processor_log_to_yaml() {
         let file_path = create_scheduler_log_yaml_file("tests", "processor_log");
         let processor_log = ProcessorLog::new(1);
-        dump_processor_log_to_yaml(&file_path, processor_log);
+        dump_processor_log_to_yaml(&file_path, &processor_log);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let yaml_processor_log: ProcessorLog = serde_yaml::from_str(&file_contents).unwrap();

@@ -201,6 +201,14 @@ where
             })
         });
     }
+
+    fn get_processor_log(&self) -> &ProcessorLog {
+        &self.processor_log
+    }
+
+    fn get_node_logs(&self) -> &Vec<NodeLog> {
+        &self.node_logs
+    }
 }
 
 #[cfg(test)]
@@ -210,6 +218,7 @@ mod tests {
     use super::*;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
+    use crate::scheduler_creator::{create_scheduler, SchedulerType};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -243,8 +252,11 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &HomogeneousProcessor::new(2),
+        );
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -281,8 +293,11 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &HomogeneousProcessor::new(3),
+        );
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -303,14 +318,20 @@ mod tests {
         //cX is the Xth critical node.
         dag.add_node(create_node(0, "execution_time", 1));
 
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &HomogeneousProcessor::new(1),
+        );
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &HomogeneousProcessor::new(1),
+        );
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
@@ -337,43 +358,50 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &dag,
+            &HomogeneousProcessor::new(2),
+        );
         fixed_priority_scheduler.schedule();
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.average_utilization,
+            fixed_priority_scheduler
+                .get_processor_log()
+                .average_utilization,
             0.61956525
         );
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.variance_utilization,
+            fixed_priority_scheduler
+                .get_processor_log()
+                .variance_utilization,
             0.14473063
         );
 
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].core_id,
+            fixed_priority_scheduler.get_processor_log().core_logs[0].core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].total_proc_time,
+            fixed_priority_scheduler.get_processor_log().core_logs[0].total_proc_time,
             92
         );
         assert_eq!(
-            fixed_priority_scheduler.processor_log.core_logs[0].utilization,
+            fixed_priority_scheduler.get_processor_log().core_logs[0].utilization,
             1.0
         );
 
-        assert_eq!(fixed_priority_scheduler.node_logs[0].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].node_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].start_time, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[0].finish_time, 52);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].node_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].start_time, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].finish_time, 52);
 
-        assert_eq!(fixed_priority_scheduler.node_logs[1].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].node_id, 1);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].start_time, 52);
-        assert_eq!(fixed_priority_scheduler.node_logs[1].finish_time, 92);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].node_id, 1);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].start_time, 52);
+        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].finish_time, 92);
     }
 }
