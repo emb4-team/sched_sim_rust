@@ -25,7 +25,6 @@ impl NodeData {
 pub trait GraphExtension {
     fn add_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
     fn update_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
-    fn set_param(&mut self, node_i: NodeIndex, key: &str, value: i32);
     fn add_dummy_source_node(&mut self) -> NodeIndex;
     fn add_dummy_sink_node(&mut self) -> NodeIndex;
     fn remove_dummy_source_node(&mut self);
@@ -72,14 +71,6 @@ impl GraphExtension for Graph<NodeData, i32> {
             warn!("The key no exists. key: {}", key);
         } else {
             target_node.params.insert(key.to_string(), value);
-        }
-    }
-
-    fn set_param(&mut self, node_i: NodeIndex, key: &str, value: i32) {
-        if self[node_i].params.contains_key(key) {
-            self.update_param(node_i, key, value);
-        } else {
-            self.add_param(node_i, key, value);
         }
     }
 
@@ -184,7 +175,11 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(0);
 
             earliest_start_times[node_i.index()] = max_earliest_start_time;
-            self.set_param(node_i, "earliest_start_time", max_earliest_start_time);
+            if self[node_i].params.contains_key("earliest_start_time") {
+                self.update_param(node_i, "earliest_start_time", max_earliest_start_time);
+            } else {
+                self.add_param(node_i, "earliest_start_time", max_earliest_start_time);
+            }
         }
         assert!(
             !earliest_start_times.iter().any(|&time| time < 0),
@@ -203,7 +198,11 @@ impl GraphExtension for Graph<NodeData, i32> {
             let earliest_finish_time = self[node_i].params["earliest_start_time"] + exe_time;
 
             earliest_finish_times[node_i.index()] = earliest_finish_time;
-            self.set_param(node_i, "earliest_finish_time", earliest_finish_time);
+            if self[node_i].params.contains_key("earliest_finish_time") {
+                self.update_param(node_i, "earliest_finish_time", earliest_finish_time);
+            } else {
+                self.add_param(node_i, "earliest_finish_time", earliest_finish_time);
+            }
         }
     }
 
@@ -229,7 +228,11 @@ impl GraphExtension for Graph<NodeData, i32> {
                 .unwrap_or(self[sink_node_index[0]].params["earliest_start_time"]);
 
             latest_start_times[node_i.index()] = min_latest_start_time;
-            self.set_param(node_i, "latest_start_time", min_latest_start_time);
+            if self[node_i].params.contains_key("latest_start_time") {
+                self.update_param(node_i, "latest_start_time", min_latest_start_time);
+            } else {
+                self.add_param(node_i, "latest_start_time", min_latest_start_time);
+            }
         }
 
         assert!(
@@ -596,17 +599,6 @@ mod tests {
         dag.update_param(n0, "test", 1);
         assert_eq!(dag[n0].params.get("test"), None);
         assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
-    }
-
-    #[test]
-    fn test_set_param_normal() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 0));
-        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &0);
-        dag.set_param(n0, "execution_time", 1);
-        assert_eq!(dag[n0].params.get("execution_time").unwrap(), &1);
-        dag.set_param(n0, "test", 1);
-        assert_eq!(dag[n0].params.get("test").unwrap(), &1);
     }
 
     #[test]
