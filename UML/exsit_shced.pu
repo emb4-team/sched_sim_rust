@@ -1,0 +1,80 @@
+@startuml interface
+
+@startuml proposed_sched
+title Proposed Scheduler
+
+    Interface DAGSchedulerBase<T: ProcessorBase + Clone> {
+        fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+        fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
+        fn set_processor(&mut self, processor: &T);
+        fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+    }
+
+    struct Sched_A<T: ProcessorBase + Clone> {
+        pub dag: Graph<NodeData, i32>,
+        pub processor: T,
+        pub node_logs: Vec<NodeLog>,
+        pub processor_log: ProcessorLog,
+
+        fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+        fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
+        fn set_processor(&mut self, processor: &T);
+        fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+    }
+
+    struct Sched_B<T: ProcessorBase + Clone> {
+        pub dag: Graph<NodeData, i32>,
+        pub processor: T,
+        pub node_logs: Vec<NodeLog>,
+        pub processor_log: ProcessorLog,
+
+        fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+        fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
+        fn set_processor(&mut self, processor: &T);
+        fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+    }
+
+    
+    struct NodeLog {
+        pub core_id: usize,
+        pub dag_id: usize,
+        pub node_id: usize,
+        pub start_time: i32,
+        pub finish_time: i32,
+
+        pub fn new(dag_id: usize, node_id: usize) -> Self
+    }
+
+    struct ProcessorLog {
+        pub average_utilization: f32,
+        pub variance_utilization: f32,
+        pub core_logs: Vec<CoreLog>,
+
+        pub fn new(num_cores: usize) -> Self;
+        pub fn calculate_average_utilization(&mut self);
+        pub fn calculate_variance_utilization(&mut self);
+        pub fn calculate_cores_utilization(&mut self, schedule_length: i32);
+    }
+
+    struct CoreLog {
+        pub core_id: usize,
+        pub total_proc_time: i32,
+        pub utilization: f32,
+
+        pub fn new(core_id: usize) -> Self;
+        pub fn calculate_utilization(&mut self, schedule_length: i32);
+    }  
+
+    DAGSchedulerBase <|-down- Sched_A
+    DAGSchedulerBase <|-down- Sched_B
+    Sched_A o-down- NodeLog
+    Sched_B o-down- NodeLog
+    Sched_A o-down- ProcessorLog
+    Sched_B o-down- ProcessorLog
+    ProcessorLog o-down- CoreLog
+
+    
+@enduml
+
+
+@enduml

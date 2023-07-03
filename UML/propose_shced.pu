@@ -1,0 +1,130 @@
+@startuml proposed_sched
+title Proposed Scheduler
+
+    Interface DAGSchedulerBase<T: ProcessorBase + Clone> {
+        fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
+        fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
+        fn set_processor(&mut self, processor: &T);
+        fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>);
+        fn get_dag(&mut self) -> Graph<NodeData, i32>;
+        fn get_processor(&mut self) -> T;
+        fn get_ready_queue(&mut self) -> VecDeque<NodeIndex>;
+        fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
+        fn set_processor_log(&mut self, processor_log: ProcessorLog);
+        fn get_node_logs(&mut self) -> Vec<NodeLog>;
+        fn get_processor_log(&mut self) -> ProcessorLog;
+        fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
+        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    }
+
+    class Scheduler {
+        pub fn schedule<T>(scheduler: &mut impl DAGSchedulerBase<T>) -> (i32, VecDeque<NodeIndex>)
+        T: ProcessorBase + Clone,
+    }
+
+    class SchedulerCreater {
+        pub fn create_scheduler<T>(
+            scheduler_type: SchedulerType,
+            dag: &Graph<NodeData, i32>,
+            processor: &T,
+        ) -> Box<dyn DAGSchedulerBase<T> + 'static>
+        T: ProcessorBase + Clone + 'static,
+    }
+
+    enum SchedulerType {
+        A,
+        B,
+    }
+
+    struct Sched_A<T: ProcessorBase + Clone> {
+        pub context: DAGSchedulerContext<T>,
+        pub log: DAGSchedulerLog,
+        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    }
+
+    struct Sched_B<T: ProcessorBase + Clone> {
+        pub context: DAGSchedulerContext<T>,
+        pub log: DAGSchedulerLog,
+        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    }
+
+    struct DAGSchedulerContext<T: ProcessorBase + Clone> {
+        pub dag: Graph<NodeData, i32>,
+        pub processor: T,
+        pub ready_queue: VecDeque<NodeIndex>,
+
+        pub fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
+        pub fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
+        pub fn set_processor(&mut self, processor: &T);
+        pub fn set_ready_queue(&mut self, ready_queue: &VecDeque<NodeIndex>);
+        pub fn get_dag(&mut self) -> Graph<NodeData, i32>;
+        pub fn get_processor(&mut self) -> T;
+        pub fn get_ready_queue(&mut self) -> VecDeque<NodeIndex>;
+
+    }
+
+    struct DAGSchedulerLog {
+        pub node_logs: Vec<NodeLog>,
+        pub processor_log: ProcessorLog,
+
+        pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self;
+        pub fn init_node_logs(&mut self, dag: &Graph<NodeData, i32>);
+        pub fn init_processor_log(&mut self, num_cores: usize);
+        pub fn get_node_logs(&mut self) -> Vec<NodeLog>;
+        pub fn get_processor_log(&mut self) -> ProcessorLog;
+        pub fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
+        pub fn set_processor_log(&mut self, processor_log: ProcessorLog);
+
+    }
+
+    
+    struct NodeLog {
+        pub core_id: usize,
+        pub dag_id: usize,
+        pub node_id: usize,
+        pub start_time: i32,
+        pub finish_time: i32,
+
+        pub fn new(dag_id: usize, node_id: usize) -> Self
+    }
+
+    struct ProcessorLog {
+        pub average_utilization: f32,
+        pub variance_utilization: f32,
+        pub core_logs: Vec<CoreLog>,
+
+        pub fn new(num_cores: usize) -> Self;
+        pub fn calculate_average_utilization(&mut self);
+        pub fn calculate_variance_utilization(&mut self);
+        pub fn calculate_cores_utilization(&mut self, schedule_length: i32);
+    }
+
+    struct CoreLog {
+        pub core_id: usize,
+        pub total_proc_time: i32,
+        pub utilization: f32,
+
+        pub fn new(core_id: usize) -> Self;
+        pub fn calculate_utilization(&mut self, schedule_length: i32);
+    }  
+
+    DAGSchedulerBase <|-down- Sched_A
+    DAGSchedulerBase <|-down- Sched_B
+    Sched_A o-down- DAGSchedulerContext
+    Sched_B o-down- DAGSchedulerContext
+    Sched_A o-down- DAGSchedulerLog
+    Sched_B o-down- DAGSchedulerLog
+    Sched_A <.down.> Scheduler
+    Sched_B <.down.> Scheduler
+
+    DAGSchedulerLog o-down- NodeLog
+    DAGSchedulerLog o-down- ProcessorLog
+    ProcessorLog o-down- CoreLog
+
+    SchedulerCreater -right- SchedulerType
+    SchedulerCreater .down.> Sched_A
+    SchedulerCreater .down.> Sched_B
+
+    DAGSchedulerBase -right[hidden]- SchedulerCreater
+
+@enduml
