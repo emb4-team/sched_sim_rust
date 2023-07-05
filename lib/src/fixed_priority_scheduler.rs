@@ -25,48 +25,48 @@ where
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.context.set_dag(dag);
-        self.log.init_node_logs(dag);
+        self.context.dag = dag.clone();
+        self.log.node_logs = dag
+            .node_indices()
+            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+            .collect()
     }
 
     fn set_processor(&mut self, processor: &T) {
-        self.context.set_processor(processor);
-        self.log.init_processor_log(processor.get_number_of_cores());
+        self.context.processor = processor.clone();
+        self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
     fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>) {
-        self.context.set_ready_queue(&ready_queue);
+        self.context.ready_queue = ready_queue;
     }
 
     fn get_dag(&mut self) -> Graph<NodeData, i32> {
-        self.context.get_dag()
+        self.context.dag.clone()
     }
 
     fn get_processor(&mut self) -> T {
-        self.context.get_processor()
+        self.context.processor.clone()
     }
 
     fn get_ready_queue(&mut self) -> VecDeque<NodeIndex> {
-        self.context.get_ready_queue()
+        self.context.ready_queue.clone()
     }
 
     fn set_node_logs(&mut self, node_logs: Vec<NodeLog>) {
-        self.log.set_node_logs(node_logs);
+        self.log.node_logs = node_logs;
     }
 
     fn set_processor_log(&mut self, processor_log: ProcessorLog) {
-        self.log.set_processor_log(processor_log);
+        self.log.processor_log = processor_log;
     }
+
     fn get_node_logs(&mut self) -> Vec<NodeLog> {
-        self.log.get_node_logs()
+        self.log.node_logs.clone()
     }
 
     fn get_processor_log(&mut self) -> ProcessorLog {
-        self.log.get_processor_log()
-    }
-
-    fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
-        schedule(self)
+        self.log.processor_log.clone()
     }
 
     fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>) {
