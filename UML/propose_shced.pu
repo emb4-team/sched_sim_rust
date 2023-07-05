@@ -1,34 +1,31 @@
 @startuml proposed_sched
 title Proposed Scheduler
 
-    Interface DAGSchedulerBase<T: ProcessorBase + Clone> {
-        fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
-        fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
-        fn set_processor(&mut self, processor: &T);
-        fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>);
-        fn get_dag(&mut self) -> Graph<NodeData, i32>;
-        fn get_processor(&mut self) -> T;
-        fn get_ready_queue(&mut self) -> VecDeque<NodeIndex>;
-        fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
-        fn set_processor_log(&mut self, processor_log: ProcessorLog);
-        fn get_node_logs(&mut self) -> Vec<NodeLog>;
-        fn get_processor_log(&mut self) -> ProcessorLog;
-        fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>);
-        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    interface DAGSchedulerBase<T: ProcessorBase + Clone> {
+        + {abstract} new(dag: Graph, processor: ProcessorBase) : DAGSchedulerBase
+        + {abstract} set_dag(dag: Graph)
+        + {abstract} set_processor(processor: ProcessorBase)
+        + {abstract} set_ready_queue(ready_queue: VecDeque)
+        + {abstract} get_dag() : Graph
+        + {abstract} get_processor() : ProcessorBase
+        + {abstract} get_ready_queue() : VecDeque
+        + {abstract} set_node_logs(node_logs: Vec)
+        + {abstract} set_processor_log(processor_log: ProcessorLog)
+        + {abstract} get_node_logs() : Vec
+        + {abstract} get_processor_log() : ProcessorLog
+        + {abstract} schedule() : (i32, VecDeque)
+        + {abstract} sort_ready_queue(ready_queue: VecDeque)
     }
 
-    class Scheduler {
-        pub fn schedule<T>(scheduler: &mut impl DAGSchedulerBase<T>) -> (i32, VecDeque<NodeIndex>)
-        T: ProcessorBase + Clone,
-    }
+    note left of DAGSchedulerBase::schedule
+    "default implementation"
+    end note
 
-    class SchedulerCreater {
-        pub fn create_scheduler<T>(
-            scheduler_type: SchedulerType,
-            dag: &Graph<NodeData, i32>,
-            processor: &T,
-        ) -> Box<dyn DAGSchedulerBase<T> + 'static>
-        T: ProcessorBase + Clone + 'static,
+    class SchedulerCreater<T: ProcessorBase + Clone> {
+        - scheduler_type: SchedulerType,
+            - dag: &Graph<NodeData, i32>,
+            - processor: &T,
+        + {static} create_scheduler<T>() : Box<dyn DAGSchedulerBase<T>>
     }
 
     enum SchedulerType {
@@ -37,75 +34,90 @@ title Proposed Scheduler
     }
 
     struct Sched_A<T: ProcessorBase + Clone> {
-        pub context: DAGSchedulerContext<T>,
-        pub log: DAGSchedulerLog,
-        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+        - context : DAGSchedulerContext
+        - log : DAGSchedulerLog
+        + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
+        + {static} set_dag(dag: Graph)
+        + {static} set_processor(processor: ProcessorBase)
+        + {static} set_ready_queue(ready_queue: VecDeque)
+        + {static} get_dag() : Graph
+        + {static} get_processor() : ProcessorBase
+        + {static} get_ready_queue() : VecDeque
+        + {static} set_node_logs(node_logs: Vec)
+        + {static} set_processor_log(processor_log: ProcessorLog)
+        + {static} get_node_logs() : Vec
+        + {static} get_processor_log() : ProcessorLog
+        + **{static} sort_ready_queue(ready_queue: VecDeque)**
     }
+
+    note right of Sched_A::sort_ready_queue
+    "Individually implemented"
+    end note
 
     struct Sched_B<T: ProcessorBase + Clone> {
-        pub context: DAGSchedulerContext<T>,
-        pub log: DAGSchedulerLog,
-        fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+        - context : DAGSchedulerContext
+        - log : DAGSchedulerLog
+        + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
+        + {static} set_dag(dag: Graph)
+        + {static} set_processor(processor: ProcessorBase)
+        + {static} set_ready_queue(ready_queue: VecDeque)
+        + {static} get_dag() : Graph
+        + {static} get_processor() : ProcessorBase
+        + {static} get_ready_queue() : VecDeque
+        + {static} set_node_logs(node_logs: Vec)
+        + {static} set_processor_log(processor_log: ProcessorLog)
+        + {static} get_node_logs() : Vec
+        + {static} get_processor_log() : ProcessorLog
+        + **{static} sort_ready_queue(ready_queue: VecDeque)**
     }
 
+    note left of Sched_B::sort_ready_queue
+    "Individually implemented"
+    end note
+
     struct DAGSchedulerContext<T: ProcessorBase + Clone> {
-        pub dag: Graph<NodeData, i32>,
-        pub processor: T,
-        pub ready_queue: VecDeque<NodeIndex>,
-
-        pub fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self;
-        pub fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
-        pub fn set_processor(&mut self, processor: &T);
-        pub fn set_ready_queue(&mut self, ready_queue: &VecDeque<NodeIndex>);
-        pub fn get_dag(&mut self) -> Graph<NodeData, i32>;
-        pub fn get_processor(&mut self) -> T;
-        pub fn get_ready_queue(&mut self) -> VecDeque<NodeIndex>;
-
+        - dag : Graph
+        - processor : ProcessorBase
+        - ready_queue : VecDeque
+        + {static} new(dag: Graph, processor: ProcessorBase) : DAGSchedulerContext
     }
 
     struct DAGSchedulerLog {
-        pub node_logs: Vec<NodeLog>,
-        pub processor_log: ProcessorLog,
+        - node_logs: Vec<NodeLog>,
+        - processor_log: ProcessorLog,
 
-        pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self;
-        pub fn init_node_logs(&mut self, dag: &Graph<NodeData, i32>);
-        pub fn init_processor_log(&mut self, num_cores: usize);
-        pub fn get_node_logs(&mut self) -> Vec<NodeLog>;
-        pub fn get_processor_log(&mut self) -> ProcessorLog;
-        pub fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
-        pub fn set_processor_log(&mut self, processor_log: ProcessorLog);
-
+        + {static} new(dag: Graph, num_cores: usize) : DAGSchedulerLog;
     }
 
     
     struct NodeLog {
-        pub core_id: usize,
-        pub dag_id: usize,
-        pub node_id: usize,
-        pub start_time: i32,
-        pub finish_time: i32,
+        - core_id: usize,
+        - dag_id: usize,
+        - node_id: usize,
+        - start_time: i32,
+        - finish_time: i32,
 
-        pub fn new(dag_id: usize, node_id: usize) -> Self
+        + {static} new(dag_id: usize, node_id: usize) : NodeLog
     }
 
     struct ProcessorLog {
-        pub average_utilization: f32,
-        pub variance_utilization: f32,
-        pub core_logs: Vec<CoreLog>,
+        - average_utilization: f32,
+        - variance_utilization: f32,
+        - core_logs: Vec<CoreLog>,
 
-        pub fn new(num_cores: usize) -> Self;
-        pub fn calculate_average_utilization(&mut self);
-        pub fn calculate_variance_utilization(&mut self);
-        pub fn calculate_cores_utilization(&mut self, schedule_length: i32);
+        + {static} new(num_cores: usize) : ProcessorLog;
+        + {static} calculate_average_utilization();
+        + {static} calculate_variance_utilization();
+        + {static} calculate_cores_utilization(schedule_length: i32);
     }
 
     struct CoreLog {
-        pub core_id: usize,
-        pub total_proc_time: i32,
-        pub utilization: f32,
+        - core_id: usize,
+        - total_proc_time: i32,
+        - utilization: f32,
 
-        pub fn new(core_id: usize) -> Self;
-        pub fn calculate_utilization(&mut self, schedule_length: i32);
+        + {static} new(core_id: usize) : CoreLog;
+        + {static} calculate_utilization(schedule_length: i32);
     }  
 
     DAGSchedulerBase <|-down- Sched_A
@@ -114,8 +126,6 @@ title Proposed Scheduler
     Sched_B o-down- DAGSchedulerContext
     Sched_A o-down- DAGSchedulerLog
     Sched_B o-down- DAGSchedulerLog
-    Sched_A <.down.> Scheduler
-    Sched_B <.down.> Scheduler
 
     DAGSchedulerLog o-down- NodeLog
     DAGSchedulerLog o-down- ProcessorLog
