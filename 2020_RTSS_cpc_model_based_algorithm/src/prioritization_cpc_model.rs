@@ -228,7 +228,7 @@ mod tests {
     #[test]
     fn test_assign_priority_cpc_model_normal() {
         let mut dag = create_sample_dag();
-        let expected_value = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let expected_value = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
         assign_priority_to_cpc_model(&mut dag);
         for node_i in dag.node_indices() {
@@ -242,7 +242,7 @@ mod tests {
     #[test]
     fn test_assign_priority_cpc_model_normal_dag_not_consolidated() {
         let mut dag = create_sample_dag_not_consolidated();
-        let expected_value = vec![0, 1, 2, 8, 6, 3, 7, 4, 5];
+        let expected_value = [0, 1, 2, 8, 6, 3, 7, 4, 5];
 
         assign_priority_to_cpc_model(&mut dag);
         for node_i in dag.node_indices() {
@@ -256,7 +256,7 @@ mod tests {
     #[test]
     fn test_assign_priority_cpc_model_normal_recursion() {
         let mut dag = create_sample_dag_complex();
-        let expected_value = vec![0, 1, 2, 8, 6, 3, 7, 4, 5];
+        let expected_value = [0, 1, 2, 8, 6, 3, 7, 4, 5];
 
         assign_priority_to_cpc_model(&mut dag);
         for node_i in dag.node_indices() {
