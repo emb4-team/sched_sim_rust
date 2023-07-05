@@ -2,18 +2,17 @@ use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::Graph;
 
 #[allow(dead_code)] //TODO: remove
-pub enum SegmentsClassification {
+pub enum SegmentClassification {
     Heavy,
     Light,
-    Mixture,
 }
 
 pub struct Segment {
     pub nodes: Vec<NodeData>,
     pub begin_range: i32,
     pub end_range: i32,
-    pub deadline: f32,                          //TODO: use
-    pub classification: SegmentsClassification, //TODO: use
+    pub deadline: f32,                         //TODO: use
+    pub classification: SegmentClassification, //TODO: use
 }
 
 #[allow(dead_code)] //TODO: remove
@@ -38,7 +37,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             begin_range,
             end_range: dag.node_weight(node_indices[i]).unwrap().params["earliest_finish_time"],
             deadline: 0.0,
-            classification: SegmentsClassification::Heavy,
+            classification: SegmentClassification::Heavy,
         };
 
         segments.push(segment);
