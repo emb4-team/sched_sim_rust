@@ -1,4 +1,3 @@
-//! # Scheduler
 use std::collections::VecDeque;
 
 use crate::{
