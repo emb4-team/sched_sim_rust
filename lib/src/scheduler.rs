@@ -1,4 +1,3 @@
-//! This module contains the definition of the scheduler.
 use std::collections::VecDeque;
 
 use crate::{
