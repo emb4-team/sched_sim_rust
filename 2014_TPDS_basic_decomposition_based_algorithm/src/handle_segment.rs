@@ -19,13 +19,11 @@ pub struct Segment {
 #[allow(dead_code)] //TODO: remove
 pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
     dag.calculate_earliest_finish_times();
-    let mut node_indices: Vec<_> = dag.node_indices().collect();
 
-    // Sort node_indices by earliest_finish_time
+    let mut node_indices: Vec<_> = dag.node_indices().collect();
     node_indices
         .sort_by_key(|&node_i| dag.node_weight(node_i).unwrap().params["earliest_finish_time"]);
 
-    // Reserve capacity for segments
     let mut segments: Vec<Segment> = Vec::with_capacity(node_indices.len());
 
     for i in 0..node_indices.len() {
