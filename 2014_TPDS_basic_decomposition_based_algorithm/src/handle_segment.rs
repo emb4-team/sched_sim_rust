@@ -1,3 +1,4 @@
+//! # Segment
 use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::Graph;
 
