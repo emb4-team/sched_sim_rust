@@ -19,26 +19,26 @@ pub struct Segment {
 #[allow(dead_code)] //TODO: remove
 pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
     dag.calculate_earliest_finish_times();
-    let mut node_earliest_finish_times: Vec<i32> = dag
-        .node_indices()
-        .map(|node_i| dag.node_weight(node_i).unwrap().params["earliest_finish_time"])
-        .collect();
+    let mut node_indices: Vec<_> = dag.node_indices().collect();
 
-    node_earliest_finish_times.sort();
+    // Sort node_indices by earliest_finish_time
+    node_indices
+        .sort_by_key(|&node_i| dag.node_weight(node_i).unwrap().params["earliest_finish_time"]);
 
-    let mut segments: Vec<Segment> = Vec::new();
+    // Reserve capacity for segments
+    let mut segments: Vec<Segment> = Vec::with_capacity(node_indices.len());
 
-    for i in 0..node_earliest_finish_times.len() {
+    for i in 0..node_indices.len() {
         let begin_range = if i == 0 {
             0
         } else {
-            node_earliest_finish_times[i - 1]
+            dag.node_weight(node_indices[i - 1]).unwrap().params["earliest_finish_time"]
         };
 
         let segment = Segment {
             nodes: Vec::new(),
             begin_range,
-            end_range: node_earliest_finish_times[i],
+            end_range: dag.node_weight(node_indices[i]).unwrap().params["earliest_finish_time"],
             deadline: 0.0,
             classification: SegmentsClassification::Heavy,
         };
@@ -46,13 +46,14 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
         segments.push(segment);
     }
 
-    for node_i in dag.node_indices() {
+    for &node_i in &node_indices {
+        let node = dag.node_weight(node_i).unwrap();
+        let est = node.params["earliest_start_time"];
+        let eft = node.params["earliest_finish_time"];
+
         for segment in &mut segments {
-            if dag.node_weight(node_i).unwrap().params["earliest_start_time"] <= segment.begin_range
-                && segment.end_range
-                    <= dag.node_weight(node_i).unwrap().params["earliest_finish_time"]
-            {
-                segment.nodes.push(dag.node_weight(node_i).unwrap().clone());
+            if segment.begin_range <= est && eft <= segment.end_range {
+                segment.nodes.push(node.clone());
             }
         }
     }
