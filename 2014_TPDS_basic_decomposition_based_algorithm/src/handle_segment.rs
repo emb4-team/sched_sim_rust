@@ -46,11 +46,11 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
 
     for &node_i in &node_indices {
         let node = dag.node_weight(node_i).unwrap();
-        let est = node.params["earliest_start_time"];
-        let eft = node.params["earliest_finish_time"];
 
         for segment in &mut segments {
-            if est <= segment.begin_range && segment.end_range <= eft {
+            if node.params["earliest_start_time"] <= segment.begin_range
+                && segment.end_range <= node.params["earliest_finish_time"]
+            {
                 segment.nodes.push(node.clone());
             }
         }
