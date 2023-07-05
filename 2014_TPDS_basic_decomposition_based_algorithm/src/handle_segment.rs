@@ -52,7 +52,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
         let eft = node.params["earliest_finish_time"];
 
         for segment in &mut segments {
-            if segment.begin_range <= est && eft <= segment.end_range {
+            if est <= segment.begin_range && segment.end_range <= eft {
                 segment.nodes.push(node.clone());
             }
         }
