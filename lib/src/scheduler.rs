@@ -148,23 +148,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 }
 
 #[derive(Clone, Default)]
-pub struct DAGSchedulerContext<T: ProcessorBase + Clone> {
-    pub dag: Graph<NodeData, i32>,
-    pub processor: T,
-    pub ready_queue: VecDeque<NodeIndex>,
-}
-
-impl<T: ProcessorBase + Clone> DAGSchedulerContext<T> {
-    pub fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
-        Self {
-            dag: dag.clone(),
-            processor: processor.clone(),
-            ready_queue: VecDeque::new(),
-        }
-    }
-}
-
-#[derive(Clone, Default)]
 pub struct DAGSchedulerLog {
     pub node_logs: Vec<NodeLog>,
     pub processor_log: ProcessorLog,

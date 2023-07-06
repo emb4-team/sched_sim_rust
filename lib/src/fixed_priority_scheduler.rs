@@ -9,7 +9,9 @@ pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    pub context: DAGSchedulerContext<T>,
+    pub dag: Graph<NodeData, i32>,
+    pub processor: T,
+    pub ready_queue: VecDeque<NodeIndex>,
     pub log: DAGSchedulerLog,
 }
 
@@ -19,13 +21,15 @@ where
 {
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
         Self {
-            context: DAGSchedulerContext::new(dag, processor),
+            dag: dag.clone(),
+            processor: processor.clone(),
+            ready_queue: VecDeque::new(),
             log: DAGSchedulerLog::new(dag, processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.context.dag = dag.clone();
+        self.dag = dag.clone();
         self.log.node_logs = dag
             .node_indices()
             .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
@@ -33,24 +37,24 @@ where
     }
 
     fn set_processor(&mut self, processor: &T) {
-        self.context.processor = processor.clone();
+        self.processor = processor.clone();
         self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
     fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>) {
-        self.context.ready_queue = ready_queue;
+        self.ready_queue = ready_queue;
     }
 
     fn get_dag(&mut self) -> Graph<NodeData, i32> {
-        self.context.dag.clone()
+        self.dag.clone()
     }
 
     fn get_processor(&mut self) -> T {
-        self.context.processor.clone()
+        self.processor.clone()
     }
 
     fn get_ready_queue(&mut self) -> VecDeque<NodeIndex> {
-        self.context.ready_queue.clone()
+        self.ready_queue.clone()
     }
 
     fn set_node_logs(&mut self, node_logs: Vec<NodeLog>) {
@@ -71,16 +75,13 @@ where
 
     fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>) {
         ready_queue.make_contiguous().sort_by_key(|&node| {
-            self.context.dag[node]
-                .params
-                .get("priority")
-                .unwrap_or_else(|| {
-                    eprintln!(
-                        "Warning: 'priority' parameter not found for node {:?}",
-                        node
-                    );
-                    &999 // Because sorting cannot be done well without a priority
-                })
+            self.dag[node].params.get("priority").unwrap_or_else(|| {
+                eprintln!(
+                    "Warning: 'priority' parameter not found for node {:?}",
+                    node
+                );
+                &999 // Because sorting cannot be done well without a priority
+            })
         });
     }
 }
