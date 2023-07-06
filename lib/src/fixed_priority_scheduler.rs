@@ -12,7 +12,8 @@ where
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
     pub ready_queue: VecDeque<NodeIndex>,
-    pub log: DAGSchedulerLog,
+    pub node_logs: Vec<NodeLog>,
+    pub processor_log: ProcessorLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
@@ -24,13 +25,17 @@ where
             dag: dag.clone(),
             processor: processor.clone(),
             ready_queue: VecDeque::new(),
-            log: DAGSchedulerLog::new(dag, processor.get_number_of_cores()),
+            node_logs: dag
+                .node_indices()
+                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
+                .collect(),
+            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
         }
     }
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.node_logs = dag
+        self.node_logs = dag
             .node_indices()
             .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
             .collect()
@@ -38,7 +43,7 @@ where
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
+        self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
     fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>) {
@@ -58,19 +63,19 @@ where
     }
 
     fn set_node_logs(&mut self, node_logs: Vec<NodeLog>) {
-        self.log.node_logs = node_logs;
+        self.node_logs = node_logs;
     }
 
     fn set_processor_log(&mut self, processor_log: ProcessorLog) {
-        self.log.processor_log = processor_log;
+        self.processor_log = processor_log;
     }
 
     fn get_node_logs(&mut self) -> Vec<NodeLog> {
-        self.log.node_logs.clone()
+        self.node_logs.clone()
     }
 
     fn get_processor_log(&mut self) -> ProcessorLog {
-        self.log.processor_log.clone()
+        self.processor_log.clone()
     }
 
     fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>) {

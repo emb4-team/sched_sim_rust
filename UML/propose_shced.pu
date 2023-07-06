@@ -37,7 +37,8 @@ title Proposed Scheduler
         - dag : Graph
         - processor : ProcessorBase
         - ready_queue : VecDeque
-        - log : DAGSchedulerLog
+        - node_logs: Vec<NodeLog>,
+        - processor_log: ProcessorLog,
         + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
         + {static} set_dag(dag: Graph)
         + {static} set_processor(processor: ProcessorBase)
@@ -60,7 +61,8 @@ title Proposed Scheduler
         - dag : Graph
         - processor : ProcessorBase
         - ready_queue : VecDeque
-        - log : DAGSchedulerLog
+        - node_logs: Vec<NodeLog>,
+        - processor_log: ProcessorLog,
         + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
         + {static} set_dag(dag: Graph)
         + {static} set_processor(processor: ProcessorBase)
@@ -78,14 +80,6 @@ title Proposed Scheduler
     note left of Sched_B::sort_ready_queue
     "Individually implemented"
     end note
-
-    struct DAGSchedulerLog {
-        - node_logs: Vec<NodeLog>,
-        - processor_log: ProcessorLog,
-
-        + {static} new(dag: Graph, num_cores: usize) : DAGSchedulerLog;
-    }
-
     
     struct NodeLog {
         - core_id: usize,
@@ -119,11 +113,11 @@ title Proposed Scheduler
 
     DAGSchedulerBase <|-down- Sched_A
     DAGSchedulerBase <|-down- Sched_B
-    Sched_A o-down- DAGSchedulerLog
-    Sched_B o-down- DAGSchedulerLog
+    Sched_A o-down- NodeLog
+    Sched_B o-down- NodeLog
 
-    DAGSchedulerLog o-down- NodeLog
-    DAGSchedulerLog o-down- ProcessorLog
+    Sched_A o-down- ProcessorLog
+    Sched_B o-down- ProcessorLog
     ProcessorLog o-down- CoreLog
 
     SchedulerCreater -right- SchedulerType
