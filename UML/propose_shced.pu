@@ -34,7 +34,9 @@ title Proposed Scheduler
     }
 
     struct Sched_A<T: ProcessorBase + Clone> {
-        - context : DAGSchedulerContext
+        - dag : Graph
+        - processor : ProcessorBase
+        - ready_queue : VecDeque
         - log : DAGSchedulerLog
         + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
         + {static} set_dag(dag: Graph)
@@ -55,7 +57,9 @@ title Proposed Scheduler
     end note
 
     struct Sched_B<T: ProcessorBase + Clone> {
-        - context : DAGSchedulerContext
+        - dag : Graph
+        - processor : ProcessorBase
+        - ready_queue : VecDeque
         - log : DAGSchedulerLog
         + {static} new(dag: Graph, processor: ProcessorBase) : Sched_A
         + {static} set_dag(dag: Graph)
@@ -74,13 +78,6 @@ title Proposed Scheduler
     note left of Sched_B::sort_ready_queue
     "Individually implemented"
     end note
-
-    struct DAGSchedulerContext<T: ProcessorBase + Clone> {
-        - dag : Graph
-        - processor : ProcessorBase
-        - ready_queue : VecDeque
-        + {static} new(dag: Graph, processor: ProcessorBase) : DAGSchedulerContext
-    }
 
     struct DAGSchedulerLog {
         - node_logs: Vec<NodeLog>,
@@ -122,8 +119,6 @@ title Proposed Scheduler
 
     DAGSchedulerBase <|-down- Sched_A
     DAGSchedulerBase <|-down- Sched_B
-    Sched_A o-down- DAGSchedulerContext
-    Sched_B o-down- DAGSchedulerContext
     Sched_A o-down- DAGSchedulerLog
     Sched_B o-down- DAGSchedulerLog
 
