@@ -4,7 +4,7 @@ mod parallel_provider_consumer;
 mod prioritization_cpc_model;
 
 use lib::homogeneous::HomogeneousProcessor;
-use lib::output_log::*;
+
 use lib::processor::ProcessorBase;
 use lib::scheduler_creator::{create_scheduler, SchedulerType};
 use lib::{dag_creator::*, graph_extension::GraphExtension};
@@ -49,18 +49,15 @@ fn main() {
         &dag,
         &homogeneous_processor,
     );
-
     let (schedule_length, _) = fixed_priority_scheduler.schedule();
-    let file_path = create_scheduler_log_yaml_file(&arg.output_dir_path, "cpc_model_based");
-
     let constrained_end_to_end_deadline = if let Some(deadline) = dag.get_end_to_end_deadline() {
         deadline as f32
     } else {
         warn!("Since the end-to-end deadline is not set in the input DAG, the end-to-end deadline is determined using ratio_deadline_to_period.");
         dag.get_head_period().unwrap() as f32 * arg.ratio_deadline_to_period
     };
-
     let result = (schedule_length as f32) < constrained_end_to_end_deadline;
+    let file_path = fixed_priority_scheduler.dump_log(&arg.output_dir_path, "cpc_model_based");
 
     dump_cpc_result_to_file(
         &file_path,
@@ -68,8 +65,4 @@ fn main() {
         arg.ratio_deadline_to_period,
         result,
     );
-    dump_dag_set_info_to_yaml(&file_path, vec![dag.clone()]);
-    dump_processor_info_to_yaml(&file_path, homogeneous_processor);
-    dump_processor_log_to_yaml(&file_path, &fixed_priority_scheduler.get_processor_log());
-    dump_node_logs_to_yaml(&file_path, &fixed_priority_scheduler.get_node_logs());
 }

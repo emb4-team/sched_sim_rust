@@ -3,6 +3,7 @@ use std::collections::VecDeque;
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
+    output_log::*,
     processor::ProcessorBase,
 };
 use petgraph::graph::{Graph, NodeIndex};
@@ -18,6 +19,7 @@ where
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
     where
         Self: Sized;
+    fn get_name(&self) -> String;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
     fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>);
@@ -36,7 +38,6 @@ where
             let mut node_logs = self.get_node_logs();
             let mut processor_log = self.get_processor_log();
             let mut execution_order = VecDeque::new();
-
             let source_node_i = dag.add_dummy_source_node();
 
             dag[source_node_i]
@@ -140,29 +141,24 @@ where
         }
     }
     fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
+        let sched_name = format!("{}_{}", algorithm_name, self.get_name());
+        let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
+        dump_dag_set_info_to_yaml(&file_path, vec![self.get_dag().clone()]);
+        dump_node_logs_to_yaml(&file_path, &self.get_node_logs());
+        dump_processor_info_to_yaml(&file_path, &self.get_processor());
+        dump_processor_log_to_yaml(&file_path, &self.get_processor_log());
+        self.dump_characteristic_log(&file_path);
+
+        file_path
+    }
+
+    fn dump_characteristic_log(&mut self, file_path: &str);
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
-}
-
-#[derive(Clone, Default)]
-pub struct DAGSchedulerLog {
-    pub node_logs: Vec<NodeLog>,
-    pub processor_log: ProcessorLog,
-}
-
-impl DAGSchedulerLog {
-    pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
-        Self {
-            node_logs: dag
-                .node_indices()
-                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
-                .collect(),
-            processor_log: ProcessorLog::new(num_cores),
-        }
-    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]

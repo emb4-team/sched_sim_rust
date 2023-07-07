@@ -77,7 +77,7 @@ pub fn append_info_to_yaml(file_path: &str, info: &str) {
     }
 }
 
-pub fn dump_processor_info_to_yaml(file_path: &str, processor: impl ProcessorBase) {
+pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
     let number_of_cores = processor.get_number_of_cores();
     let processor_info = ProcessorInfo { number_of_cores };
     let yaml =
@@ -195,7 +195,7 @@ mod tests {
     fn test_dump_processor_info_to_yaml() {
         let file_path = create_scheduler_log_yaml_file("tests", "processor_info");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
-        dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+        dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();

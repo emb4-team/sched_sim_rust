@@ -33,6 +33,10 @@ where
         }
     }
 
+    fn get_name(&self) -> String {
+        "FixedPriorityScheduler".to_string()
+    }
+
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
         self.node_logs = dag
@@ -89,6 +93,8 @@ where
             })
         });
     }
+
+    fn dump_characteristic_log(&mut self, _file_path: &str) {}
 }
 
 #[cfg(test)]

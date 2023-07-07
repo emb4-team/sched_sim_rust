@@ -56,7 +56,7 @@ fn main() {
     );
 
     dump_dag_set_info_to_yaml(&file_path, dag_set);
-    dump_processor_info_to_yaml(&file_path, homogeneous_processor);
+    dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
     dump_dag_set_log_to_yaml(&file_path, dynfed_scheduler.dag_set_log);
     dump_node_set_logs_to_yaml(&file_path, dynfed_scheduler.node_logs);
     dump_processor_log_to_yaml(&file_path, &dynfed_scheduler.processor_log);
