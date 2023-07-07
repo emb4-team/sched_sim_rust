@@ -144,7 +144,7 @@ where
     fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
-        dump_dag_set_info_to_yaml(&file_path, vec![self.get_dag().clone()]);
+        dump_dag_set_info_to_yaml(&file_path, vec![self.get_dag()]);
         dump_node_logs_to_yaml(&file_path, &self.get_node_logs());
         dump_processor_info_to_yaml(&file_path, &self.get_processor());
         dump_processor_log_to_yaml(&file_path, &self.get_processor_log());
