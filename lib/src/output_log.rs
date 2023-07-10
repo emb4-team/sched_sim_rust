@@ -10,24 +10,6 @@ use crate::graph_extension::{GraphExtension, NodeData};
 use crate::log::*;
 use crate::processor::ProcessorBase;
 
-#[derive(Serialize, Deserialize)]
-struct DAGSetInfo {
-    total_utilization: f32,
-    each_dag_info: Vec<DAGInfo>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct DAGInfo {
-    critical_path_length: i32,
-    end_to_end_deadline: i32,
-    volume: i32,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ProcessorInfo {
-    number_of_cores: usize,
-}
-
 fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
     if fs::metadata(folder_path).is_err() {
         let _ = fs::create_dir_all(folder_path);
@@ -62,12 +44,10 @@ pub fn append_info_to_yaml(file_path: &str, info: &str) {
     }
 }
 
-pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
-    let number_of_cores = processor.get_number_of_cores();
-    let processor_info = ProcessorInfo { number_of_cores };
-    let yaml =
-        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
-    append_info_to_yaml(file_path, &yaml);
+#[derive(Serialize, Deserialize)]
+struct DAGSetInfo {
+    total_utilization: f32,
+    each_dag_info: Vec<DAGInfo>,
 }
 
 pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, i32>>) {
@@ -107,17 +87,25 @@ pub fn dump_dag_set_log_to_yaml(file_path: &str, dag_set_log: Vec<DAGLog>) {
     append_info_to_yaml(file_path, &yaml);
 }
 
+pub fn dump_node_set_logs_to_yaml(file_path: &str, node_set_logs: Vec<Vec<NodeLog>>) {
+    let node_set_logs = NodeSetLogs { node_set_logs };
+    let yaml = serde_yaml::to_string(&node_set_logs).expect("Failed to serialize NodeLogs to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
+    let number_of_cores = processor.get_number_of_cores();
+    let processor_info = ProcessorInfo { number_of_cores };
+    let yaml =
+        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
+    append_info_to_yaml(file_path, &yaml);
+}
+
 pub fn dump_node_logs_to_yaml(file_path: &str, node_logs: &[NodeLog]) {
     let node_logs = NodeLogs {
         node_logs: node_logs.to_vec(),
     };
     let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
-    append_info_to_yaml(file_path, &yaml);
-}
-
-pub fn dump_node_set_logs_to_yaml(file_path: &str, node_set_logs: Vec<Vec<NodeLog>>) {
-    let node_set_logs = NodeSetLogs { node_set_logs };
-    let yaml = serde_yaml::to_string(&node_set_logs).expect("Failed to serialize NodeLogs to YAML");
     append_info_to_yaml(file_path, &yaml);
 }
 

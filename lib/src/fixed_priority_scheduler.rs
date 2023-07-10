@@ -18,7 +18,7 @@ impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
+    fn new(dag: &mut Graph<NodeData, i32>, processor: &T) -> Self {
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
@@ -98,6 +98,7 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
         add_params(&mut dag, c0, "priority", 0);
+        add_params(&mut dag, c0, "period", 100);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
@@ -114,7 +115,7 @@ mod tests {
 
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &HomogeneousProcessor::new(2),
         );
         let result = fixed_priority_scheduler.schedule();
@@ -139,6 +140,7 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
         add_params(&mut dag, c0, "priority", 0);
+        add_params(&mut dag, c0, "period", 100);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
@@ -155,7 +157,7 @@ mod tests {
 
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &HomogeneousProcessor::new(3),
         );
         let result = fixed_priority_scheduler.schedule();
@@ -176,11 +178,11 @@ mod tests {
     fn test_fixed_priority_scheduler_schedule_used_twice_for_same_dag() {
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
-        dag.add_node(create_node(0, "execution_time", 1));
-
+        let c0 = dag.add_node(create_node(0, "execution_time", 1));
+        add_params(&mut dag, c0, "period", 100);
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &HomogeneousProcessor::new(1),
         );
         let result = fixed_priority_scheduler.schedule();
@@ -189,7 +191,7 @@ mod tests {
 
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &HomogeneousProcessor::new(1),
         );
         let result = fixed_priority_scheduler.schedule();
@@ -204,6 +206,7 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
         add_params(&mut dag, c0, "priority", 0);
+        add_params(&mut dag, c0, "period", 100);
         add_params(&mut dag, c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
@@ -220,7 +223,7 @@ mod tests {
 
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &HomogeneousProcessor::new(2),
         );
         fixed_priority_scheduler.schedule();

@@ -144,7 +144,7 @@ where
         Self {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
-            scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
+            scheduler: T::new(&mut Graph::<NodeData, i32>::new(), processor),
             dag_set_log: (0..dag_set.len()).map(DAGLog::new).collect(),
             node_logs: dag_set
                 .iter()

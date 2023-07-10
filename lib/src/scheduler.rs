@@ -15,7 +15,7 @@ pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
+    fn new(dag: &mut Graph<NodeData, i32>, processor: &T) -> Self
     where
         Self: Sized;
     fn get_name(&self) -> String;
@@ -134,8 +134,6 @@ where
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
         let log = self.get_log();
         log.dump_log_to_yaml(&file_path);
-        dump_dag_set_info_to_yaml(&file_path, vec![self.get_dag()]);
-        dump_processor_info_to_yaml(&file_path, &self.get_processor());
         self.dump_characteristic_log(&file_path);
 
         file_path

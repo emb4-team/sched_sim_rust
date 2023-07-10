@@ -82,7 +82,7 @@ mod tests {
         let homogeneous_processor = HomogeneousProcessor::new(7);
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
-            &dag,
+            &mut dag,
             &homogeneous_processor,
         );
 
