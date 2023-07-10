@@ -47,10 +47,35 @@ impl DAGschedulerLog {
         }
     }
 
+    pub fn write_allocating_log(
+        &mut self,
+        node_data: &NodeData,
+        core_id: usize,
+        current_time: i32,
+    ) {
+        let node_id = node_data.id as usize;
+        self.node_logs[node_id].core_id = core_id;
+        self.node_logs[node_id].start_time = current_time;
+        self.processor_log.core_logs[core_id].total_proc_time +=
+            node_data.params.get("execution_time").unwrap_or(&0);
+    }
+
+    pub fn write_finishing_node_log(&mut self, node_data: &NodeData, current_time: i32) {
+        self.node_logs[node_data.id as usize].finish_time = current_time;
+    }
+
+    pub fn write_scheduling_log(&mut self, schedule_length: i32) {
+        self.processor_log
+            .calculate_cores_utilization(schedule_length);
+        self.processor_log.calculate_average_utilization();
+        self.processor_log.calculate_variance_utilization();
+    }
+
     pub fn dump_log_to_yaml(&self, file_path: &str) {
         self.dump_node_logs_to_yaml(file_path);
         self.dump_processor_log_to_yaml(file_path);
     }
+
     pub fn dump_node_logs_to_yaml(&self, file_path: &str) {
         let node_logs = NodeLogs {
             node_logs: self.node_logs.to_vec(),
