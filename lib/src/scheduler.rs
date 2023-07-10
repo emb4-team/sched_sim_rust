@@ -53,11 +53,11 @@ where
                         processor.allocate_specific_core(core_index, &node_d);
 
                         if node_d.id != dag[source_node_i].id && node_d.id != dag[sink_node_i].id {
-                            let task_id = node_d.id as usize;
-                            log.node_logs[task_id].core_id = core_index;
-                            log.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
-                            log.processor_log.core_logs[core_index].total_proc_time +=
-                                node_d.params.get("execution_time").unwrap_or(&0);
+                            log.write_allocating_log(
+                                &node_d,
+                                core_index,
+                                current_time - DUMMY_EXECUTION_TIME,
+                            );
                         }
                         execution_order.push_back(NodeIndex::new(node_d.id as usize));
                     } else {
@@ -85,8 +85,10 @@ where
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
-                                log.node_logs[node_id].finish_time =
-                                    current_time - DUMMY_EXECUTION_TIME;
+                                log.write_finishing_node_log(
+                                    node_data,
+                                    current_time - DUMMY_EXECUTION_TIME,
+                                );
                             }
                             Some(node_i)
                         } else {
@@ -120,10 +122,7 @@ where
             execution_order.pop_front();
 
             let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-            log.processor_log
-                .calculate_cores_utilization(schedule_length);
-            log.processor_log.calculate_average_utilization();
-            log.processor_log.calculate_variance_utilization();
+            log.write_scheduling_log(schedule_length);
 
             //Return the normalized total time taken to finish all tasks.
             (schedule_length, execution_order)
