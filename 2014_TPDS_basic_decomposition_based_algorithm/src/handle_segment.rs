@@ -11,8 +11,8 @@ pub struct Segment {
     pub nodes: Vec<NodeData>,
     pub begin_range: i32,
     pub end_range: i32,
-    pub deadline: f32,                         //TODO: use
-    pub classification: SegmentClassification, //TODO: use
+    pub deadline: f32,                                 //TODO: use
+    pub classification: Option<SegmentClassification>, //TODO: use
 }
 
 #[allow(dead_code)] //TODO: remove
@@ -20,37 +20,31 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
     dag.calculate_earliest_finish_times();
 
     let mut earliest_finish_times = Vec::new();
-
     for node in dag.node_weights_mut() {
         earliest_finish_times.push(node.params["earliest_finish_time"]);
     }
 
-    earliest_finish_times.sort();
     earliest_finish_times.dedup();
+    earliest_finish_times.sort();
 
     let mut segments: Vec<Segment> = Vec::with_capacity(earliest_finish_times.len());
-
     for i in 0..earliest_finish_times.len() {
         let begin_range = if i == 0 {
             0
         } else {
             earliest_finish_times[i - 1]
         };
-
         let segment = Segment {
             nodes: Vec::new(),
             begin_range,
             end_range: earliest_finish_times[i],
             deadline: 0.0,
-            classification: SegmentClassification::Heavy,
+            classification: None,
         };
-
         segments.push(segment);
     }
 
-    for node_i in dag.node_indices() {
-        let node = dag.node_weight(node_i).unwrap();
-
+    for node in dag.node_weights() {
         for segment in &mut segments {
             if node.params["earliest_start_time"] <= segment.begin_range
                 && segment.end_range <= node.params["earliest_finish_time"]
@@ -65,9 +59,8 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
+    use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
