@@ -307,7 +307,8 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 10));
         let c1 = dag.add_node(create_node(1, "execution_time", 20));
         let c2 = dag.add_node(create_node(2, "execution_time", 20));
-        dag.add_param(c0, "end_to_end_deadline", 50);
+        dag.add_param(c0, "period", 100);
+        dag.add_param(c2, "end_to_end_deadline", 50);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
         let n1_0 = dag.add_node(create_node(4, "execution_time", 10));
@@ -331,7 +332,8 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 11));
         let c1 = dag.add_node(create_node(1, "execution_time", 21));
         let c2 = dag.add_node(create_node(2, "execution_time", 21));
-        dag.add_param(c0, "end_to_end_deadline", 53);
+        dag.add_param(c0, "period", 100);
+        dag.add_param(c2, "end_to_end_deadline", 53);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 11));
 

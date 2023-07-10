@@ -56,7 +56,7 @@ pub struct DAGschedulerLog {
 impl DAGschedulerLog {
     pub fn new(dag: &mut Graph<NodeData, i32>, num_cores: usize) -> Self {
         let volume = dag.get_volume();
-        let period = dag.get_head_period().unwrap();
+        let period = dag.get_head_period().unwrap_or(0);
         let critical_path = dag.get_critical_path();
         let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
 
