@@ -35,6 +35,7 @@ mod tests {
         homogeneous::HomogeneousProcessor,
         output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
+        scheduler::DAGSchedulerBase,
         scheduler_creator::{create_scheduler, SchedulerType},
     };
     use petgraph::Graph;

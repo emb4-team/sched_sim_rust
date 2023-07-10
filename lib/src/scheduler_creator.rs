@@ -13,7 +13,7 @@ pub fn create_scheduler<T>(
     scheduler_type: SchedulerType,
     dag: &Graph<NodeData, i32>,
     processor: &T,
-) -> Box<dyn DAGSchedulerBase<T> + 'static>
+) -> Box<impl DAGSchedulerBase<T> + 'static>
 where
     T: ProcessorBase + Clone + 'static,
 {

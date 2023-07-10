@@ -1,8 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::{graph_extension::NodeData, processor::ProcessorBase, scheduler::*};
+use crate::{graph_extension::NodeData, log::*, processor::ProcessorBase, scheduler::*};
 
-use petgraph::{graph::NodeIndex, Graph};
+use petgraph::Graph;
 
 #[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>
@@ -11,8 +11,7 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub node_logs: Vec<NodeLog>,
-    pub processor_log: ProcessorLog,
+    pub log: DAGschedulerLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
@@ -23,11 +22,7 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            node_logs: dag
-                .node_indices()
-                .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
-                .collect(),
-            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
+            log: DAGschedulerLog::new(dag, processor.get_number_of_cores()),
         }
     }
 
@@ -37,7 +32,7 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.node_logs = dag
+        self.log.node_logs = dag
             .node_indices()
             .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
             .collect()
@@ -45,7 +40,7 @@ where
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
+        self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
     fn get_dag(&mut self) -> Graph<NodeData, i32> {
@@ -56,25 +51,13 @@ where
         self.processor.clone()
     }
 
-    fn set_node_logs(&mut self, node_logs: Vec<NodeLog>) {
-        self.node_logs = node_logs;
+    fn get_log(&mut self) -> &mut DAGschedulerLog {
+        &mut self.log
     }
 
-    fn set_processor_log(&mut self, processor_log: ProcessorLog) {
-        self.processor_log = processor_log;
-    }
-
-    fn get_node_logs(&mut self) -> Vec<NodeLog> {
-        self.node_logs.clone()
-    }
-
-    fn get_processor_log(&mut self) -> ProcessorLog {
-        self.processor_log.clone()
-    }
-
-    fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>) {
-        ready_queue.make_contiguous().sort_by_key(|&node| {
-            self.dag[node].params.get("priority").unwrap_or_else(|| {
+    fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>) {
+        ready_queue.make_contiguous().sort_by_key(|node| {
+            *node.params.get("priority").unwrap_or_else(|| {
                 eprintln!(
                     "Warning: 'priority' parameter not found for node {:?}",
                     node
@@ -95,6 +78,7 @@ mod tests {
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
     use crate::scheduler_creator::{create_scheduler, SchedulerType};
+    use petgraph::graph::{Graph, NodeIndex};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -243,41 +227,55 @@ mod tests {
 
         assert_eq!(
             fixed_priority_scheduler
-                .get_processor_log()
+                .get_log()
+                .processor_log
                 .average_utilization,
             0.61956525
         );
 
         assert_eq!(
             fixed_priority_scheduler
-                .get_processor_log()
+                .get_log()
+                .processor_log
                 .variance_utilization,
             0.14473063
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_processor_log().core_logs[0].core_id,
+            fixed_priority_scheduler.get_log().processor_log.core_logs[0].core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_processor_log().core_logs[0].total_proc_time,
+            fixed_priority_scheduler.get_log().processor_log.core_logs[0].total_proc_time,
             92
         );
         assert_eq!(
-            fixed_priority_scheduler.get_processor_log().core_logs[0].utilization,
+            fixed_priority_scheduler.get_log().processor_log.core_logs[0].utilization,
             1.0
         );
 
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].node_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].start_time, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[0].finish_time, 52);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].node_id, 0);
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs[0].start_time,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs[0].finish_time,
+            52
+        );
 
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].node_id, 1);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].start_time, 52);
-        assert_eq!(fixed_priority_scheduler.get_node_logs()[1].finish_time, 92);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].core_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].dag_id, 0);
+        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].node_id, 1);
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs[1].start_time,
+            52
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs[1].finish_time,
+            92
+        );
     }
 }

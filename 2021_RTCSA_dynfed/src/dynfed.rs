@@ -11,6 +11,7 @@ use std::collections::VecDeque;
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
+use lib::log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::*;
 use petgraph::{graph::NodeIndex, Graph};

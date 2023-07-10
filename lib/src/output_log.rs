@@ -7,8 +7,8 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 
 use crate::graph_extension::{GraphExtension, NodeData};
+use crate::log::*;
 use crate::processor::ProcessorBase;
-use crate::scheduler::{DAGLog, NodeLog, ProcessorLog};
 
 #[derive(Serialize, Deserialize)]
 struct DAGSetInfo {
@@ -26,21 +26,6 @@ struct DAGInfo {
 #[derive(Serialize, Deserialize)]
 struct ProcessorInfo {
     number_of_cores: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-struct DAGSetLog {
-    dag_set_log: Vec<DAGLog>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct NodeLogs {
-    node_logs: Vec<NodeLog>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct NodeSetLogs {
-    node_set_logs: Vec<Vec<NodeLog>>,
 }
 
 fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {

@@ -3,12 +3,11 @@ use std::collections::VecDeque;
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
+    log::*,
     output_log::*,
     processor::ProcessorBase,
 };
 use petgraph::graph::{Graph, NodeIndex};
-
-use serde_derive::{Deserialize, Serialize};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
@@ -24,17 +23,13 @@ where
     fn set_processor(&mut self, processor: &T);
     fn get_dag(&mut self) -> Graph<NodeData, i32>;
     fn get_processor(&mut self) -> T;
-    fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
-    fn set_processor_log(&mut self, processor_log: ProcessorLog);
-    fn get_node_logs(&mut self) -> Vec<NodeLog>;
-    fn get_processor_log(&mut self) -> ProcessorLog;
+    fn get_log(&mut self) -> &mut DAGschedulerLog;
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         {
             let mut dag = self.get_dag(); //To avoid adding pre_node_count to the original DAG
             let mut processor = self.get_processor();
             let mut ready_queue = VecDeque::new();
-            let mut node_logs = self.get_node_logs();
-            let mut processor_log = self.get_processor_log();
+            let log = self.get_log();
             let mut execution_order = VecDeque::new();
             let source_node_i = dag.add_dummy_source_node();
 
@@ -46,25 +41,25 @@ where
                 .params
                 .insert("execution_time".to_string(), DUMMY_EXECUTION_TIME);
 
-            ready_queue.push_back(source_node_i);
+            ready_queue.push_back(dag[source_node_i].clone());
 
             let mut current_time = 0;
             loop {
-                self.sort_ready_queue(&mut ready_queue);
+                Self::sort_ready_queue(&mut ready_queue);
 
                 //Assign the highest priority task first to the first idle core found.
                 while let Some(core_index) = processor.get_idle_core_index() {
-                    if let Some(node_i) = ready_queue.pop_front() {
-                        processor.allocate_specific_core(core_index, &dag[node_i]);
+                    if let Some(node_d) = ready_queue.pop_front() {
+                        processor.allocate_specific_core(core_index, &node_d);
 
-                        if node_i != source_node_i && node_i != sink_node_i {
-                            let task_id = dag[node_i].id as usize;
-                            node_logs[task_id].core_id = core_index;
-                            node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
-                            processor_log.core_logs[core_index].total_proc_time +=
-                                dag[node_i].params.get("execution_time").unwrap_or(&0);
+                        if node_d.id != dag[source_node_i].id && node_d.id != dag[sink_node_i].id {
+                            let task_id = node_d.id as usize;
+                            log.node_logs[task_id].core_id = core_index;
+                            log.node_logs[task_id].start_time = current_time - DUMMY_EXECUTION_TIME;
+                            log.processor_log.core_logs[core_index].total_proc_time +=
+                                node_d.params.get("execution_time").unwrap_or(&0);
                         }
-                        execution_order.push_back(node_i);
+                        execution_order.push_back(NodeIndex::new(node_d.id as usize));
                     } else {
                         break;
                     }
@@ -90,7 +85,7 @@ where
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
-                                node_logs[node_id].finish_time =
+                                log.node_logs[node_id].finish_time =
                                     current_time - DUMMY_EXECUTION_TIME;
                             }
                             Some(node_i)
@@ -110,7 +105,7 @@ where
                     for suc_node in suc_nodes {
                         dag.increment_pre_done_count(suc_node);
                         if dag.is_node_ready(suc_node) {
-                            ready_queue.push_back(suc_node);
+                            ready_queue.push_back(dag[suc_node].clone());
                         }
                     }
                 }
@@ -125,27 +120,23 @@ where
             execution_order.pop_front();
 
             let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-            processor_log.calculate_cores_utilization(schedule_length);
-
-            processor_log.calculate_average_utilization();
-
-            processor_log.calculate_variance_utilization();
-
-            self.set_node_logs(node_logs);
-            self.set_processor_log(processor_log);
+            log.processor_log
+                .calculate_cores_utilization(schedule_length);
+            log.processor_log.calculate_average_utilization();
+            log.processor_log.calculate_variance_utilization();
 
             //Return the normalized total time taken to finish all tasks.
             (schedule_length, execution_order)
         }
     }
-    fn sort_ready_queue(&mut self, ready_queue: &mut VecDeque<NodeIndex>);
+    fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>);
     fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
+        let log = self.get_log();
+        log.dump_log_to_yaml(&file_path);
         dump_dag_set_info_to_yaml(&file_path, vec![self.get_dag()]);
-        dump_node_logs_to_yaml(&file_path, &self.get_node_logs());
         dump_processor_info_to_yaml(&file_path, &self.get_processor());
-        dump_processor_log_to_yaml(&file_path, &self.get_processor_log());
         self.dump_characteristic_log(&file_path);
 
         file_path
@@ -157,106 +148,4 @@ where
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct DAGLog {
-    pub dag_id: usize,
-    pub release_time: i32,
-    pub start_time: i32,
-    pub finish_time: i32,
-    pub minimum_cores: i32,
-}
-
-impl DAGLog {
-    pub fn new(dag_id: usize) -> Self {
-        Self {
-            dag_id,
-            release_time: Default::default(),
-            start_time: Default::default(),
-            finish_time: Default::default(),
-            minimum_cores: Default::default(),
-        }
-    }
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct NodeLog {
-    pub core_id: usize,
-    pub dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
-    pub node_id: usize,
-    pub start_time: i32,
-    pub finish_time: i32,
-}
-
-impl NodeLog {
-    pub fn new(dag_id: usize, node_id: usize) -> Self {
-        Self {
-            core_id: Default::default(),
-            dag_id,
-            node_id,
-            start_time: Default::default(),
-            finish_time: Default::default(),
-        }
-    }
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct ProcessorLog {
-    pub average_utilization: f32,
-    pub variance_utilization: f32,
-    pub core_logs: Vec<CoreLog>,
-}
-
-impl ProcessorLog {
-    pub fn new(num_cores: usize) -> Self {
-        Self {
-            average_utilization: Default::default(),
-            variance_utilization: Default::default(),
-            core_logs: (0..num_cores).map(CoreLog::new).collect(),
-        }
-    }
-    pub fn calculate_average_utilization(&mut self) {
-        self.average_utilization = self
-            .core_logs
-            .iter()
-            .map(|core_log| core_log.utilization)
-            .sum::<f32>()
-            / self.core_logs.len() as f32;
-    }
-
-    pub fn calculate_variance_utilization(&mut self) {
-        self.variance_utilization = self
-            .core_logs
-            .iter()
-            .map(|core_log| (core_log.utilization - self.average_utilization).powi(2))
-            .sum::<f32>()
-            / self.core_logs.len() as f32;
-    }
-
-    pub fn calculate_cores_utilization(&mut self, schedule_length: i32) {
-        for core_log in self.core_logs.iter_mut() {
-            core_log.calculate_utilization(schedule_length);
-        }
-    }
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct CoreLog {
-    pub core_id: usize,
-    pub total_proc_time: i32,
-    pub utilization: f32,
-}
-
-impl CoreLog {
-    pub fn new(core_id: usize) -> Self {
-        Self {
-            core_id,
-            total_proc_time: Default::default(),
-            utilization: Default::default(),
-        }
-    }
-    pub fn calculate_utilization(&mut self, schedule_length: i32) {
-        self.utilization = self.total_proc_time as f32 / schedule_length as f32;
-    }
 }

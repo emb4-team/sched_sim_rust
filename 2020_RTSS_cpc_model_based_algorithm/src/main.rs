@@ -6,6 +6,7 @@ mod prioritization_cpc_model;
 use lib::homogeneous::HomogeneousProcessor;
 
 use lib::processor::ProcessorBase;
+use lib::scheduler::DAGSchedulerBase;
 use lib::scheduler_creator::{create_scheduler, SchedulerType};
 use lib::{dag_creator::*, graph_extension::GraphExtension};
 use log::warn;
