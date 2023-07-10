@@ -22,10 +22,8 @@ where
     fn get_name(&self) -> String;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
-    fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>);
     fn get_dag(&mut self) -> Graph<NodeData, i32>;
     fn get_processor(&mut self) -> T;
-    fn get_ready_queue(&mut self) -> VecDeque<NodeIndex>;
     fn set_node_logs(&mut self, node_logs: Vec<NodeLog>);
     fn set_processor_log(&mut self, processor_log: ProcessorLog);
     fn get_node_logs(&mut self) -> Vec<NodeLog>;
@@ -34,7 +32,7 @@ where
         {
             let mut dag = self.get_dag(); //To avoid adding pre_node_count to the original DAG
             let mut processor = self.get_processor();
-            let mut ready_queue = self.get_ready_queue();
+            let mut ready_queue = VecDeque::new();
             let mut node_logs = self.get_node_logs();
             let mut processor_log = self.get_processor_log();
             let mut execution_order = VecDeque::new();

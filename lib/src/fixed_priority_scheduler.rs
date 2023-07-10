@@ -11,7 +11,6 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub ready_queue: VecDeque<NodeIndex>,
     pub node_logs: Vec<NodeLog>,
     pub processor_log: ProcessorLog,
 }
@@ -24,7 +23,6 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            ready_queue: VecDeque::new(),
             node_logs: dag
                 .node_indices()
                 .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
@@ -50,20 +48,12 @@ where
         self.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
-    fn set_ready_queue(&mut self, ready_queue: VecDeque<NodeIndex>) {
-        self.ready_queue = ready_queue;
-    }
-
     fn get_dag(&mut self) -> Graph<NodeData, i32> {
         self.dag.clone()
     }
 
     fn get_processor(&mut self) -> T {
         self.processor.clone()
-    }
-
-    fn get_ready_queue(&mut self) -> VecDeque<NodeIndex> {
-        self.ready_queue.clone()
     }
 
     fn set_node_logs(&mut self, node_logs: Vec<NodeLog>) {
