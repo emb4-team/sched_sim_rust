@@ -58,6 +58,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
                 && segment.end_range <= node.params["earliest_finish_time"]
             {
                 segment.nodes.push(node.clone());
+                segment.parallel_degree += 1;
             }
         }
     }
