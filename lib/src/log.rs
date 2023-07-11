@@ -111,7 +111,7 @@ impl NodeLogs {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeSetLogs {
     pub node_set_logs: Vec<Vec<NodeLog>>,
 }
@@ -153,7 +153,7 @@ impl ProcessorLog {
         }
     }
 
-    pub fn calculate_average_utilization(&mut self) {
+    fn calculate_average_utilization(&mut self) {
         self.average_utilization = self
             .core_logs
             .iter()
@@ -162,7 +162,7 @@ impl ProcessorLog {
             / self.core_logs.len() as f32;
     }
 
-    pub fn calculate_variance_utilization(&mut self) {
+    fn calculate_variance_utilization(&mut self) {
         self.variance_utilization = self
             .core_logs
             .iter()
@@ -171,13 +171,13 @@ impl ProcessorLog {
             / self.core_logs.len() as f32;
     }
 
-    pub fn calculate_cores_utilization(&mut self, schedule_length: i32) {
+    fn calculate_cores_utilization(&mut self, schedule_length: i32) {
         for core_log in self.core_logs.iter_mut() {
             core_log.calculate_utilization(schedule_length);
         }
     }
 
-    pub fn dump_processor_log_to_yaml(&self, file_path: &str) {
+    fn dump_processor_log_to_yaml(&self, file_path: &str) {
         let yaml = serde_yaml::to_string(&self).expect("Failed to serialize ProcessorLog to YAML");
         append_info_to_yaml(file_path, &yaml);
     }
@@ -191,19 +191,18 @@ pub struct CoreLog {
 }
 
 impl CoreLog {
-    pub fn new(core_id: usize) -> Self {
+    fn new(core_id: usize) -> Self {
         Self {
             core_id,
             total_proc_time: Default::default(),
             utilization: Default::default(),
         }
     }
-    pub fn calculate_utilization(&mut self, schedule_length: i32) {
+    fn calculate_utilization(&mut self, schedule_length: i32) {
         self.utilization = self.total_proc_time as f32 / schedule_length as f32;
     }
 }
 
-#[allow(dead_code)] //TODO remove
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSchedulerLog {
     pub dag_info: DAGInfo,
@@ -268,19 +267,21 @@ impl DAGSchedulerLog {
         self.processor_log.dump_processor_log_to_yaml(file_path);
     }
 
-    pub fn dump_dag_info_to_yaml(&self, file_path: &str) {
+    fn dump_dag_info_to_yaml(&self, file_path: &str) {
         let yaml =
             serde_yaml::to_string(&self.dag_info).expect("Failed to serialize DAGInfo to YAML");
         append_info_to_yaml(file_path, &yaml);
     }
 
-    pub fn dump_processor_info_to_yaml(&self, file_path: &str) {
+    fn dump_processor_info_to_yaml(&self, file_path: &str) {
         let yaml = serde_yaml::to_string(&self.processor_info)
             .expect("Failed to serialize ProcessorInfo to YAML");
         append_info_to_yaml(file_path, &yaml);
     }
 }
 
+#[allow(dead_code)] //TODO remove
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetSchedulerLog {
     pub dag_set_info: DAGSetInfo,
     pub processor_info: ProcessorInfo,
@@ -330,6 +331,48 @@ impl DAGSetSchedulerLog {
         }
     }
 
+    pub fn write_dag_minimum_cores_log(&mut self, dag_id: usize, minimum_cores: i32) {
+        self.dag_set_log.dag_set_log[dag_id].minimum_cores = minimum_cores;
+    }
+
+    pub fn write_dag_release_time_log(&mut self, dag_id: usize, release_time: i32) {
+        self.dag_set_log.dag_set_log[dag_id].release_time = release_time;
+    }
+
+    pub fn write_dag_start_time_log(&mut self, dag_id: usize, start_time: i32) {
+        self.dag_set_log.dag_set_log[dag_id].start_time = start_time;
+    }
+
+    pub fn write_dag_finish_time_log(&mut self, dag_id: usize, finish_time: i32) {
+        self.dag_set_log.dag_set_log[dag_id].finish_time = finish_time;
+    }
+
+    pub fn write_allocating_log(
+        &mut self,
+        dag_id: usize,
+        node_id: usize,
+        core_id: usize,
+        current_time: i32,
+        proc_time: i32,
+    ) {
+        self.node_set_logs.node_set_logs[dag_id][node_id].core_id = core_id;
+        self.node_set_logs.node_set_logs[dag_id][node_id].start_time = current_time;
+        self.processor_log.core_logs[core_id].total_proc_time += proc_time;
+    }
+
+    pub fn write_finishing_node_log(&mut self, node_data: &NodeData, finish_time: i32) {
+        self.node_set_logs.node_set_logs[node_data.params["dag_id"] as usize]
+            [node_data.id as usize]
+            .finish_time = finish_time;
+    }
+
+    pub fn write_scheduling_log(&mut self, schedule_length: i32) {
+        self.processor_log
+            .calculate_cores_utilization(schedule_length);
+        self.processor_log.calculate_average_utilization();
+        self.processor_log.calculate_variance_utilization();
+    }
+
     pub fn dump_log_to_yaml(&self, file_path: &str) {
         self.dump_dag_set_info_to_yaml(file_path);
         self.dump_processor_info_to_yaml(file_path);
@@ -338,13 +381,13 @@ impl DAGSetSchedulerLog {
         self.processor_log.dump_processor_log_to_yaml(file_path);
     }
 
-    pub fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
+    fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
         let yaml = serde_yaml::to_string(&self.dag_set_info)
             .expect("Failed to serialize DAGSetInfo to YAML");
         append_info_to_yaml(file_path, &yaml);
     }
 
-    pub fn dump_processor_info_to_yaml(&self, file_path: &str) {
+    fn dump_processor_info_to_yaml(&self, file_path: &str) {
         let yaml = serde_yaml::to_string(&self.processor_info)
             .expect("Failed to serialize ProcessorInfo to YAML");
         append_info_to_yaml(file_path, &yaml);

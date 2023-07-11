@@ -131,7 +131,7 @@ where
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     scheduler: T,
-    pub log: DAGSetSchedulerLog,
+    log: DAGSetSchedulerLog,
 }
 
 impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
@@ -153,13 +153,13 @@ where
         let mut dag_state_managers = vec![DAGStateManager::new(); dag_set_length];
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut finished_dags_count = 0;
+        let mut log = self.get_log();
 
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
             dag_state_managers[dag_id]
                 .set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            self.log.dag_set_log.dag_set_log[dag_id].minimum_cores =
-                dag_state_managers[dag_id].minimum_cores;
+            log.write_dag_minimum_cores_log(dag_id, dag_state_managers[dag_id].minimum_cores);
         }
 
         let mut head_offsets: Vec<i32> = self
@@ -179,8 +179,7 @@ where
                     .filter(|dag| current_time == dag.get_head_offset())
                     .for_each(|dag| {
                         ready_dag_queue.push_back(dag.clone());
-                        self.log.dag_set_log.dag_set_log[dag.get_dag_id()].release_time =
-                            current_time;
+                        log.write_dag_release_time_log(dag.get_dag_id(), current_time);
                     });
                 head_offsets.pop_front();
             }
@@ -195,7 +194,7 @@ where
                 {
                     ready_dag_queue.pop_front();
                     dag_state_managers[dag_id].start();
-                    self.log.dag_set_log.dag_set_log[dag_id].start_time = current_time;
+                    log.write_dag_start_time_log(dag_id, current_time);
                 } else {
                     break;
                 }
@@ -213,11 +212,14 @@ where
                     if dag.is_node_ready(*node_i) && unused_cores > 0 {
                         let node_id = dag[*node_i].id as usize;
                         let core_id = self.processor.get_idle_core_index().unwrap();
-                        self.log.node_set_logs.node_set_logs[dag_id][node_id].core_id = core_id;
-                        self.log.node_set_logs.node_set_logs[dag_id][node_id].start_time =
-                            current_time;
-                        self.log.processor_log.core_logs[core_id].total_proc_time +=
-                            dag[*node_i].params.get("execution_time").unwrap_or(&0);
+                        let proc_time = dag[*node_i].params.get("execution_time").unwrap_or(&0);
+                        log.write_allocating_log(
+                            dag_id,
+                            node_id,
+                            core_id,
+                            current_time,
+                            *proc_time,
+                        );
                         self.processor.allocate_specific_core(
                             core_id,
                             &dag[dag_state_managers[dag_id].allocate_head()],
@@ -235,9 +237,7 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
-                        self.log.node_set_logs.node_set_logs[node_data.params["dag_id"] as usize]
-                            [node_data.id as usize]
-                            .finish_time = current_time;
+                        log.write_finishing_node_log(node_data, current_time);
                         Some(node_data.clone())
                     } else {
                         None
@@ -257,7 +257,7 @@ where
 
                 if suc_nodes.is_empty() {
                     finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                    self.log.dag_set_log.dag_set_log[dag_id].finish_time = current_time;
+                    log.write_dag_finish_time_log(dag_id, current_time);
                     dag_state_managers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
                 }
 
@@ -267,14 +267,9 @@ where
             }
         }
 
-        self.log
-            .processor_log
-            .calculate_cores_utilization(current_time);
+        log.write_scheduling_log(current_time);
 
-        self.log.processor_log.calculate_average_utilization();
-
-        self.log.processor_log.calculate_variance_utilization();
-
+        self.set_log(log);
         current_time
     }
 
@@ -282,8 +277,12 @@ where
         "DynFed".to_string()
     }
 
-    fn get_log(&mut self) -> &mut DAGSetSchedulerLog {
-        &mut self.log
+    fn get_log(&mut self) -> DAGSetSchedulerLog {
+        self.log.clone()
+    }
+
+    fn set_log(&mut self, log: DAGSetSchedulerLog) {
+        self.log = log;
     }
 
     fn dump_characteristic_log(&mut self, _file_path: &str) {}
@@ -355,11 +354,10 @@ mod tests {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
         let mut dag_set = vec![dag, dag2];
-
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&mut dag_set, &HomogeneousProcessor::new(4));
-
         let time = dynfed.schedule();
+
         assert_eq!(time, 103);
 
         assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].dag_id, 1);
