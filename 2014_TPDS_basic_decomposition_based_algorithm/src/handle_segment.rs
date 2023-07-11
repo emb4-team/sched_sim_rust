@@ -6,7 +6,6 @@ pub enum SegmentClassification {
     Light,
 }
 
-#[derive(PartialEq, Debug)]
 pub enum SegmentsClassification {
     Heavy,
     Light,
@@ -66,7 +65,6 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
     segments
 }
 
-#[allow(dead_code)] //TODO: remove
 fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut Segment) {
     if segment.nodes.is_empty() {
         unreachable!("Segment is empty")
@@ -92,7 +90,6 @@ fn classify_segments(
     }
 
     let (mut heavy_count, mut light_count) = (0, 0);
-
     for segment in segments {
         match segment.classification {
             Some(SegmentClassification::Heavy) => heavy_count += 1,
