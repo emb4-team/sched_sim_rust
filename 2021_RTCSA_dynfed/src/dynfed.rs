@@ -131,32 +131,19 @@ where
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     scheduler: T,
-    pub dag_set_log: Vec<DAGLog>,
-    pub node_logs: Vec<Vec<NodeLog>>, //node_logs[dag_id][node_id]
-    pub processor_log: ProcessorLog,
+    pub log: DAGSetSchedulerLog,
 }
 
 impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
 {
-    fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
+    fn new(dag_set: &mut [Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         Self {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
             scheduler: T::new(&mut Graph::<NodeData, i32>::new(), processor),
-            dag_set_log: (0..dag_set.len()).map(DAGLog::new).collect(),
-            node_logs: dag_set
-                .iter()
-                .enumerate()
-                .map(|(dag_id, dag)| {
-                    dag.node_indices()
-                        .enumerate()
-                        .map(|(node_id, _)| NodeLog::new(dag_id, node_id))
-                        .collect()
-                })
-                .collect(),
-            processor_log: ProcessorLog::new(processor.get_number_of_cores()),
+            log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
         }
     }
 
@@ -171,7 +158,8 @@ where
             dag.set_dag_id(dag_id);
             dag_state_managers[dag_id]
                 .set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            self.dag_set_log[dag_id].minimum_cores = dag_state_managers[dag_id].minimum_cores;
+            self.log.dag_set_log.dag_set_log[dag_id].minimum_cores =
+                dag_state_managers[dag_id].minimum_cores;
         }
 
         let mut head_offsets: Vec<i32> = self
@@ -191,7 +179,8 @@ where
                     .filter(|dag| current_time == dag.get_head_offset())
                     .for_each(|dag| {
                         ready_dag_queue.push_back(dag.clone());
-                        self.dag_set_log[dag.get_dag_id()].release_time = current_time;
+                        self.log.dag_set_log.dag_set_log[dag.get_dag_id()].release_time =
+                            current_time;
                     });
                 head_offsets.pop_front();
             }
@@ -206,7 +195,7 @@ where
                 {
                     ready_dag_queue.pop_front();
                     dag_state_managers[dag_id].start();
-                    self.dag_set_log[dag_id].start_time = current_time;
+                    self.log.dag_set_log.dag_set_log[dag_id].start_time = current_time;
                 } else {
                     break;
                 }
@@ -224,9 +213,10 @@ where
                     if dag.is_node_ready(*node_i) && unused_cores > 0 {
                         let node_id = dag[*node_i].id as usize;
                         let core_id = self.processor.get_idle_core_index().unwrap();
-                        self.node_logs[dag_id][node_id].core_id = core_id;
-                        self.node_logs[dag_id][node_id].start_time = current_time;
-                        self.processor_log.core_logs[core_id].total_proc_time +=
+                        self.log.node_set_logs.node_set_logs[dag_id][node_id].core_id = core_id;
+                        self.log.node_set_logs.node_set_logs[dag_id][node_id].start_time =
+                            current_time;
+                        self.log.processor_log.core_logs[core_id].total_proc_time +=
                             dag[*node_i].params.get("execution_time").unwrap_or(&0);
                         self.processor.allocate_specific_core(
                             core_id,
@@ -245,7 +235,7 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
-                        self.node_logs[node_data.params["dag_id"] as usize]
+                        self.log.node_set_logs.node_set_logs[node_data.params["dag_id"] as usize]
                             [node_data.id as usize]
                             .finish_time = current_time;
                         Some(node_data.clone())
@@ -267,7 +257,7 @@ where
 
                 if suc_nodes.is_empty() {
                     finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                    self.dag_set_log[dag_id].finish_time = current_time;
+                    self.log.dag_set_log.dag_set_log[dag_id].finish_time = current_time;
                     dag_state_managers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
                 }
 
@@ -277,14 +267,26 @@ where
             }
         }
 
-        self.processor_log.calculate_cores_utilization(current_time);
+        self.log
+            .processor_log
+            .calculate_cores_utilization(current_time);
 
-        self.processor_log.calculate_average_utilization();
+        self.log.processor_log.calculate_average_utilization();
 
-        self.processor_log.calculate_variance_utilization();
+        self.log.processor_log.calculate_variance_utilization();
 
         current_time
     }
+
+    fn get_name(&self) -> String {
+        "DynFed".to_string()
+    }
+
+    fn get_log(&mut self) -> &mut DAGSetSchedulerLog {
+        &mut self.log
+    }
+
+    fn dump_characteristic_log(&mut self, _file_path: &str) {}
 }
 
 #[cfg(test)]
@@ -352,31 +354,46 @@ mod tests {
     fn test_dynfed_normal() {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
-        let dag_set = vec![dag, dag2];
+        let mut dag_set = vec![dag, dag2];
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
-            DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
+            DynamicFederatedScheduler::new(&mut dag_set, &HomogeneousProcessor::new(4));
 
         let time = dynfed.schedule();
         assert_eq!(time, 103);
 
-        assert_eq!(dynfed.dag_set_log[1].dag_id, 1);
-        assert_eq!(dynfed.dag_set_log[1].release_time, 0);
-        assert_eq!(dynfed.dag_set_log[1].start_time, 50);
-        assert_eq!(dynfed.dag_set_log[1].finish_time, 103);
-        assert_eq!(dynfed.dag_set_log[1].minimum_cores, 2);
+        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].dag_id, 1);
+        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].release_time, 0);
+        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].start_time, 50);
+        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].finish_time, 103);
+        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].minimum_cores, 2);
 
-        assert_eq!(dynfed.node_logs[1][3].core_id, 0);
-        assert_eq!(dynfed.node_logs[1][3].dag_id, 1);
-        assert_eq!(dynfed.node_logs[1][3].node_id, 3);
-        assert_eq!(dynfed.node_logs[1][3].start_time, 61);
-        assert_eq!(dynfed.node_logs[1][3].finish_time, 72);
+        assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].core_id, 0);
+        assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].dag_id, 1);
+        assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].node_id, 3);
+        assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].start_time, 61);
+        assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].finish_time, 72);
 
-        assert_eq!(dynfed.processor_log.average_utilization, 0.32524273);
-        assert_eq!(dynfed.processor_log.variance_utilization, 0.08862758);
+        assert_eq!(dynfed.log.processor_log.average_utilization, 0.32524273);
+        assert_eq!(dynfed.log.processor_log.variance_utilization, 0.08862758);
 
-        assert_eq!(dynfed.processor_log.core_logs[0].core_id, 0);
-        assert_eq!(dynfed.processor_log.core_logs[0].total_proc_time, 83);
-        assert_eq!(dynfed.processor_log.core_logs[0].utilization, 0.80582523);
+        assert_eq!(dynfed.log.processor_log.core_logs[0].core_id, 0);
+        assert_eq!(dynfed.log.processor_log.core_logs[0].total_proc_time, 83);
+        assert_eq!(
+            dynfed.log.processor_log.core_logs[0].utilization,
+            0.80582523
+        );
+
+        assert_eq!(
+            dynfed.log.dag_set_info.each_dag_info[0].critical_path_length,
+            50
+        );
+        assert_eq!(
+            dynfed.log.dag_set_info.each_dag_info[0].end_to_end_deadline,
+            100
+        );
+        assert_eq!(dynfed.log.dag_set_info.each_dag_info[0].volume, 70);
+
+        assert_eq!(dynfed.log.processor_info.number_of_cores, 4);
     }
 }

@@ -1,4 +1,10 @@
-use lib::output_log::append_info_to_yaml;
+use lib::{
+    graph_extension::{GraphExtension, NodeData},
+    log::{DAGInfo, DAGSetInfo, ProcessorInfo},
+    output_log::append_info_to_yaml,
+    processor::ProcessorBase,
+};
+use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::federated::FederateResult;
@@ -6,6 +12,14 @@ use crate::federated::FederateResult;
 #[derive(Serialize, Deserialize)]
 struct ResultInfo<FederateResult> {
     result: FederateResult,
+}
+
+pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
+    let number_of_cores = processor.get_number_of_cores();
+    let processor_info = ProcessorInfo { number_of_cores };
+    let yaml =
+        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
+    append_info_to_yaml(file_path, &yaml);
 }
 
 pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
@@ -16,10 +30,41 @@ pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
     append_info_to_yaml(file_path, &yaml);
 }
 
+pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, i32>>) {
+    let mut total_utilization = 0.0;
+    let mut each_dag_info = Vec::new();
+
+    for dag in dag_set.iter_mut() {
+        let volume = dag.get_volume();
+        let period = dag.get_head_period().unwrap();
+        let critical_path = dag.get_critical_path();
+        let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
+        total_utilization += volume as f32 / period as f32;
+
+        let dag_info = DAGInfo {
+            critical_path_length,
+            end_to_end_deadline: period,
+            volume,
+        };
+
+        each_dag_info.push(dag_info);
+    }
+
+    let dag_set_info = DAGSetInfo {
+        total_utilization,
+        each_dag_info,
+    };
+
+    let yaml =
+        serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
+
+    append_info_to_yaml(file_path, &yaml);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::{graph_extension::NodeData, output_log::create_scheduler_log_yaml_file};
+    use lib::{graph_extension::NodeData, homogeneous, output_log::create_scheduler_log_yaml_file};
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
 
@@ -82,7 +127,7 @@ mod tests {
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path =
-            create_scheduler_log_yaml_file("../outputs", "test_dump_federated_info_normal");
+            create_scheduler_log_yaml_file("../tests", "test_dump_federated_info_normal");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -108,10 +153,8 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_scheduler_log_yaml_file(
-            "../outputs",
-            "test_federated_lack_cores_for_high_tasks",
-        );
+        let file_path =
+            create_scheduler_log_yaml_file("../tests", "test_federated_lack_cores_for_high_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -138,7 +181,7 @@ mod tests {
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path =
-            create_scheduler_log_yaml_file("../outputs", "test_federated_lack_cores_for_low_tasks");
+            create_scheduler_log_yaml_file("../tests", "test_federated_lack_cores_for_low_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -160,8 +203,7 @@ mod tests {
         let number_of_cores = 1;
         let mut dag_set = vec![create_period_exceeding_dag()];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path =
-            create_scheduler_log_yaml_file("../outputs", "test_federated_unsuited_tasks");
+        let file_path = create_scheduler_log_yaml_file("../tests", "test_federated_unsuited_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -176,6 +218,38 @@ mod tests {
                 insufficient_cores: 0
             }
         );
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_dag_set_info_to_yaml_file_normal() {
+        let dag_set = vec![create_high_utilization_dag(), create_high_utilization_dag()];
+        let file_path = create_scheduler_log_yaml_file("../tests", "dag_set_info");
+        dump_dag_set_info_to_yaml(&file_path, dag_set);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(dag_set.total_utilization, 2.8);
+        assert_eq!(dag_set.each_dag_info.len(), 2);
+        assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8);
+        assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10);
+        assert_eq!(dag_set.each_dag_info[1].volume, 14);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_dump_processor_info_to_yaml() {
+        let file_path = create_scheduler_log_yaml_file("../tests", "processor_info");
+        let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
+        dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
+
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
+
+        assert_eq!(number_of_cores.number_of_cores, 4);
 
         remove_file(file_path).unwrap();
     }

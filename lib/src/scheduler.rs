@@ -142,6 +142,17 @@ where
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
-    fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
+    fn new(dag_set: &mut [Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
+    fn get_name(&self) -> String;
+    fn get_log(&mut self) -> &mut DAGSetSchedulerLog;
+    fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
+        let sched_name = format!("{}_{}", algorithm_name, self.get_name());
+        let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
+        self.get_log().dump_log_to_yaml(&file_path);
+        self.dump_characteristic_log(&file_path);
+
+        file_path
+    }
+    fn dump_characteristic_log(&mut self, file_path: &str);
 }
