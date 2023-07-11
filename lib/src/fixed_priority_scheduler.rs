@@ -11,7 +11,7 @@ where
 {
     pub dag: Graph<NodeData, i32>,
     pub processor: T,
-    pub log: DAGschedulerLog,
+    pub log: DAGSchedulerLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
@@ -22,7 +22,7 @@ where
         Self {
             dag: dag.clone(),
             processor: processor.clone(),
-            log: DAGschedulerLog::new(dag, processor.get_number_of_cores()),
+            log: DAGSchedulerLog::new(dag, processor.get_number_of_cores()),
         }
     }
 
@@ -32,10 +32,7 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.node_logs = dag
-            .node_indices()
-            .map(|node_index| NodeLog::new(0, dag[node_index].id as usize))
-            .collect()
+        self.log.node_logs = NodeLogs::new(dag);
     }
 
     fn set_processor(&mut self, processor: &T) {
@@ -51,7 +48,7 @@ where
         self.processor.clone()
     }
 
-    fn get_log(&mut self) -> &mut DAGschedulerLog {
+    fn get_log(&mut self) -> &mut DAGSchedulerLog {
         &mut self.log
     }
 
@@ -257,27 +254,45 @@ mod tests {
             1.0
         );
 
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[0].node_id, 0);
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs[0].start_time,
+            fixed_priority_scheduler.get_log().node_logs.node_logs[0].core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs[0].finish_time,
+            fixed_priority_scheduler.get_log().node_logs.node_logs[0].dag_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[0].node_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[0].start_time,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[0].finish_time,
             52
         );
 
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].core_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].dag_id, 0);
-        assert_eq!(fixed_priority_scheduler.get_log().node_logs[1].node_id, 1);
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs[1].start_time,
+            fixed_priority_scheduler.get_log().node_logs.node_logs[1].core_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[1].dag_id,
+            0
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[1].node_id,
+            1
+        );
+        assert_eq!(
+            fixed_priority_scheduler.get_log().node_logs.node_logs[1].start_time,
             52
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs[1].finish_time,
+            fixed_priority_scheduler.get_log().node_logs.node_logs[1].finish_time,
             92
         );
     }

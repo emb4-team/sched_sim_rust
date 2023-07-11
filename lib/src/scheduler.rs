@@ -23,7 +23,7 @@ where
     fn set_processor(&mut self, processor: &T);
     fn get_dag(&mut self) -> Graph<NodeData, i32>;
     fn get_processor(&mut self) -> T;
-    fn get_log(&mut self) -> &mut DAGschedulerLog;
+    fn get_log(&mut self) -> &mut DAGSchedulerLog;
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         {
             let mut dag = self.get_dag(); //To avoid adding pre_node_count to the original DAG
@@ -132,8 +132,7 @@ where
     fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
-        let log = self.get_log();
-        log.dump_log_to_yaml(&file_path);
+        self.get_log().dump_log_to_yaml(&file_path);
         self.dump_characteristic_log(&file_path);
 
         file_path
