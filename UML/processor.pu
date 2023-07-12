@@ -14,7 +14,7 @@ class ProcessorBase << (T, yellow) >> {
     + {abstract} process() : Vec<ProcessResult>;
     + {abstract} get_number_of_cores() : usize;
     + {abstract} get_idle_core_index() : Option<usize>;
-    ~ {abstract} return_allocated_node_data(usize) : Option<NodeData>;
+    ~ {abstract} suspend_execution(usize) : Option<NodeData>;
 }
 
 struct HomogeneousProcessor {
@@ -25,7 +25,7 @@ struct HomogeneousProcessor {
     + process() : Vec<ProcessResult>;
     + get_number_of_cores() : usize;
     + get_idle_core_index() : Option<usize>;
-    ~ return_allocated_node_data(usize) : Option<NodeData>;
+    ~ suspend_execution(usize) : Option<NodeData>;
     ..
     # allocate_any_idle_core(&NodeData) : bool;
 }
@@ -37,7 +37,7 @@ struct Core {
 
     + allocate(&NodeData) : bool;
     + process() : ProcessResult;
-    ~ return_allocated_node_data() : Option<NodeData>;
+    ~ suspend_execution() : Option<NodeData>;
 }
 
 ProcessorBase <|-- HomogeneousProcessor

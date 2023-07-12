@@ -34,8 +34,8 @@ impl ProcessorBase for HomogeneousProcessor {
         None
     }
 
-    fn return_allocated_node_data(&mut self, core_id: usize) -> Option<NodeData> {
-        self.cores[core_id].return_allocated_node_data()
+    fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
+        self.cores[core_id].suspend_execution()
     }
 }
 
@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_processor_return_allocated_node_data() {
+    fn test_processor_suspend_execution_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
         let n0 = create_node(0, "execution_time", 2);
@@ -195,15 +195,15 @@ mod tests {
         homogeneous_processor.allocate_specific_core(1, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.return_allocated_node_data(0), None);
+        assert_eq!(homogeneous_processor.suspend_execution(0), None);
 
-        n1 = homogeneous_processor.return_allocated_node_data(1).unwrap();
+        n1 = homogeneous_processor.suspend_execution(1).unwrap();
 
         assert_eq!(n1.params["execution_time"], 1);
 
         homogeneous_processor.allocate_specific_core(0, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.return_allocated_node_data(0), None);
+        assert_eq!(homogeneous_processor.suspend_execution(0), None);
     }
 }

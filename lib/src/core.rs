@@ -59,7 +59,7 @@ impl Core {
         Continue
     }
 
-    pub fn return_allocated_node_data(&mut self) -> Option<NodeData> {
+    pub fn suspend_execution(&mut self) -> Option<NodeData> {
         if self.is_idle {
             None
         } else {
