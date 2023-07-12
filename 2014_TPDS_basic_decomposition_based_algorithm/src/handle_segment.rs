@@ -6,7 +6,7 @@ pub enum SegmentClassification {
     Light,
 }
 
-pub enum SegmentsClassification {
+pub enum DAGClassification {
     Heavy,
     Light,
     Mixture,
@@ -84,7 +84,7 @@ fn classify_segments(
     period: f32,
     crit_path_len: f32,
     segments: &mut [Segment],
-) -> SegmentsClassification {
+) -> DAGClassification {
     for segment in segments.iter_mut() {
         classify_segment(volume, period, crit_path_len, segment);
     }
@@ -99,9 +99,9 @@ fn classify_segments(
     }
 
     match (heavy_count > 0, light_count > 0) {
-        (true, true) => SegmentsClassification::Mixture,
-        (true, false) => SegmentsClassification::Heavy,
-        (false, true) => SegmentsClassification::Light,
+        (true, true) => DAGClassification::Mixture,
+        (true, false) => DAGClassification::Heavy,
+        (false, true) => DAGClassification::Light,
         _ => unreachable!("Segments classification error"),
     }
 }
