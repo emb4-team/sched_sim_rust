@@ -104,6 +104,61 @@ fn classify_dag(
     }
 }
 
+#[allow(dead_code)] //TODO: remove
+pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mut [Segment]) {
+    let volume = dag.get_volume() as f32;
+    let period = dag.get_head_period().unwrap() as f32;
+    let crit_path = dag.get_critical_path();
+    let crit_path_len = dag.get_total_wcet_from_nodes(&crit_path) as f32;
+
+    let classification = classify_dag(volume, period, crit_path_len, segments);
+
+    match classification {
+        DAGClassification::Heavy => {
+            for segment in segments {
+                segment.deadline = (period / volume) * segment.volume as f32;
+            }
+        }
+        DAGClassification::Light => {
+            for segment in segments {
+                segment.deadline = (period / crit_path_len) * segment.exe_req as f32;
+            }
+        }
+        DAGClassification::Mixture => {
+            let (mut heavy_segment_volume, mut light_segment_length) = (0, 0);
+
+            for segment in segments.iter_mut() {
+                match segment.classification {
+                    Some(SegmentClassification::Heavy) => {
+                        heavy_segment_volume += segment.volume;
+                    }
+                    Some(SegmentClassification::Light) => {
+                        light_segment_length += segment.exe_req;
+                    }
+                    _ => unreachable!("Segment classification error"),
+                }
+            }
+
+            let half_crit_path_len = crit_path_len / 2.0;
+
+            for segment in segments {
+                match segment.classification {
+                    Some(SegmentClassification::Heavy) => {
+                        segment.deadline = (period - half_crit_path_len)
+                            / heavy_segment_volume as f32
+                            * segment.volume as f32;
+                    }
+                    Some(SegmentClassification::Light) => {
+                        segment.deadline = half_crit_path_len / light_segment_length as f32
+                            * segment.exe_req as f32;
+                    }
+                    _ => unreachable!("Segment classification error"),
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
