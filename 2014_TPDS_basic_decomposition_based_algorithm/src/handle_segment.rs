@@ -147,17 +147,17 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
                 }
             }
 
-            let half_crit_path_len = crit_path_len / 2.0;
+            let light_segment_period = crit_path_len / 2.0;
 
             for segment in segments {
                 match segment.classification {
                     Some(SegmentClassification::Heavy) => {
-                        segment.deadline = (period - half_crit_path_len)
+                        segment.deadline = (period - light_segment_period)
                             / heavy_segment_volume as f32
                             * segment.volume as f32;
                     }
                     Some(SegmentClassification::Light) => {
-                        segment.deadline = half_crit_path_len / light_segment_length as f32
+                        segment.deadline = light_segment_period / light_segment_length as f32
                             * segment.exe_req as f32;
                     }
                     _ => unreachable!("Segment classification error"),
@@ -254,5 +254,41 @@ mod tests {
         assert_eq!(segments[2].end_range, 47);
         assert_eq!(segments[3].begin_range, 47);
         assert_eq!(segments[3].end_range, 65);
+    }
+
+    #[test]
+    fn test_calculate_segments_deadline_normal() {
+        //Mixture
+        let mut dag = create_sample_dag(120);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 3.2285714);
+        assert_eq!(segments[1].deadline, 10.33721);
+        assert_eq!(segments[2].deadline, 53.16279);
+        assert_eq!(segments[3].deadline, 9.685715);
+        assert_eq!(segments[4].deadline, 43.585712);
+
+        //Heavy
+        let mut dag = create_sample_dag(150);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 3.8461537);
+        assert_eq!(segments[1].deadline, 13.461538);
+        assert_eq!(segments[2].deadline, 69.23077);
+        assert_eq!(segments[3].deadline, 11.538462);
+        assert_eq!(segments[4].deadline, 51.923077);
+
+        //Light
+        let mut dag = create_sample_dag(65);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 2.300885);
+        assert_eq!(segments[1].deadline, 4.026549);
+        assert_eq!(segments[2].deadline, 20.707964);
+        assert_eq!(segments[3].deadline, 6.9026546);
+        assert_eq!(segments[4].deadline, 31.061947);
     }
 }
