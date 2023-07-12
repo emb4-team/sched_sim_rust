@@ -18,7 +18,7 @@ pub struct Segment {
     pub end_range: i32,
     pub deadline: f32,
     pub classification: Option<SegmentClassification>,
-    pub exe_req: i32, // execution requirement
+    pub execution_requirement: i32, // parallel_degree * volume
     pub parallel_degree: i32,
     pub volume: i32,
 }
@@ -50,7 +50,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             end_range,
             deadline: 0.0,
             classification: None,
-            exe_req: end_range - begin_range,
+            execution_requirement: end_range - begin_range,
             parallel_degree: 0,
             volume: 0,
         };
@@ -65,7 +65,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             {
                 segment.nodes.push(node.clone());
                 segment.parallel_degree += 1;
-                segment.volume += segment.exe_req;
+                segment.volume += segment.execution_requirement;
             }
         }
     }
@@ -127,7 +127,7 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
         }
         DAGClassification::Light => {
             for segment in segments {
-                segment.deadline = (period / crit_path_len) * segment.exe_req as f32;
+                segment.deadline = (period / crit_path_len) * segment.execution_requirement as f32;
             }
         }
         DAGClassification::Mixture => {
@@ -138,7 +138,7 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
                         heavy_segment_volume += segment.volume;
                     }
                     Some(SegmentClassification::Light) => {
-                        light_segment_length += segment.exe_req;
+                        light_segment_length += segment.execution_requirement;
                     }
                     _ => unreachable!("Segment classification error"),
                 }
@@ -154,7 +154,7 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
                     }
                     Some(SegmentClassification::Light) => {
                         segment.deadline = light_segment_period / light_segment_length as f32
-                            * segment.exe_req as f32;
+                            * segment.execution_requirement as f32;
                     }
                     _ => unreachable!("Segment classification error"),
                 }
