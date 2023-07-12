@@ -18,9 +18,9 @@ pub struct Segment {
     pub end_range: i32,
     pub deadline: f32,
     pub classification: Option<SegmentClassification>,
-    pub execution_requirement: i32, // parallel_degree * volume
-    pub parallel_degree: i32,
-    pub volume: i32,
+    pub execution_requirement: i32, // end_range - begin_range
+    pub parallel_degree: i32,       // number of nodes in the segment
+    pub volume: i32,                // execution_requirement * volume
 }
 
 #[allow(dead_code)] //TODO: remove
