@@ -1,18 +1,24 @@
 use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::Graph;
 
-#[allow(dead_code)] //TODO: remove
 pub enum SegmentClassification {
     Heavy,
     Light,
+}
+
+pub enum DAGClassification {
+    Heavy,
+    Light,
+    Mixture,
 }
 
 pub struct Segment {
     pub nodes: Vec<NodeData>,
     pub begin_range: i32,
     pub end_range: i32,
-    pub deadline: f32,                                 //TODO: use
-    pub classification: Option<SegmentClassification>, //TODO: use
+    pub deadline: f32, //TODO: use
+    pub classification: Option<SegmentClassification>,
+    pub parallel_degree: i32,
 }
 
 #[allow(dead_code)] //TODO: remove
@@ -40,6 +46,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             end_range: earliest_finish_times[i],
             deadline: 0.0,
             classification: None,
+            parallel_degree: 0,
         };
         segments.push(segment);
     }
@@ -50,11 +57,51 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
                 && segment.end_range <= node.params["earliest_finish_time"]
             {
                 segment.nodes.push(node.clone());
+                segment.parallel_degree += 1;
             }
         }
     }
 
     segments
+}
+
+fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut Segment) {
+    assert!(!segment.nodes.is_empty());
+
+    segment.classification =
+        if segment.parallel_degree as f32 > volume / ((2.0 * period) - crit_path_len) {
+            Some(SegmentClassification::Heavy)
+        } else {
+            Some(SegmentClassification::Light)
+        };
+}
+
+#[allow(dead_code)] //TODO: remove
+fn classify_dag(
+    volume: f32,
+    period: f32,
+    crit_path_len: f32,
+    segments: &mut [Segment],
+) -> DAGClassification {
+    for segment in segments.iter_mut() {
+        classify_segment(volume, period, crit_path_len, segment);
+    }
+
+    let (mut heavy_count, mut light_count) = (0, 0);
+    for segment in segments {
+        match segment.classification {
+            Some(SegmentClassification::Heavy) => heavy_count += 1,
+            Some(SegmentClassification::Light) => light_count += 1,
+            _ => unreachable!("Segment classification error"),
+        }
+    }
+
+    match (heavy_count > 0, light_count > 0) {
+        (true, true) => DAGClassification::Mixture,
+        (true, false) => DAGClassification::Heavy,
+        (false, true) => DAGClassification::Light,
+        _ => unreachable!("Segments classification error"),
+    }
 }
 
 #[cfg(test)]
