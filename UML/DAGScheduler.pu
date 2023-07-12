@@ -1,0 +1,120 @@
+@startuml proposed_sched
+title Proposed Scheduler
+
+    interface DAGSchedulerBase<T: ProcessorBase + Clone> {
+        + {abstract} new(&Graph, &T) : DAGSchedulerBase
+        + {abstract} get_name() : String
+        + {abstract} set_dag(&Graph)
+        + {abstract} set_processor(&T)
+        + {abstract} get_dag() : Graph
+        + {abstract} get_processor() : T
+        + {abstract} get_log() : &DAGSchedulerLog
+        + {static} schedule() : (i32, VecDeque)
+        + {abstract} sort_ready_queue(VecDeque)
+        + {static} dump_log(&str, &str)
+        + {abstract} dump_characteristic_log(&str)
+    }
+
+    note left of DAGSchedulerBase::schedule
+    "default implementation"
+    end note
+
+    note left of DAGSchedulerBase::dump_log
+    "default implementation"
+    end note
+
+    struct DAGInfo {
+        - critical_path_length: i32
+        - end_to_end_deadline: i32
+        - volume: i32
+    }
+
+    struct ProcessorInfo {
+        - number_of_cores: usize
+    }
+
+    struct DAGSchedulerLog {
+        - dag_info: DAGInfo
+        - processor_info: ProcessorInfo
+        - node_logs: NodeLogs
+        - processor_log: ProcessorLog
+
+        + {static} new(Graph, usize) : DAGSchedulerLog
+        + {static} write_allocating_log(&NodeData, usize, i32)
+        + {static} write_finishing_node_log(&NodeData, i32)
+        + {static} write_scheduling_log(i32)
+        + {static} dump_log_to_yaml(&str)
+        + {static} dump_dag_info_to_yaml(&str)
+        + {static} dump_processor_info_to_yaml(&str)
+    }
+
+    struct DAG_Scheduler<T: ProcessorBase + Clone> {
+        - dag : Graph
+        - processor : T
+        - log: DAGSchedulerLog
+        + {static} new(Graph, T) : DAG_Scheduler
+        + {static} get_name() : String
+        + {static} set_dag(Graph)
+        + {static} set_processor(T)
+        + {static} get_dag() : Graph
+        + {static} get_processor() : ProcessorBase
+        + {static} get_log() : DAGSchedulerLog
+        + **{static} sort_ready_queue(VecDeque)**
+        + {static} dump_characteristic_log(&str)
+    }
+
+    note right of DAG_Scheduler::sort_ready_queue
+    "Individually implemented"
+    end note
+
+    struct NodeLogs {
+        - node_logs: Vec<NodeLog>
+
+        + {static} new() : NodeLogs
+        + {static} dump_node_logs_to_yaml(&str)
+    }
+    
+    struct NodeLog {
+        - core_id: usize,
+        - dag_id: usize,
+        - node_id: usize,
+        - start_time: i32,
+        - finish_time: i32,
+
+        + {static} new(dag_id: usize, node_id: usize) : NodeLog
+    }
+
+    struct ProcessorLog {
+        - average_utilization: f32,
+        - variance_utilization: f32,
+        - core_logs: Vec<CoreLog>,
+
+        + {static} new(num_cores: usize) : ProcessorLog;
+        + {static} calculate_average_utilization();
+        + {static} calculate_variance_utilization();
+        + {static} calculate_cores_utilization(schedule_length: i32);
+        + {static} dump_processor_log_to_yaml(&str);
+    }
+
+    struct CoreLog {
+        - core_id: usize,
+        - total_proc_time: i32,
+        - utilization: f32,
+
+        + {static} new(core_id: usize) : CoreLog;
+        + {static} calculate_utilization(schedule_length: i32);
+    }  
+
+    DAGSchedulerBase <|-down- DAG_Scheduler
+
+    DAGSchedulerLog o-down- DAGInfo
+    DAGSchedulerLog o-down- ProcessorInfo
+
+    DAG_Scheduler o-down- DAGSchedulerLog
+    DAGSchedulerLog o-down- NodeLogs
+    NodeLogs o-down- NodeLog
+    DAGSchedulerLog o-down- ProcessorLog
+    ProcessorLog o-down- CoreLog
+
+
+@enduml

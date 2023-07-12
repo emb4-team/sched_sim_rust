@@ -1,0 +1,137 @@
+@startuml proposed_sched
+title Proposed Scheduler
+
+    interface DAGSetSchedulerBase<T: ProcessorBase + Clone> {
+        + {abstract} new(&[Graph], T) : DAGSetSchedulerBase
+        + {abstract} schedule() : i32
+        + {abstract} get_name() : String
+        + {abstract} get_log() : DAGSchedulerLog
+        + {abstract} set_log(DAGSchedulerLog)
+        + {static} dump_log(&str, &str)
+        + {abstract} dump_characteristic_log(&str)
+    }
+
+    note left of DAGSetSchedulerBase::dump_log
+    "default implementation"
+    end note
+
+    struct DAGSetInfo {
+        - total_utilization: f32
+        - each_dag_info: Vec<DAGInfo>
+    }
+
+    struct DAGInfo {
+        - critical_path_length: i32
+        - end_to_end_deadline: i32
+        - volume: i32
+    }
+
+    struct ProcessorInfo {
+        - number_of_cores: usize
+    }
+
+    struct DAGSetSchedulerLog {
+        - dag_set_info: DAGSetInfo
+        - processor_info: ProcessorInfo
+        - dag_set_log: DAGSetLog
+        - node_set_logs: NodeSetLogs
+        - processor_log: ProcessorLog
+
+        + {static} new(&[Graph<NodeData, i32>], usize) : DAGSetSchedulerLog
+        + {static} write_dag_minimum_cores_log(usize, i32)
+        + {static} write_dag_release_time_log(usize, i32)
+        + {static} write_dag_start_time_log(usize, i32)
+        + {static} write_dag_finish_time_log(usize, i32)
+        + {static} write_allocating_log(usize, usize, usize, i32, i32)
+        + {static} write_finishing_node_log(&NodeData, i32)
+        + {static} write_scheduling_log(i32)
+        + {static} dump_log_to_yaml(&str)
+        + {static} dump_dag_set_info_to_yaml(&str)
+        + {static} dump_processor_info_to_yaml(&str)
+    }
+
+    struct DAGSet_Scheduler<T: DAGSchedulerBase<HomogeneousProcessor>> {
+        - dag_set : Vec<Graph>
+        - processor : HomogeneousProcessor
+        - scheduler: T
+        - log: DAGSetSchedulerLog
+        + {static} new(&[Graph<NodeData, i32>], &HomogeneousProcessor) : DAGSet_Scheduler
+        + {static} schedule() : i32
+        + {static} get_name() : String
+        + {static} get_log() : DAGSchedulerLog
+        + {static} set_log(DAGSchedulerLog)
+        + {static} dump_characteristic_log(&str)
+    }
+
+    struct DAGSetLog {
+        - dag_set_log: Vec<DAGLog>
+
+        + {static} new(&[Graph<NodeData, i32>]) : DAGSetLog
+        + {static} dump_dag_set_log_to_yaml(&str)
+    }
+
+    struct DAGLog {
+        - dag_id: usize
+        - release_time: i32
+        - start_time: i32
+        - finish_time: i32
+        - minimum_cores: i32
+
+        + {static} new(usize) : DAGLog
+    }
+
+    struct NodeSetLogs {
+        - node_set_logs: Vec<Vec<NodeSetLog>>
+
+        + {static} new(&[Graph<NodeData, i32>]) : NodeSetLogs
+        + {static} dump_node_set_logs_to_yaml(&str)
+    }
+    
+    struct NodeLog {
+        - core_id: usize,
+        - dag_id: usize,
+        - node_id: usize,
+        - start_time: i32,
+        - finish_time: i32,
+
+        + {static} new(dag_id: usize, node_id: usize) : NodeLog
+    }
+
+    struct ProcessorLog {
+        - average_utilization: f32,
+        - variance_utilization: f32,
+        - core_logs: Vec<CoreLog>,
+
+        + {static} new(num_cores: usize) : ProcessorLog;
+        + {static} calculate_average_utilization();
+        + {static} calculate_variance_utilization();
+        + {static} calculate_cores_utilization(schedule_length: i32);
+        + {static} dump_processor_log_to_yaml(&str);
+    }
+
+    struct CoreLog {
+        - core_id: usize,
+        - total_proc_time: i32,
+        - utilization: f32,
+
+        + {static} new(core_id: usize) : CoreLog;
+        + {static} calculate_utilization(schedule_length: i32);
+    }  
+
+    DAGSetSchedulerBase <|-down- DAGSet_Scheduler
+
+    DAGSet_Scheduler o-down- DAGSetSchedulerLog
+
+    DAGSetSchedulerLog o-down- DAGSetInfo
+    DAGSetSchedulerLog o-down- ProcessorInfo
+    DAGSetSchedulerLog o-down- DAGSetLog
+    DAGSetSchedulerLog o-down- NodeSetLogs
+    DAGSetSchedulerLog o-down- ProcessorLog
+    
+    DAGSetInfo o-down- DAGInfo
+    DAGSetLog o-down- DAGLog
+    NodeSetLogs o-down- NodeLog
+    ProcessorLog o-down- CoreLog
+
+
+@enduml
