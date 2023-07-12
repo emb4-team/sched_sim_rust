@@ -33,6 +33,10 @@ impl ProcessorBase for HomogeneousProcessor {
         }
         None
     }
+
+    fn return_allocated_node_data(&mut self, core_id: usize) -> Option<NodeData> {
+        self.cores[core_id].return_allocated_node_data()
+    }
 }
 
 impl HomogeneousProcessor {

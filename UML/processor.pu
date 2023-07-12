@@ -1,0 +1,49 @@
+@startuml processor
+title Processor
+hide interface circle
+
+enum ProcessResult {
+    * Idle
+    * Continue
+    * Done{NodeData}
+}
+
+class ProcessorBase << (T, yellow) >> {
+    + {abstract} new(usize) : ProcessorBase;
+    + {abstract} allocate_specific_core(usize, &NodeData) : bool;
+    + {abstract} process() : Vec<ProcessResult>;
+    + {abstract} get_number_of_cores() : usize;
+    + {abstract} get_idle_core_index() : Option<usize>;
+    ~ {abstract} return_allocated_node_data(usize) : Option<NodeData>;
+}
+
+struct HomogeneousProcessor {
+    - cores: Vec<Core>
+    --
+    + new(usize) : HomogeneousProcessor;
+    + allocate_specific_core(usize, &NodeData) : bool;
+    + process() : Vec<ProcessResult>;
+    + get_number_of_cores() : usize;
+    + get_idle_core_index() : Option<usize>;
+    ~ return_allocated_node_data(usize) : Option<NodeData>;
+    ..
+    # allocate_any_idle_core(&NodeData) : bool;
+}
+
+struct Core {
+    - is_idle: bool {Default:true}
+    - processing_node: Option<NodeData> {Default:None}
+    - remain_proc_time: i32 {Default:0}
+
+    + allocate(&NodeData) : bool;
+    + process() : ProcessResult;
+    ~ return_allocated_node_data() : Option<NodeData>;
+}
+
+ProcessorBase <|-- HomogeneousProcessor
+HomogeneousProcessor o-- Core
+Core *-- ProcessResult
+
+
+
+@enduml
