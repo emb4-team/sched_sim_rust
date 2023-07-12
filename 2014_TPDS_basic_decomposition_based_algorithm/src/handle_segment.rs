@@ -66,9 +66,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
 }
 
 fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut Segment) {
-    if segment.nodes.is_empty() {
-        unreachable!("Segment is empty")
-    }
+    assert!(!segment.nodes.is_empty());
 
     segment.classification =
         if segment.parallel_degree as f32 > volume / ((2.0 * period) - crit_path_len) {
@@ -79,7 +77,7 @@ fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut 
 }
 
 #[allow(dead_code)] //TODO: remove
-fn classify_segments(
+fn classify_dag(
     volume: f32,
     period: f32,
     crit_path_len: f32,
@@ -94,7 +92,7 @@ fn classify_segments(
         match segment.classification {
             Some(SegmentClassification::Heavy) => heavy_count += 1,
             Some(SegmentClassification::Light) => light_count += 1,
-            None => unreachable!("Segment classification error"),
+            _ => unreachable!("Segment classification error"),
         }
     }
 
