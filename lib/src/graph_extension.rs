@@ -33,6 +33,7 @@ pub trait GraphExtension {
     fn calculate_earliest_start_times(&mut self);
     fn calculate_earliest_finish_times(&mut self);
     fn calculate_latest_start_times(&mut self);
+    fn calculate_latest_finish_times(&mut self);
     fn get_critical_path(&mut self) -> Vec<NodeIndex>;
     fn get_non_critical_nodes(&self, critical_path: &[NodeIndex]) -> Option<Vec<NodeIndex>>;
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
@@ -160,10 +161,9 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     /// Calculate the earliest start times for each node in the DAG.
     fn calculate_earliest_start_times(&mut self) {
-        let sorted_nodes = toposort(&*self, None).unwrap();
         let mut earliest_start_times = vec![0; self.node_count()];
 
-        for &node_i in sorted_nodes.iter() {
+        for node_i in self.node_indices() {
             let max_earliest_start_time = self
                 .edges_directed(node_i, Incoming)
                 .map(|edge| {
@@ -189,15 +189,10 @@ impl GraphExtension for Graph<NodeData, i32> {
 
     fn calculate_earliest_finish_times(&mut self) {
         self.calculate_earliest_start_times();
-        let sorted_nodes = toposort(&*self, None).unwrap();
 
-        let mut earliest_finish_times = vec![0; self.node_count()];
-
-        for &node_i in sorted_nodes.iter() {
-            let exe_time = self[node_i].params["execution_time"];
-            let earliest_finish_time = self[node_i].params["earliest_start_time"] + exe_time;
-
-            earliest_finish_times[node_i.index()] = earliest_finish_time;
+        for node_i in self.node_indices() {
+            let earliest_finish_time =
+                self[node_i].params["earliest_start_time"] + self[node_i].params["execution_time"];
             if self[node_i].params.contains_key("earliest_finish_time") {
                 self.update_param(node_i, "earliest_finish_time", earliest_finish_time);
             } else {
@@ -210,8 +205,7 @@ impl GraphExtension for Graph<NodeData, i32> {
     fn calculate_latest_start_times(&mut self) {
         self.calculate_earliest_start_times();
         let sorted_nodes = toposort(&*self, None).unwrap();
-        let node_count = self.node_count();
-        let mut latest_start_times = vec![i32::MAX; node_count];
+        let mut latest_start_times = vec![i32::MAX; self.node_count()];
         let sink_node_index = self.get_sink_nodes();
         latest_start_times[sink_node_index[0].index()] =
             self[sink_node_index[0]].params["earliest_start_time"];
@@ -240,6 +234,21 @@ impl GraphExtension for Graph<NodeData, i32> {
             "The latest start times should be non-negative."
         );
     }
+
+    fn calculate_latest_finish_times(&mut self) {
+        self.calculate_latest_start_times();
+
+        for node_i in self.node_indices() {
+            let latest_finish_time =
+                self[node_i].params["latest_start_time"] + self[node_i].params["execution_time"];
+            if self[node_i].params.contains_key("latest_finish_time") {
+                self.update_param(node_i, "latest_finish_time", latest_finish_time);
+            } else {
+                self.add_param(node_i, "latest_finish_time", latest_finish_time);
+            }
+        }
+    }
+
     /// Returns the critical path of a DAG
     /// Multiple critical paths are obtained using Breadth-First Search, BFS
     ///
@@ -667,6 +676,32 @@ mod tests {
         assert_eq!(dag[n2].params["latest_start_time"], 4);
         assert_eq!(dag[n3].params["latest_start_time"], 77);
         assert_eq!(dag[n4].params["latest_start_time"], 59);
+    }
+
+    #[test]
+    fn test_calculate_lasted_finish_times_normal() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4));
+        let n1 = dag.add_node(create_node(1, "execution_time", 7));
+        let n2 = dag.add_node(create_node(2, "execution_time", 55));
+        let n3 = dag.add_node(create_node(3, "execution_time", 36));
+        let n4 = dag.add_node(create_node(4, "execution_time", 54));
+        dag.add_edge(n0, n1, 1);
+        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n1, n3, 1);
+        dag.add_edge(n2, n4, 1);
+        dag.add_dummy_sink_node();
+        dag.add_dummy_source_node();
+
+        dag.calculate_latest_finish_times();
+        dag.remove_dummy_sink_node();
+        dag.remove_dummy_source_node();
+
+        assert_eq!(dag[n0].params["latest_finish_time"], 4);
+        assert_eq!(dag[n1].params["latest_finish_time"], 77);
+        assert_eq!(dag[n2].params["latest_finish_time"], 59);
+        assert_eq!(dag[n3].params["latest_finish_time"], 113);
+        assert_eq!(dag[n4].params["latest_finish_time"], 113);
     }
 
     #[test]
