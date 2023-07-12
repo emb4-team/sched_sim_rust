@@ -42,7 +42,6 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
         } else {
             earliest_finish_times[i - 1]
         };
-
         let end_range = earliest_finish_times[i];
 
         let segment = Segment {
@@ -55,6 +54,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             parallel_degree: 0,
             volume: 0,
         };
+
         segments.push(segment);
     }
 
@@ -120,7 +120,6 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
     let crit_path_len = dag.get_total_wcet_from_nodes(&crit_path) as f32;
 
     let classification = classify_dag(volume, period, crit_path_len, segments);
-
     match classification {
         DAGClassification::Heavy => {
             for segment in segments {
@@ -134,7 +133,6 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
         }
         DAGClassification::Mixture => {
             let (mut heavy_segment_volume, mut light_segment_length) = (0, 0);
-
             for segment in segments.iter_mut() {
                 match segment.classification {
                     Some(SegmentClassification::Heavy) => {
@@ -148,7 +146,6 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
             }
 
             let light_segment_period = crit_path_len / 2.0;
-
             for segment in segments {
                 match segment.classification {
                     Some(SegmentClassification::Heavy) => {
