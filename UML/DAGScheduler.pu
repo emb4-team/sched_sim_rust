@@ -1,4 +1,4 @@
-@startuml proposed_sched
+@startuml DAG_Scheduler
 title Proposed Scheduler
 
     interface DAGSchedulerBase<T: ProcessorBase + Clone> {

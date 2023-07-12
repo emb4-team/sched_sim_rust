@@ -1,4 +1,4 @@
-@startuml proposed_sched
+@startuml DAGSet_Scheduler
 title Proposed Scheduler
 
     interface DAGSetSchedulerBase<T: ProcessorBase + Clone> {
