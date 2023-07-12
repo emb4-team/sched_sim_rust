@@ -42,13 +42,18 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
         } else {
             earliest_finish_times[i - 1]
         };
+
+        let end_range = earliest_finish_times[i];
+
         let segment = Segment {
             nodes: Vec::new(),
             begin_range,
-            end_range: earliest_finish_times[i],
+            end_range,
             deadline: 0.0,
             classification: None,
+            exe_req: end_range - begin_range,
             parallel_degree: 0,
+            volume: 0,
         };
         segments.push(segment);
     }
