@@ -16,9 +16,11 @@ pub struct Segment {
     pub nodes: Vec<NodeData>,
     pub begin_range: i32,
     pub end_range: i32,
-    pub deadline: f32, //TODO: use
+    pub deadline: f32,
     pub classification: Option<SegmentClassification>,
+    pub exe_req: i32, // execution requirement
     pub parallel_degree: i32,
+    pub volume: i32,
 }
 
 #[allow(dead_code)] //TODO: remove
