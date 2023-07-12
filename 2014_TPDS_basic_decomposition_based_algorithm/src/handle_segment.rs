@@ -84,7 +84,6 @@ fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut 
         };
 }
 
-#[allow(dead_code)] //TODO: remove
 fn classify_dag(
     volume: f32,
     period: f32,
@@ -255,7 +254,6 @@ mod tests {
 
     #[test]
     fn test_calculate_segments_deadline_normal_heavy() {
-        //Heavy
         let mut dag = create_sample_dag(150);
         let mut segments = create_segments(&mut dag);
         calculate_segments_deadline(&mut dag, &mut segments);
@@ -269,7 +267,6 @@ mod tests {
 
     #[test]
     fn test_calculate_segments_deadline_normal_light() {
-        //Light
         let mut dag = create_sample_dag(65);
         let mut segments = create_segments(&mut dag);
         calculate_segments_deadline(&mut dag, &mut segments);
@@ -283,7 +280,6 @@ mod tests {
 
     #[test]
     fn test_calculate_segments_deadline_normal_mixture() {
-        //Mixture
         let mut dag = create_sample_dag(120);
         let mut segments = create_segments(&mut dag);
         calculate_segments_deadline(&mut dag, &mut segments);
