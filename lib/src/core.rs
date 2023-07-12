@@ -67,9 +67,9 @@ impl Core {
             node_data
                 .params
                 .insert("execution_time".to_string(), self.remain_proc_time);
+            self.is_idle = true;
             self.processing_node = None;
             self.remain_proc_time = 0;
-            self.is_idle = true;
             Some(node_data)
         }
     }
