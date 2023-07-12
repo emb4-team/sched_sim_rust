@@ -254,18 +254,7 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_segments_deadline_normal() {
-        //Mixture
-        let mut dag = create_sample_dag(120);
-        let mut segments = create_segments(&mut dag);
-        calculate_segments_deadline(&mut dag, &mut segments);
-
-        assert_eq!(segments[0].deadline, 3.2285714);
-        assert_eq!(segments[1].deadline, 10.33721);
-        assert_eq!(segments[2].deadline, 53.16279);
-        assert_eq!(segments[3].deadline, 9.685715);
-        assert_eq!(segments[4].deadline, 43.585712);
-
+    fn test_calculate_segments_deadline_normal_heavy() {
         //Heavy
         let mut dag = create_sample_dag(150);
         let mut segments = create_segments(&mut dag);
@@ -276,7 +265,10 @@ mod tests {
         assert_eq!(segments[2].deadline, 69.23077);
         assert_eq!(segments[3].deadline, 11.538462);
         assert_eq!(segments[4].deadline, 51.923077);
+    }
 
+    #[test]
+    fn test_calculate_segments_deadline_normal_light() {
         //Light
         let mut dag = create_sample_dag(65);
         let mut segments = create_segments(&mut dag);
@@ -287,5 +279,19 @@ mod tests {
         assert_eq!(segments[2].deadline, 20.707964);
         assert_eq!(segments[3].deadline, 6.9026546);
         assert_eq!(segments[4].deadline, 31.061947);
+    }
+
+    #[test]
+    fn test_calculate_segments_deadline_normal_mixture() {
+        //Mixture
+        let mut dag = create_sample_dag(120);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 3.2285714);
+        assert_eq!(segments[1].deadline, 10.33721);
+        assert_eq!(segments[2].deadline, 53.16279);
+        assert_eq!(segments[3].deadline, 9.685715);
+        assert_eq!(segments[4].deadline, 43.585712);
     }
 }
