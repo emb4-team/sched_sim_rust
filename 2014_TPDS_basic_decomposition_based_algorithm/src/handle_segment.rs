@@ -20,7 +20,7 @@ pub struct Segment {
     pub classification: Option<SegmentClassification>,
     pub execution_requirement: i32, // end_range - begin_range
     pub parallel_degree: i32,       // number of nodes in the segment
-    pub volume: i32,                // execution_requirement * volume
+    pub volume: i32,                // execution_requirement * nodes.len()
 }
 
 #[allow(dead_code)] //TODO: remove
@@ -132,7 +132,7 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
         }
         DAGClassification::Mixture => {
             let (mut heavy_segment_volume, mut light_segment_length) = (0, 0);
-            for segment in segments.iter_mut() {
+            for segment in segments.iter() {
                 match segment.classification {
                     Some(SegmentClassification::Heavy) => {
                         heavy_segment_volume += segment.volume;
