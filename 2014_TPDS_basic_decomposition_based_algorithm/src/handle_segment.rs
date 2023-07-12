@@ -65,6 +65,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             {
                 segment.nodes.push(node.clone());
                 segment.parallel_degree += 1;
+                segment.volume += segment.exe_req;
             }
         }
     }
