@@ -104,7 +104,6 @@ pub struct DAGSetLog {
 impl DAGSetLog {
     pub fn new(dag_set: &[Graph<NodeData, i32>]) -> Self {
         let mut dag_set_log = Vec::with_capacity(dag_set.len());
-
         for i in 0..dag_set.len() {
             dag_set_log.push(DAGLog::new(i));
         }
@@ -166,16 +165,17 @@ pub struct NodeLogs {
 impl NodeLogs {
     pub fn new(dag: &Graph<NodeData, i32>) -> Self {
         let mut node_logs = Vec::with_capacity(dag.node_count());
-
         for node in dag.node_indices() {
             node_logs.push(NodeLog::new(0, dag[node].id as usize));
         }
         Self { node_logs }
     }
+
     pub fn dump_node_logs_to_yaml(&self, file_path: &str) {
         let node_logs = NodeLogs {
             node_logs: self.node_logs.to_vec(),
         };
+
         let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
         append_info_to_yaml(file_path, &yaml);
     }
@@ -189,7 +189,6 @@ pub struct NodeSetLogs {
 impl NodeSetLogs {
     pub fn new(dag_set: &[Graph<NodeData, i32>]) -> Self {
         let mut node_set_logs = Vec::with_capacity(dag_set.len());
-
         for (i, dag) in dag_set.iter().enumerate() {
             let mut node_logs = Vec::with_capacity(dag.node_count());
             for node in dag.node_indices() {
@@ -197,6 +196,7 @@ impl NodeSetLogs {
             }
             node_set_logs.push(node_logs);
         }
+
         Self { node_set_logs }
     }
 
@@ -268,6 +268,7 @@ impl CoreLog {
             utilization: Default::default(),
         }
     }
+
     fn calculate_utilization(&mut self, schedule_length: i32) {
         self.utilization = self.total_proc_time as f32 / schedule_length as f32;
     }
