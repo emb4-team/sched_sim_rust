@@ -16,9 +16,11 @@ pub struct Segment {
     pub nodes: Vec<NodeData>,
     pub begin_range: i32,
     pub end_range: i32,
-    pub deadline: f32, //TODO: use
+    pub deadline: f32,
     pub classification: Option<SegmentClassification>,
-    pub parallel_degree: i32,
+    pub execution_requirement: i32, // end_range - begin_range
+    pub parallel_degree: i32,       // number of nodes in the segment
+    pub volume: i32,                // execution_requirement * nodes.len()
 }
 
 #[allow(dead_code)] //TODO: remove
@@ -40,14 +42,19 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
         } else {
             earliest_finish_times[i - 1]
         };
+        let end_range = earliest_finish_times[i];
+
         let segment = Segment {
             nodes: Vec::new(),
             begin_range,
-            end_range: earliest_finish_times[i],
+            end_range,
             deadline: 0.0,
             classification: None,
+            execution_requirement: end_range - begin_range,
             parallel_degree: 0,
+            volume: 0,
         };
+
         segments.push(segment);
     }
 
@@ -58,6 +65,7 @@ pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
             {
                 segment.nodes.push(node.clone());
                 segment.parallel_degree += 1;
+                segment.volume += segment.execution_requirement;
             }
         }
     }
@@ -76,7 +84,6 @@ fn classify_segment(volume: f32, period: f32, crit_path_len: f32, segment: &mut 
         };
 }
 
-#[allow(dead_code)] //TODO: remove
 fn classify_dag(
     volume: f32,
     period: f32,
@@ -101,6 +108,58 @@ fn classify_dag(
         (true, false) => DAGClassification::Heavy,
         (false, true) => DAGClassification::Light,
         _ => unreachable!("Segments classification error"),
+    }
+}
+
+#[allow(dead_code)] //TODO: remove
+pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mut [Segment]) {
+    let volume = dag.get_volume() as f32;
+    let period = dag.get_head_period().unwrap() as f32;
+    let crit_path = dag.get_critical_path();
+    let crit_path_len = dag.get_total_wcet_from_nodes(&crit_path) as f32;
+
+    let classification = classify_dag(volume, period, crit_path_len, segments);
+    match classification {
+        DAGClassification::Heavy => {
+            for segment in segments {
+                segment.deadline = (period / volume) * segment.volume as f32;
+            }
+        }
+        DAGClassification::Light => {
+            for segment in segments {
+                segment.deadline = (period / crit_path_len) * segment.execution_requirement as f32;
+            }
+        }
+        DAGClassification::Mixture => {
+            let (mut heavy_segment_volume, mut light_segment_length) = (0, 0);
+            for segment in segments.iter() {
+                match segment.classification {
+                    Some(SegmentClassification::Heavy) => {
+                        heavy_segment_volume += segment.volume;
+                    }
+                    Some(SegmentClassification::Light) => {
+                        light_segment_length += segment.execution_requirement;
+                    }
+                    _ => unreachable!("Segment classification error"),
+                }
+            }
+
+            let light_segment_period = crit_path_len / 2.0;
+            for segment in segments {
+                match segment.classification {
+                    Some(SegmentClassification::Heavy) => {
+                        segment.deadline = (period - light_segment_period)
+                            / heavy_segment_volume as f32
+                            * segment.volume as f32;
+                    }
+                    Some(SegmentClassification::Light) => {
+                        segment.deadline = light_segment_period / light_segment_length as f32
+                            * segment.execution_requirement as f32;
+                    }
+                    _ => unreachable!("Segment classification error"),
+                }
+            }
+        }
     }
 }
 
@@ -191,5 +250,44 @@ mod tests {
         assert_eq!(segments[2].end_range, 47);
         assert_eq!(segments[3].begin_range, 47);
         assert_eq!(segments[3].end_range, 65);
+    }
+
+    #[test]
+    fn test_calculate_segments_deadline_normal_heavy() {
+        let mut dag = create_sample_dag(150);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 3.8461537);
+        assert_eq!(segments[1].deadline, 13.461538);
+        assert_eq!(segments[2].deadline, 69.23077);
+        assert_eq!(segments[3].deadline, 11.538462);
+        assert_eq!(segments[4].deadline, 51.923077);
+    }
+
+    #[test]
+    fn test_calculate_segments_deadline_normal_light() {
+        let mut dag = create_sample_dag(65);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 2.300885);
+        assert_eq!(segments[1].deadline, 4.026549);
+        assert_eq!(segments[2].deadline, 20.707964);
+        assert_eq!(segments[3].deadline, 6.9026546);
+        assert_eq!(segments[4].deadline, 31.061947);
+    }
+
+    #[test]
+    fn test_calculate_segments_deadline_normal_mixture() {
+        let mut dag = create_sample_dag(120);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
+
+        assert_eq!(segments[0].deadline, 3.2285714);
+        assert_eq!(segments[1].deadline, 10.33721);
+        assert_eq!(segments[2].deadline, 53.16279);
+        assert_eq!(segments[3].deadline, 9.685715);
+        assert_eq!(segments[4].deadline, 43.585712);
     }
 }

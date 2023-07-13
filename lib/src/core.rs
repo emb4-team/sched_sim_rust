@@ -58,6 +58,21 @@ impl Core {
         }
         Continue
     }
+
+    pub fn suspend_execution(&mut self) -> Option<NodeData> {
+        if self.is_idle {
+            None
+        } else {
+            let mut node_data = self.processing_node.clone().unwrap();
+            node_data
+                .params
+                .insert("execution_time".to_string(), self.remain_proc_time);
+            self.is_idle = true;
+            self.processing_node = None;
+            self.remain_proc_time = 0;
+            Some(node_data)
+        }
+    }
 }
 
 #[cfg(test)]
