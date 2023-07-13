@@ -154,7 +154,6 @@ where
             dag.set_dag_id(dag_id);
             let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            //dag_state_managers[dag_id].set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
             dag_state_managers[dag_id].set_minimum_cores(minimum_cores as i32);
             dag_state_managers[dag_id].set_execution_order(execution_order);
             log.write_dag_minimum_cores_log(dag_id, dag_state_managers[dag_id].minimum_cores);
