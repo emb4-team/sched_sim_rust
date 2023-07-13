@@ -4,18 +4,18 @@ use petgraph::graph::Graph;
 use crate::handle_segment::*;
 
 #[allow(dead_code)]
-pub fn decompose(dag: &mut Graph<NodeData, i32>) {
+pub fn decompose(dag: &mut Graph<NodeData, i32>) -> Vec<f32> {
     let mut segments = create_segments(dag);
     calculate_segments_deadline(dag, &mut segments);
 
-    //let mut nodes_deadline = vec![0.0; dag.node_count()];
-    for segment in segments.iter_mut() {
-        segment.nodes.iter_mut().for_each(|node| {
-            //nodes_deadline[node.id as usize] += segment.deadline;
-            node.params
-                .insert("deadline".to_string(), segment.deadline as i32);
+    let mut nodes_deadline = vec![0.0; dag.node_count()];
+    for segment in segments.iter() {
+        segment.nodes.iter().for_each(|node| {
+            nodes_deadline[node.id as usize] += segment.deadline;
         });
     }
+
+    nodes_deadline
 }
 
 #[cfg(test)]
@@ -48,7 +48,13 @@ mod tests {
 
     #[test]
     fn test_decompose_normal() {
-        let mut dag = create_sample_dag(100);
-        decompose(&mut dag);
+        let mut dag = create_sample_dag(120);
+        let node_deadline = decompose(&mut dag);
+
+        assert_eq!(node_deadline[0], 3.2285714);
+        assert_eq!(node_deadline[1], 10.33721);
+        assert_eq!(node_deadline[2], 73.185715);
+        assert_eq!(node_deadline[3], 53.16279);
+        assert_eq!(node_deadline[4], 43.585712);
     }
 }
