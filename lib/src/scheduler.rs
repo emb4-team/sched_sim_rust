@@ -136,12 +136,9 @@ where
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
-        self.dump_characteristic_log(&file_path);
 
         file_path
     }
-
-    fn dump_characteristic_log(&mut self, file_path: &str);
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
@@ -154,9 +151,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
-        self.dump_characteristic_log(&file_path);
 
         file_path
     }
-    fn dump_characteristic_log(&mut self, file_path: &str);
 }

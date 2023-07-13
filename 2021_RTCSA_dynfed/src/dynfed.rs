@@ -156,7 +156,6 @@ where
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
             dag_state_managers[dag_id].set_minimum_cores(minimum_cores as i32);
             dag_state_managers[dag_id].set_execution_order(execution_order);
-            log.write_dag_minimum_cores_log(dag_id, dag_state_managers[dag_id].minimum_cores);
         }
 
         let mut head_offsets: Vec<i32> = self
@@ -281,8 +280,6 @@ where
     fn set_log(&mut self, log: DAGSetSchedulerLog) {
         self.log = log;
     }
-
-    fn dump_characteristic_log(&mut self, _file_path: &str) {}
 }
 
 #[cfg(test)]
@@ -361,7 +358,6 @@ mod tests {
         assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].release_time, 0);
         assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].start_time, 50);
         assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].finish_time, 103);
-        assert_eq!(dynfed.log.dag_set_log.dag_set_log[1].minimum_cores, 2);
 
         assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].core_id, 0);
         assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].dag_id, 1);

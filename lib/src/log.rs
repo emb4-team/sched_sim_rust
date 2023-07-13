@@ -52,7 +52,6 @@ pub struct DAGLog {
     pub release_time: i32,
     pub start_time: i32,
     pub finish_time: i32,
-    pub minimum_cores: i32,
 }
 
 impl DAGLog {
@@ -62,7 +61,6 @@ impl DAGLog {
             release_time: Default::default(),
             start_time: Default::default(),
             finish_time: Default::default(),
-            minimum_cores: Default::default(),
         }
     }
 }
@@ -329,10 +327,6 @@ impl DAGSetSchedulerLog {
             node_set_logs: NodeSetLogs::new(dag_set),
             processor_log: ProcessorLog::new(num_cores),
         }
-    }
-
-    pub fn write_dag_minimum_cores_log(&mut self, dag_id: usize, minimum_cores: i32) {
-        self.dag_set_log.dag_set_log[dag_id].minimum_cores = minimum_cores;
     }
 
     pub fn write_dag_release_time_log(&mut self, dag_id: usize, release_time: i32) {

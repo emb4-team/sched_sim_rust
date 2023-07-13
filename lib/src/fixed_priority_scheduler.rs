@@ -67,8 +67,6 @@ where
             })
         });
     }
-
-    fn dump_characteristic_log(&mut self, _file_path: &str) {}
 }
 
 #[cfg(test)]

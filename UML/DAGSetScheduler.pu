@@ -8,7 +8,6 @@ title Proposed Scheduler
         + {abstract} get_log() : DAGSchedulerLog
         + {abstract} set_log(DAGSchedulerLog)
         + {static} dump_log(&str, &str)
-        + {abstract} dump_characteristic_log(&str)
     }
 
     note left of DAGSetSchedulerBase::dump_log
@@ -38,7 +37,6 @@ title Proposed Scheduler
         - processor_log: ProcessorLog
 
         + {static} new(&[Graph<NodeData, i32>], usize) : DAGSetSchedulerLog
-        + {static} write_dag_minimum_cores_log(usize, i32)
         + {static} write_dag_release_time_log(usize, i32)
         + {static} write_dag_start_time_log(usize, i32)
         + {static} write_dag_finish_time_log(usize, i32)
@@ -60,7 +58,6 @@ title Proposed Scheduler
         + {static} get_name() : String
         + {static} get_log() : DAGSchedulerLog
         + {static} set_log(DAGSchedulerLog)
-        + {static} dump_characteristic_log(&str)
     }
 
     struct DAGSetLog {
@@ -75,7 +72,6 @@ title Proposed Scheduler
         - release_time: i32
         - start_time: i32
         - finish_time: i32
-        - minimum_cores: i32
 
         + {static} new(usize) : DAGLog
     }
