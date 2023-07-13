@@ -17,16 +17,27 @@ title Proposed Scheduler
     struct DAGSetInfo {
         - total_utilization: f32
         - each_dag_info: Vec<DAGInfo>
+
+        + {static} new(&[Graph]) : DAGSetInfo
+        + {static} dump_dag_set_info_to_yaml(&str)
     }
 
     struct DAGInfo {
         - critical_path_length: i32
         - end_to_end_deadline: i32
         - volume: i32
+
+        + {static} new(&Graph) : DAGInfo
+        + {static} dump_dag_info_to_yaml(&str)
+        + {static} get_utilization() : f32
+
     }
 
     struct ProcessorInfo {
         - number_of_cores: usize
+
+        + {static} new(usize) : ProcessorInfo
+        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAGSetSchedulerLog {

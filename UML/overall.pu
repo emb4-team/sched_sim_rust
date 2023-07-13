@@ -9,11 +9,10 @@ title Proposed Scheduler
         + {abstract} set_log(DAGSchedulerLog)
         + {abstract} get_dag() : Graph
         + {abstract} get_processor() : T
-        + {abstract} get_log() : DAGSchedulerLog
+        + {abstract} get_log() : &DAGSchedulerLog
         + {static} schedule() : (i32, VecDeque)
         + {abstract} sort_ready_queue(VecDeque)
         + {static} dump_log(&str, &str)
-        + {abstract} dump_characteristic_log(&str)
     }
 
     note left of DAGSchedulerBase::schedule
@@ -28,10 +27,18 @@ title Proposed Scheduler
         - critical_path_length: i32
         - end_to_end_deadline: i32
         - volume: i32
+
+        + {static} new(&Graph) : DAGInfo
+        + {static} dump_dag_info_to_yaml(&str)
+        + {static} get_utilization() : f32
+
     }
 
     struct ProcessorInfo {
         - number_of_cores: usize
+
+        + {static} new(usize) : ProcessorInfo
+        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAGSchedulerLog {
@@ -45,8 +52,6 @@ title Proposed Scheduler
         + {static} write_finishing_node_log(&NodeData, i32)
         + {static} write_scheduling_log(i32)
         + {static} dump_log_to_yaml(&str)
-        + {static} dump_dag_info_to_yaml(&str)
-        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAG_Scheduler<T: ProcessorBase + Clone> {
@@ -125,7 +130,6 @@ title Proposed Scheduler
         + {abstract} get_log() : DAGSchedulerLog
         + {abstract} set_log(DAGSchedulerLog)
         + {static} dump_log(&str, &str)
-        + {abstract} dump_characteristic_log(&str)
     }
 
     note left of DAGSetSchedulerBase::dump_log
@@ -135,16 +139,27 @@ title Proposed Scheduler
     struct DAGSetInfo {
         - total_utilization: f32
         - each_dag_info: Vec<DAGInfo>
+
+        + {static} new(&[Graph]) : DAGSetInfo
+        + {static} dump_dag_set_info_to_yaml(&str)
     }
 
     struct DAGInfo {
         - critical_path_length: i32
         - end_to_end_deadline: i32
         - volume: i32
+
+        + {static} new(&Graph) : DAGInfo
+        + {static} dump_dag_info_to_yaml(&str)
+        + {static} get_utilization() : f32
+
     }
 
     struct ProcessorInfo {
         - number_of_cores: usize
+
+        + {static} new(usize) : ProcessorInfo
+        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAGSetSchedulerLog {
@@ -155,7 +170,6 @@ title Proposed Scheduler
         - processor_log: ProcessorLog
 
         + {static} new(&[Graph<NodeData, i32>], usize) : DAGSetSchedulerLog
-        + {static} write_dag_minimum_cores_log(usize, i32)
         + {static} write_dag_release_time_log(usize, i32)
         + {static} write_dag_start_time_log(usize, i32)
         + {static} write_dag_finish_time_log(usize, i32)
@@ -177,7 +191,6 @@ title Proposed Scheduler
         + {static} get_name() : String
         + {static} get_log() : DAGSchedulerLog
         + {static} set_log(DAGSchedulerLog)
-        + {static} dump_characteristic_log(&str)
     }
 
     struct DAGSetLog {
@@ -192,7 +205,6 @@ title Proposed Scheduler
         - release_time: i32
         - start_time: i32
         - finish_time: i32
-        - minimum_cores: i32
 
         + {static} new(usize) : DAGLog
     }

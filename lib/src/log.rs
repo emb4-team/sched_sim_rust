@@ -1,3 +1,4 @@
+use log::warn;
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 
@@ -12,16 +13,87 @@ pub struct DAGSetInfo {
     pub each_dag_info: Vec<DAGInfo>,
 }
 
+impl DAGSetInfo {
+    pub fn new(dag_set: &mut [Graph<NodeData, i32>]) -> Self {
+        let mut total_utilization = 0.0;
+        let mut each_dag_info = Vec::new();
+
+        for dag in dag_set.iter_mut() {
+            let dag_info = DAGInfo::new(dag);
+            total_utilization += dag_info.volume as f32 / dag_info.period as f32;
+            each_dag_info.push(dag_info);
+        }
+
+        Self {
+            total_utilization,
+            each_dag_info,
+        }
+    }
+
+    pub fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
+        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGSetInfo to YAML");
+        append_info_to_yaml(file_path, &yaml);
+    }
+}
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGInfo {
     pub critical_path_length: i32,
+    pub period: i32,
     pub end_to_end_deadline: i32,
     pub volume: i32,
+    pub utilization: f32,
+}
+
+impl DAGInfo {
+    pub fn new(dag: &mut Graph<NodeData, i32>) -> Self {
+        let period = dag.get_head_period().unwrap_or(0);
+        let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap_or(0);
+        let volume = dag.get_volume();
+        let utilization = match (end_to_end_deadline, period) {
+            (0, 0) => {
+                warn!("Both period and end_to_end_deadline are set.");
+                0.0
+            }
+            (0, _) => period as f32 / volume as f32,
+            (_, 0) => end_to_end_deadline as f32 / volume as f32,
+            (_, _) => period as f32 / volume as f32,
+        };
+
+        let critical_path = dag.get_critical_path();
+        Self {
+            critical_path_length: dag.get_total_wcet_from_nodes(&critical_path),
+            period,
+            end_to_end_deadline,
+            volume,
+            utilization,
+        }
+    }
+
+    pub fn dump_dag_info_to_yaml(&self, file_path: &str) {
+        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
+        append_info_to_yaml(file_path, &yaml);
+    }
+
+    pub fn get_utilization(&self) -> f32 {
+        self.utilization
+    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ProcessorInfo {
     pub number_of_cores: usize,
+}
+
+impl ProcessorInfo {
+    pub fn new(number_of_cores: usize) -> Self {
+        Self { number_of_cores }
+    }
+
+    pub fn dump_processor_info_to_yaml(&self, file_path: &str) {
+        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize ProcessorInfo to YAML");
+        append_info_to_yaml(file_path, &yaml);
+    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -211,24 +283,9 @@ pub struct DAGSchedulerLog {
 
 impl DAGSchedulerLog {
     pub fn new(dag: &mut Graph<NodeData, i32>, num_cores: usize) -> Self {
-        let volume = dag.get_volume();
-        let period = dag.get_head_period().unwrap_or(0);
-        let critical_path = dag.get_critical_path();
-        let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
-
-        let dag_info = DAGInfo {
-            critical_path_length,
-            end_to_end_deadline: period,
-            volume,
-        };
-
-        let processor_info = ProcessorInfo {
-            number_of_cores: num_cores,
-        };
-
         Self {
-            dag_info,
-            processor_info,
+            dag_info: DAGInfo::new(dag),
+            processor_info: ProcessorInfo::new(num_cores),
             node_logs: NodeLogs::new(dag),
             processor_log: ProcessorLog::new(num_cores),
         }
@@ -259,22 +316,10 @@ impl DAGSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        self.dump_dag_info_to_yaml(file_path);
-        self.dump_processor_info_to_yaml(file_path);
+        self.dag_info.dump_dag_info_to_yaml(file_path);
+        self.processor_info.dump_processor_info_to_yaml(file_path);
         self.node_logs.dump_node_logs_to_yaml(file_path);
         self.processor_log.dump_processor_log_to_yaml(file_path);
-    }
-
-    fn dump_dag_info_to_yaml(&self, file_path: &str) {
-        let yaml =
-            serde_yaml::to_string(&self.dag_info).expect("Failed to serialize DAGInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
-    }
-
-    fn dump_processor_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self.processor_info)
-            .expect("Failed to serialize ProcessorInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -290,39 +335,9 @@ pub struct DAGSetSchedulerLog {
 
 impl DAGSetSchedulerLog {
     pub fn new(dag_set: &mut [Graph<NodeData, i32>], num_cores: usize) -> Self {
-        let mut total_utilization = 0.0;
-        let mut dag_infos = Vec::new();
-        let mut node_logs = Vec::new();
-
-        for dag in dag_set.iter_mut() {
-            let volume = dag.get_volume();
-            let period = dag.get_head_period().unwrap();
-            let critical_path = dag.get_critical_path();
-            let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
-            total_utilization += volume as f32 / period as f32;
-
-            let dag_info = DAGInfo {
-                critical_path_length,
-                end_to_end_deadline: period,
-                volume,
-            };
-
-            dag_infos.push(dag_info);
-            node_logs.push(NodeLogs::new(dag));
-        }
-
-        let dag_set_info = DAGSetInfo {
-            total_utilization,
-            each_dag_info: dag_infos,
-        };
-
-        let processor_info = ProcessorInfo {
-            number_of_cores: num_cores,
-        };
-
         Self {
-            dag_set_info,
-            processor_info,
+            dag_set_info: DAGSetInfo::new(dag_set),
+            processor_info: ProcessorInfo::new(num_cores),
             dag_set_log: DAGSetLog::new(dag_set),
             node_set_logs: NodeSetLogs::new(dag_set),
             processor_log: ProcessorLog::new(num_cores),
@@ -368,22 +383,10 @@ impl DAGSetSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        self.dump_dag_set_info_to_yaml(file_path);
-        self.dump_processor_info_to_yaml(file_path);
+        self.dag_set_info.dump_dag_set_info_to_yaml(file_path);
+        self.processor_info.dump_processor_info_to_yaml(file_path);
         self.dag_set_log.dump_dag_set_log_to_yaml(file_path);
         self.node_set_logs.dump_node_set_logs_to_yaml(file_path);
         self.processor_log.dump_processor_log_to_yaml(file_path);
-    }
-
-    fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self.dag_set_info)
-            .expect("Failed to serialize DAGSetInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
-    }
-
-    fn dump_processor_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self.processor_info)
-            .expect("Failed to serialize ProcessorInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }

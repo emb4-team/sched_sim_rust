@@ -13,7 +13,6 @@ title Proposed Scheduler
         + {static} schedule() : (i32, VecDeque)
         + {abstract} sort_ready_queue(VecDeque)
         + {static} dump_log(&str, &str)
-        + {abstract} dump_characteristic_log(&str)
     }
 
     note left of DAGSchedulerBase::schedule
@@ -28,10 +27,18 @@ title Proposed Scheduler
         - critical_path_length: i32
         - end_to_end_deadline: i32
         - volume: i32
+
+        + {static} new(&Graph) : DAGInfo
+        + {static} dump_dag_info_to_yaml(&str)
+        + {static} get_utilization() : f32
+
     }
 
     struct ProcessorInfo {
         - number_of_cores: usize
+
+        + {static} new(usize) : ProcessorInfo
+        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAGSchedulerLog {
@@ -45,8 +52,6 @@ title Proposed Scheduler
         + {static} write_finishing_node_log(&NodeData, i32)
         + {static} write_scheduling_log(i32)
         + {static} dump_log_to_yaml(&str)
-        + {static} dump_dag_info_to_yaml(&str)
-        + {static} dump_processor_info_to_yaml(&str)
     }
 
     struct DAG_Scheduler<T: ProcessorBase + Clone> {

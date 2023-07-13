@@ -1,5 +1,5 @@
 use lib::{
-    graph_extension::{GraphExtension, NodeData},
+    graph_extension::NodeData,
     log::{DAGInfo, DAGSetInfo, ProcessorInfo},
     output_log::append_info_to_yaml,
     processor::ProcessorBase,
@@ -35,17 +35,8 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeDat
     let mut each_dag_info = Vec::new();
 
     for dag in dag_set.iter_mut() {
-        let volume = dag.get_volume();
-        let period = dag.get_head_period().unwrap();
-        let critical_path = dag.get_critical_path();
-        let critical_path_length = dag.get_total_wcet_from_nodes(&critical_path);
-        total_utilization += volume as f32 / period as f32;
-
-        let dag_info = DAGInfo {
-            critical_path_length,
-            end_to_end_deadline: period,
-            volume,
-        };
+        let dag_info = DAGInfo::new(dag);
+        total_utilization += dag_info.get_utilization();
 
         each_dag_info.push(dag_info);
     }
@@ -239,7 +230,7 @@ mod tests {
         assert_eq!(dag_set.total_utilization, 2.8);
         assert_eq!(dag_set.each_dag_info.len(), 2);
         assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8);
-        assert_eq!(dag_set.each_dag_info[1].end_to_end_deadline, 10);
+        assert_eq!(dag_set.each_dag_info[1].period, 10);
         assert_eq!(dag_set.each_dag_info[1].volume, 14);
 
         remove_file(file_path).unwrap();
