@@ -52,11 +52,14 @@ impl DAGInfo {
         let volume = dag.get_volume();
         let utilization = match (end_to_end_deadline, period) {
             (0, 0) => {
-                warn!("Both period and end_to_end_deadline are set.");
+                warn!("Both period and end_to_end_deadline are not set.");
+                0.0
+            }
+            (_, 0) => {
+                warn!("Period is not set.");
                 0.0
             }
             (0, _) => period as f32 / volume as f32,
-            (_, 0) => end_to_end_deadline as f32 / volume as f32,
             (_, _) => period as f32 / volume as f32,
         };
 
