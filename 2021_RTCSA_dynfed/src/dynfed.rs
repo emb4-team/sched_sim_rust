@@ -266,7 +266,7 @@ where
 
         log.write_scheduling_log(current_time);
 
-        self.set_log(log);
+        self.set_log_internal(log);
         current_time
     }
 
@@ -278,7 +278,7 @@ where
         self.log.clone()
     }
 
-    fn set_log(&mut self, log: DAGSetSchedulerLog) {
+    fn set_log_internal(&mut self, log: DAGSetSchedulerLog) {
         self.log = log;
     }
 

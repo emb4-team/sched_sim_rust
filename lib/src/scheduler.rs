@@ -146,7 +146,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn schedule(&mut self) -> i32;
     fn get_name(&self) -> String;
     fn get_log(&mut self) -> DAGSetSchedulerLog;
-    fn set_log(&mut self, log: DAGSetSchedulerLog);
+    fn set_log_internal(&mut self, log: DAGSetSchedulerLog);
     fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);
