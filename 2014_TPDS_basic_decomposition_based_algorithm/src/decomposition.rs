@@ -22,32 +22,23 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
             println!("{} 1 {}", node_deadline, node_deadline as i32);
             continue;
         }
-        let integer_part_str = node_deadline.trunc().abs().to_string();
-        let decimal_part_str = node_deadline
+
+        let rounded_node_deadline: f32 = format!("{:.5}", node_deadline).parse().unwrap();
+        let integer_part_str = rounded_node_deadline.trunc().abs().to_string();
+        let decimal_part_str = rounded_node_deadline
             .abs()
             .to_string()
             .chars()
             .skip(integer_part_str.len() + 1)
             .collect::<String>();
 
-        let mut decimal_part = decimal_part_str.parse::<f32>().unwrap();
-        decimal_part /= 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32;
-
-        let rounded_decimal_part: f32 = format!("{:.5}", decimal_part).parse().unwrap();
-        let rounded_deadline = integer_part_str.parse::<f32>().unwrap() + rounded_decimal_part;
-
-        let decimal_part_str = rounded_deadline
-            .abs()
-            .to_string()
-            .chars()
-            .skip(integer_part_str.len() + 1)
-            .collect::<String>();
+        let pow = 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32;
 
         println!(
-            "{} {} {}",
-            rounded_deadline,
-            decimal_part_str.len(),
-            rounded_deadline * 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32
+            "{} * {} = {}",
+            rounded_node_deadline,
+            pow,
+            rounded_node_deadline * pow
         );
     }
 }
