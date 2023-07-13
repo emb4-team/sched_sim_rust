@@ -6,9 +6,10 @@ title Proposed Scheduler
         + {abstract} get_name() : String
         + {abstract} set_dag(&Graph)
         + {abstract} set_processor(&T)
+        + {abstract} set_log(DAGSchedulerLog)
         + {abstract} get_dag() : Graph
         + {abstract} get_processor() : T
-        + {abstract} get_log() : &DAGSchedulerLog
+        + {abstract} get_log() : DAGSchedulerLog
         + {static} schedule() : (i32, VecDeque)
         + {abstract} sort_ready_queue(VecDeque)
         + {static} dump_log(&str, &str)
@@ -54,8 +55,9 @@ title Proposed Scheduler
         - log: DAGSchedulerLog
         + {static} new(Graph, T) : DAG_Scheduler
         + {static} get_name() : String
-        + {static} set_dag(Graph)
-        + {static} set_processor(T)
+        + {static} set_dag(&Graph)
+        + {static} set_processor(&T)
+        + {static} set_log(DAGSchedulerLog)
         + {static} get_dag() : Graph
         + {static} get_processor() : ProcessorBase
         + {static} get_log() : DAGSchedulerLog

@@ -21,15 +21,16 @@ where
     fn get_name(&self) -> String;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
+    fn set_log(&mut self, log: DAGSchedulerLog);
     fn get_dag(&mut self) -> Graph<NodeData, i32>;
     fn get_processor(&mut self) -> T;
-    fn get_log(&mut self) -> &mut DAGSchedulerLog;
+    fn get_log(&mut self) -> DAGSchedulerLog;
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         {
             let mut dag = self.get_dag(); //To avoid adding pre_node_count to the original DAG
             let mut processor = self.get_processor();
             let mut ready_queue = VecDeque::new();
-            let log = self.get_log();
+            let mut log = self.get_log();
             let mut execution_order = VecDeque::new();
             let source_node_i = dag.add_dummy_source_node();
 
@@ -124,6 +125,8 @@ where
             let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
             log.write_scheduling_log(schedule_length);
 
+            self.set_log(log);
+
             //Return the normalized total time taken to finish all tasks.
             (schedule_length, execution_order)
         }
@@ -146,7 +149,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn schedule(&mut self) -> i32;
     fn get_name(&self) -> String;
     fn get_log(&mut self) -> DAGSetSchedulerLog;
-    fn set_log_internal(&mut self, log: DAGSetSchedulerLog);
+    fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn dump_log(&mut self, dir_path: &str, algorithm_name: &str) -> String {
         let sched_name = format!("{}_{}", algorithm_name, self.get_name());
         let file_path = create_scheduler_log_yaml_file(dir_path, &sched_name);

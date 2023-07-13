@@ -40,6 +40,10 @@ where
         self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
     }
 
+    fn set_log(&mut self, log: DAGSchedulerLog) {
+        self.log = log;
+    }
+
     fn get_dag(&mut self) -> Graph<NodeData, i32> {
         self.dag.clone()
     }
@@ -48,8 +52,8 @@ where
         self.processor.clone()
     }
 
-    fn get_log(&mut self) -> &mut DAGSchedulerLog {
-        &mut self.log
+    fn get_log(&mut self) -> DAGSchedulerLog {
+        self.log.clone()
     }
 
     fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>) {
