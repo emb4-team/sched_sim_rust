@@ -36,17 +36,12 @@ impl DAGStateManager {
         }
     }
 
-    fn set_minimum_cores_and_execution_order<T>(
-        &mut self,
-        dag: &mut Graph<NodeData, i32>,
-        scheduler: &mut impl DAGSchedulerBase<T>,
-    ) where
-        T: ProcessorBase + Clone,
-    {
-        let (minimum_cores, execution_order) =
-            calculate_minimum_cores_and_execution_order(dag, scheduler);
-        self.minimum_cores = minimum_cores as i32;
-        self.execution_order = execution_order
+    fn set_minimum_cores(&mut self, minimum_cores: i32) {
+        self.minimum_cores = minimum_cores;
+    }
+
+    fn set_execution_order(&mut self, execution_order: VecDeque<NodeIndex>) {
+        self.execution_order = execution_order;
     }
 
     fn start(&mut self) {
@@ -157,8 +152,11 @@ where
 
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
-            dag_state_managers[dag_id]
-                .set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
+            let (minimum_cores, execution_order) =
+                calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
+            //dag_state_managers[dag_id].set_minimum_cores_and_execution_order(dag, &mut self.scheduler);
+            dag_state_managers[dag_id].set_minimum_cores(minimum_cores as i32);
+            dag_state_managers[dag_id].set_execution_order(execution_order);
             log.write_dag_minimum_cores_log(dag_id, dag_state_managers[dag_id].minimum_cores);
         }
 
