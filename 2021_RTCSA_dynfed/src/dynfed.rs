@@ -273,7 +273,7 @@ where
         "DynFed".to_string()
     }
 
-    fn get_log(&mut self) -> DAGSetSchedulerLog {
+    fn get_log(&self) -> DAGSetSchedulerLog {
         self.log.clone()
     }
 

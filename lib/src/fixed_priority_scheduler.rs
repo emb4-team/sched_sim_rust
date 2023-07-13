@@ -44,15 +44,15 @@ where
         self.log = log;
     }
 
-    fn get_dag(&mut self) -> Graph<NodeData, i32> {
+    fn get_dag(&self) -> Graph<NodeData, i32> {
         self.dag.clone()
     }
 
-    fn get_processor(&mut self) -> T {
+    fn get_processor(&self) -> T {
         self.processor.clone()
     }
 
-    fn get_log(&mut self) -> DAGSchedulerLog {
+    fn get_log(&self) -> DAGSchedulerLog {
         self.log.clone()
     }
 
