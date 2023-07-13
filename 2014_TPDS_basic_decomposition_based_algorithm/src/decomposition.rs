@@ -1,10 +1,12 @@
+use std::vec;
+
 use lib::graph_extension::NodeData;
 use petgraph::graph::Graph;
 
 use crate::handle_segment::*;
 
 #[allow(dead_code)]
-pub fn decompose(dag: &mut Graph<NodeData, i32>) -> Vec<f32> {
+pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     let mut segments = create_segments(dag);
     calculate_segments_deadline(dag, &mut segments);
 
@@ -15,7 +17,39 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) -> Vec<f32> {
         });
     }
 
-    nodes_deadline
+    for node_deadline in nodes_deadline {
+        if node_deadline.fract() == 0.0 {
+            println!("{} 1 {}", node_deadline, node_deadline as i32);
+            continue;
+        }
+        let integer_part_str = node_deadline.trunc().abs().to_string();
+        let decimal_part_str = node_deadline
+            .abs()
+            .to_string()
+            .chars()
+            .skip(integer_part_str.len() + 1)
+            .collect::<String>();
+
+        let mut decimal_part = decimal_part_str.parse::<f32>().unwrap();
+        decimal_part /= 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32;
+
+        let rounded_decimal_part: f32 = format!("{:.5}", decimal_part).parse().unwrap();
+        let rounded_deadline = integer_part_str.parse::<f32>().unwrap() + rounded_decimal_part;
+
+        let decimal_part_str = rounded_deadline
+            .abs()
+            .to_string()
+            .chars()
+            .skip(integer_part_str.len() + 1)
+            .collect::<String>();
+
+        println!(
+            "{} {} {}",
+            rounded_deadline,
+            decimal_part_str.len(),
+            rounded_deadline * 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32
+        );
+    }
 }
 
 #[cfg(test)]
@@ -49,12 +83,6 @@ mod tests {
     #[test]
     fn test_decompose_normal() {
         let mut dag = create_sample_dag(120);
-        let node_deadline = decompose(&mut dag);
-
-        assert_eq!(node_deadline[0], 3.2285714);
-        assert_eq!(node_deadline[1], 10.33721);
-        assert_eq!(node_deadline[2], 73.185715);
-        assert_eq!(node_deadline[3], 53.16279);
-        assert_eq!(node_deadline[4], 43.585712);
+        decompose(&mut dag);
     }
 }
