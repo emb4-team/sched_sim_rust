@@ -375,10 +375,10 @@ impl CoreLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSchedulerLog {
-    pub dag_info: DAGInfo,
-    pub processor_info: ProcessorInfo,
-    pub node_logs: NodeLogs,
-    pub processor_log: ProcessorLog,
+    dag_info: DAGInfo,
+    processor_info: ProcessorInfo,
+    node_logs: NodeLogs,
+    processor_log: ProcessorLog,
 }
 
 impl DAGSchedulerLog {
@@ -389,6 +389,38 @@ impl DAGSchedulerLog {
             node_logs: NodeLogs::new(dag),
             processor_log: ProcessorLog::new(num_cores),
         }
+    }
+
+    pub fn get_dag_info(&self) -> DAGInfo {
+        self.dag_info.clone()
+    }
+
+    pub fn get_processor_info(&self) -> ProcessorInfo {
+        self.processor_info.clone()
+    }
+
+    pub fn get_node_logs(&self) -> NodeLogs {
+        self.node_logs.clone()
+    }
+
+    pub fn get_processor_log(&self) -> ProcessorLog {
+        self.processor_log.clone()
+    }
+
+    pub fn set_dag_info(&mut self, dag_info: DAGInfo) {
+        self.dag_info = dag_info;
+    }
+
+    pub fn set_processor_info(&mut self, processor_info: ProcessorInfo) {
+        self.processor_info = processor_info;
+    }
+
+    pub fn set_node_logs(&mut self, node_logs: NodeLogs) {
+        self.node_logs = node_logs;
+    }
+
+    pub fn set_processor_log(&mut self, processor_log: ProcessorLog) {
+        self.processor_log = processor_log;
     }
 
     pub fn write_allocating_log(

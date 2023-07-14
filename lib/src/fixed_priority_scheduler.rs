@@ -32,12 +32,13 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.node_logs = NodeLogs::new(dag);
+        self.log.set_node_logs(NodeLogs::new(dag));
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.log.processor_log = ProcessorLog::new(processor.get_number_of_cores());
+        self.log
+            .set_processor_log(ProcessorLog::new(processor.get_number_of_cores()));
     }
 
     fn set_log(&mut self, log: DAGSchedulerLog) {
@@ -230,7 +231,7 @@ mod tests {
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
-                .processor_log
+                .get_processor_log()
                 .get_average_utilization(),
             0.61956525
         );
@@ -238,7 +239,7 @@ mod tests {
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
-                .processor_log
+                .get_processor_log()
                 .get_variance_utilization(),
             0.14473063
         );
@@ -246,7 +247,7 @@ mod tests {
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
-                .processor_log
+                .get_processor_log()
                 .get_core_logs()[0]
                 .get_core_id(),
             0
@@ -254,7 +255,7 @@ mod tests {
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
-                .processor_log
+                .get_processor_log()
                 .get_core_logs()[0]
                 .get_total_proc_time(),
             92
@@ -262,51 +263,91 @@ mod tests {
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
-                .processor_log
+                .get_processor_log()
                 .get_core_logs()[0]
                 .get_utilization(),
             1.0
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_core_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[0]
+                .get_core_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_dag_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[0]
+                .get_dag_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_node_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[0]
+                .get_node_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_start_time(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[0]
+                .get_start_time(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_finish_time(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[0]
+                .get_finish_time(),
             52
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_core_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[1]
+                .get_core_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_dag_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[1]
+                .get_dag_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_node_id(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[1]
+                .get_node_id(),
             1
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_start_time(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[1]
+                .get_start_time(),
             52
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_finish_time(),
+            fixed_priority_scheduler
+                .get_log()
+                .get_node_logs()
+                .get_node_logs()[1]
+                .get_finish_time(),
             92
         );
     }
