@@ -18,11 +18,11 @@ use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Clone, Debug)]
 pub struct DAGStateManager {
-    pub is_started: bool,
-    pub num_using_cores: i32,
-    pub num_allocated_cores: i32,
-    pub minimum_cores: i32,
-    pub execution_order: VecDeque<NodeIndex>,
+    is_started: bool,
+    num_using_cores: i32,
+    num_allocated_cores: i32,
+    minimum_cores: i32,
+    execution_order: VecDeque<NodeIndex>,
 }
 
 impl DAGStateManager {
@@ -36,12 +36,8 @@ impl DAGStateManager {
         }
     }
 
-    fn set_minimum_cores(&mut self, minimum_cores: i32) {
-        self.minimum_cores = minimum_cores;
-    }
-
-    fn set_execution_order(&mut self, execution_order: VecDeque<NodeIndex>) {
-        self.execution_order = execution_order;
+    fn get_is_started(&self) -> bool {
+        self.is_started
     }
 
     fn start(&mut self) {
@@ -53,16 +49,36 @@ impl DAGStateManager {
         self.minimum_cores <= total_processor_cores - total_allocated_cores
     }
 
+    fn decrement_num_using_cores(&mut self) {
+        self.num_using_cores -= 1;
+    }
+
+    fn get_unused_cores(&self) -> i32 {
+        self.num_allocated_cores - self.num_using_cores
+    }
+
+    fn release_allocated_cores(&mut self) {
+        self.num_allocated_cores = 0;
+    }
+
+    fn set_minimum_cores(&mut self, minimum_cores: i32) {
+        self.minimum_cores = minimum_cores;
+    }
+
+    fn front_execution_order(&self) -> Option<&NodeIndex> {
+        self.execution_order.front()
+    }
+
+    fn set_execution_order(&mut self, execution_order: VecDeque<NodeIndex>) {
+        self.execution_order = execution_order;
+    }
+
     fn allocate_head(&mut self) -> NodeIndex {
         if self.execution_order.is_empty() {
             panic!("Execution order is empty!");
         }
         self.num_using_cores += 1;
         self.execution_order.pop_front().unwrap()
-    }
-
-    fn get_unused_cores(&self) -> i32 {
-        self.num_allocated_cores - self.num_using_cores
     }
 }
 
@@ -199,11 +215,11 @@ where
             //Allocate the nodes of each DAG
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();
-                if !dag_state_managers[dag_id].is_started {
+                if !dag_state_managers[dag_id].get_is_started() {
                     continue;
                 }
 
-                while let Some(node_i) = dag_state_managers[dag_id].execution_order.front() {
+                while let Some(node_i) = dag_state_managers[dag_id].front_execution_order() {
                     let unused_cores = dag_state_managers[dag_id].get_unused_cores();
                     if dag.is_node_ready(*node_i) && unused_cores > 0 {
                         let node_id = dag[*node_i].id as usize;
@@ -243,7 +259,7 @@ where
 
             for finish_node_data in finish_nodes {
                 let dag_id = finish_node_data.params["dag_id"] as usize;
-                dag_state_managers[dag_id].num_using_cores -= 1;
+                dag_state_managers[dag_id].decrement_num_using_cores();
 
                 let dag = &mut self.dag_set[dag_id];
 
@@ -254,7 +270,7 @@ where
                 if suc_nodes.is_empty() {
                     finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
                     log.write_dag_finish_time_log(dag_id, current_time);
-                    dag_state_managers[dag_id].num_allocated_cores = 0; //When the last node is finished, the core allocated to dag is released.
+                    dag_state_managers[dag_id].release_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
                 }
 
                 for suc_node in suc_nodes {
