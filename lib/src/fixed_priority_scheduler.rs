@@ -73,12 +73,64 @@ where
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::fs::remove_file;
 
     use super::*;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
     use crate::scheduler_creator::{create_scheduler, SchedulerType};
     use petgraph::graph::{Graph, NodeIndex};
+    use serde_derive::Deserialize;
+
+    #[derive(Deserialize)]
+    struct TestDAGSchedulerLog {
+        dag_info: TestDAGInfo,
+        processor_info: TestProcessorInfo,
+        node_logs: TestNodeLogs,
+        processor_log: TestProcessorLog,
+    }
+
+    #[derive(Deserialize)]
+    struct TestDAGInfo {
+        critical_path_length: i32,
+        period: i32,
+        end_to_end_deadline: i32,
+        volume: i32,
+        utilization: f32,
+    }
+
+    #[derive(Deserialize)]
+    struct TestProcessorInfo {
+        number_of_cores: usize,
+    }
+
+    #[derive(Deserialize)]
+    struct TestNodeLogs {
+        node_logs: Vec<TestNodeLog>,
+    }
+
+    #[derive(Deserialize)]
+    struct TestNodeLog {
+        core_id: usize,
+        dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
+        node_id: usize,
+        start_time: i32,
+        finish_time: i32,
+    }
+
+    #[derive(Deserialize)]
+    struct TestProcessorLog {
+        average_utilization: f32,
+        variance_utilization: f32,
+        core_logs: Vec<TestCoreLog>,
+    }
+
+    #[derive(Deserialize)]
+    struct TestCoreLog {
+        core_id: usize,
+        total_proc_time: i32,
+        utilization: f32,
+    }
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -228,129 +280,30 @@ mod tests {
         );
         fixed_priority_scheduler.schedule();
 
-        let _file_path = fixed_priority_scheduler.dump_log("tests", "test");
+        let file_path = fixed_priority_scheduler.dump_log("tests", "test");
+        let file_contents = std::fs::read_to_string(&file_path).unwrap();
+        let result_info: TestDAGSchedulerLog = serde_yaml::from_str(&file_contents).unwrap();
 
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_processor_log()
-                .get_average_utilization(),
-            0.61956525
-        );
+        assert_eq!(result_info.dag_info.critical_path_length, 92);
+        assert_eq!(result_info.dag_info.period, 100);
+        assert_eq!(result_info.dag_info.end_to_end_deadline, 0);
+        assert_eq!(result_info.dag_info.volume, 114);
+        assert_eq!(result_info.dag_info.utilization, 0.877193);
 
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_processor_log()
-                .get_variance_utilization(),
-            0.14473063
-        );
+        assert_eq!(result_info.processor_info.number_of_cores, 2);
 
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_processor_log()
-                .get_core_logs()[0]
-                .get_core_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_processor_log()
-                .get_core_logs()[0]
-                .get_total_proc_time(),
-            92
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_processor_log()
-                .get_core_logs()[0]
-                .get_utilization(),
-            1.0
-        );
+        assert_eq!(result_info.processor_log.average_utilization, 0.61956525);
+        assert_eq!(result_info.processor_log.variance_utilization, 0.14473063);
+        assert_eq!(result_info.processor_log.core_logs[0].core_id, 0);
+        assert_eq!(result_info.processor_log.core_logs[0].total_proc_time, 92);
+        assert_eq!(result_info.processor_log.core_logs[0].utilization, 1.0);
 
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[0]
-                .get_core_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[0]
-                .get_dag_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[0]
-                .get_node_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[0]
-                .get_start_time(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[0]
-                .get_finish_time(),
-            52
-        );
+        assert_eq!(result_info.node_logs.node_logs[0].dag_id, 0);
+        assert_eq!(result_info.node_logs.node_logs[0].node_id, 0);
+        assert_eq!(result_info.node_logs.node_logs[0].core_id, 0);
+        assert_eq!(result_info.node_logs.node_logs[0].start_time, 0);
+        assert_eq!(result_info.node_logs.node_logs[0].finish_time, 52);
 
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[1]
-                .get_core_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[1]
-                .get_dag_id(),
-            0
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[1]
-                .get_node_id(),
-            1
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[1]
-                .get_start_time(),
-            52
-        );
-        assert_eq!(
-            fixed_priority_scheduler
-                .get_log()
-                .get_node_logs()
-                .get_node_logs()[1]
-                .get_finish_time(),
-            92
-        );
+        remove_file(file_path).unwrap();
     }
 }
