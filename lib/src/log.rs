@@ -14,11 +14,11 @@ pub struct DAGSetInfo {
 }
 
 impl DAGSetInfo {
-    pub fn new(dag_set: &mut [Graph<NodeData, i32>]) -> Self {
+    pub fn new(dag_set: &[Graph<NodeData, i32>]) -> Self {
         let mut total_utilization = 0.0;
         let mut each_dag_info = Vec::new();
 
-        for dag in dag_set.iter_mut() {
+        for dag in dag_set.iter() {
             let dag_info = DAGInfo::new(dag);
             total_utilization += dag_info.volume as f32 / dag_info.period as f32;
             each_dag_info.push(dag_info);
@@ -54,7 +54,7 @@ pub struct DAGInfo {
 }
 
 impl DAGInfo {
-    pub fn new(dag: &mut Graph<NodeData, i32>) -> Self {
+    pub fn new(dag: &Graph<NodeData, i32>) -> Self {
         let period = dag.get_head_period().unwrap_or(0);
         let end_to_end_deadline = dag.get_end_to_end_deadline().unwrap_or(0);
         let volume = dag.get_volume();
@@ -71,6 +71,7 @@ impl DAGInfo {
             (_, _) => period as f32 / volume as f32,
         };
 
+        let mut dag = dag.clone();
         let critical_path = dag.get_critical_path();
         Self {
             critical_path_length: dag.get_total_wcet_from_nodes(&critical_path),

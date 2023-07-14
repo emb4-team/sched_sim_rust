@@ -1,6 +1,6 @@
 use lib::{
     graph_extension::NodeData,
-    log::{DAGInfo, DAGSetInfo, ProcessorInfo},
+    log::{DAGSetInfo, ProcessorInfo},
     output_log::append_info_to_yaml,
     processor::ProcessorBase,
 };
@@ -30,8 +30,8 @@ pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
     append_info_to_yaml(file_path, &yaml);
 }
 
-pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, i32>>) {
-    let dag_set_info = DAGSetInfo::new(&mut dag_set);
+pub fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i32>>) {
+    let dag_set_info = DAGSetInfo::new(&dag_set);
     let yaml =
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
