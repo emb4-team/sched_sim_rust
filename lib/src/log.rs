@@ -29,14 +29,6 @@ impl DAGSetInfo {
             each_dag_info,
         }
     }
-
-    pub fn get_total_utilization(&self) -> f32 {
-        self.total_utilization
-    }
-
-    pub fn get_each_dag_info(&self) -> Vec<DAGInfo> {
-        self.each_dag_info.clone()
-    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -76,19 +68,7 @@ impl DAGInfo {
         }
     }
 
-    pub fn get_critical_path_length(&self) -> i32 {
-        self.critical_path_length
-    }
-
-    pub fn get_period(&self) -> i32 {
-        self.period
-    }
-
-    pub fn get_volume(&self) -> i32 {
-        self.volume
-    }
-
-    pub fn get_utilization(&self) -> f32 {
+    fn get_utilization(&self) -> f32 {
         self.utilization
     }
 }
@@ -101,10 +81,6 @@ pub struct ProcessorInfo {
 impl ProcessorInfo {
     pub fn new(number_of_cores: usize) -> Self {
         Self { number_of_cores }
-    }
-
-    pub fn get_number_of_cores(&self) -> usize {
-        self.number_of_cores
     }
 }
 
@@ -120,10 +96,6 @@ impl DAGSetLog {
             dag_set_log.push(DAGLog::new(i));
         }
         Self { dag_set_log }
-    }
-
-    pub fn get_dag_set_log(&self) -> Vec<DAGLog> {
-        self.dag_set_log.clone()
     }
 }
 
@@ -143,82 +115,6 @@ impl DAGLog {
             start_time: Default::default(),
             finish_time: Default::default(),
         }
-    }
-
-    pub fn get_dag_id(&self) -> usize {
-        self.dag_id
-    }
-
-    pub fn get_release_time(&self) -> i32 {
-        self.release_time
-    }
-
-    pub fn get_start_time(&self) -> i32 {
-        self.start_time
-    }
-
-    pub fn get_finish_time(&self) -> i32 {
-        self.finish_time
-    }
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct NodeLog {
-    core_id: usize,
-    dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
-    node_id: usize,
-    start_time: i32,
-    finish_time: i32,
-}
-
-impl NodeLog {
-    pub fn new(dag_id: usize, node_id: usize) -> Self {
-        Self {
-            core_id: Default::default(),
-            dag_id,
-            node_id,
-            start_time: Default::default(),
-            finish_time: Default::default(),
-        }
-    }
-
-    pub fn get_core_id(&self) -> usize {
-        self.core_id
-    }
-
-    pub fn get_dag_id(&self) -> usize {
-        self.dag_id
-    }
-
-    pub fn get_node_id(&self) -> usize {
-        self.node_id
-    }
-
-    pub fn get_start_time(&self) -> i32 {
-        self.start_time
-    }
-
-    pub fn get_finish_time(&self) -> i32 {
-        self.finish_time
-    }
-}
-
-#[derive(Clone, Default, Serialize, Deserialize)]
-pub struct NodeLogs {
-    node_logs: Vec<NodeLog>,
-}
-
-impl NodeLogs {
-    pub fn new(dag: &Graph<NodeData, i32>) -> Self {
-        let mut node_logs = Vec::with_capacity(dag.node_count());
-        for node in dag.node_indices() {
-            node_logs.push(NodeLog::new(0, dag[node].id as usize));
-        }
-        Self { node_logs }
-    }
-
-    pub fn get_node_logs(&self) -> Vec<NodeLog> {
-        self.node_logs.clone()
     }
 }
 
@@ -240,9 +136,41 @@ impl NodeSetLogs {
 
         Self { node_set_logs }
     }
+}
 
-    pub fn get_node_set_logs(&self) -> Vec<Vec<NodeLog>> {
-        self.node_set_logs.clone()
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct NodeLogs {
+    node_logs: Vec<NodeLog>,
+}
+
+impl NodeLogs {
+    pub fn new(dag: &Graph<NodeData, i32>) -> Self {
+        let mut node_logs = Vec::with_capacity(dag.node_count());
+        for node in dag.node_indices() {
+            node_logs.push(NodeLog::new(0, dag[node].id as usize));
+        }
+        Self { node_logs }
+    }
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct NodeLog {
+    core_id: usize,
+    dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
+    node_id: usize,
+    start_time: i32,
+    finish_time: i32,
+}
+
+impl NodeLog {
+    fn new(dag_id: usize, node_id: usize) -> Self {
+        Self {
+            core_id: Default::default(),
+            dag_id,
+            node_id,
+            start_time: Default::default(),
+            finish_time: Default::default(),
+        }
     }
 }
 
@@ -260,18 +188,6 @@ impl ProcessorLog {
             variance_utilization: Default::default(),
             core_logs: (0..num_cores).map(CoreLog::new).collect(),
         }
-    }
-
-    pub fn get_average_utilization(&self) -> f32 {
-        self.average_utilization
-    }
-
-    pub fn get_variance_utilization(&self) -> f32 {
-        self.variance_utilization
-    }
-
-    pub fn get_core_logs(&self) -> Vec<CoreLog> {
-        self.core_logs.clone()
     }
 
     fn calculate_average_utilization(&mut self) {
@@ -315,18 +231,6 @@ impl CoreLog {
         }
     }
 
-    pub fn get_core_id(&self) -> usize {
-        self.core_id
-    }
-
-    pub fn get_total_proc_time(&self) -> i32 {
-        self.total_proc_time
-    }
-
-    pub fn get_utilization(&self) -> f32 {
-        self.utilization
-    }
-
     fn calculate_utilization(&mut self, schedule_length: i32) {
         self.utilization = self.total_proc_time as f32 / schedule_length as f32;
     }
@@ -348,30 +252,6 @@ impl DAGSchedulerLog {
             node_logs: NodeLogs::new(dag),
             processor_log: ProcessorLog::new(num_cores),
         }
-    }
-
-    pub fn get_dag_info(&self) -> DAGInfo {
-        self.dag_info.clone()
-    }
-
-    pub fn get_processor_info(&self) -> ProcessorInfo {
-        self.processor_info.clone()
-    }
-
-    pub fn get_node_logs(&self) -> NodeLogs {
-        self.node_logs.clone()
-    }
-
-    pub fn get_processor_log(&self) -> ProcessorLog {
-        self.processor_log.clone()
-    }
-
-    pub fn set_dag_info(&mut self, dag_info: DAGInfo) {
-        self.dag_info = dag_info;
-    }
-
-    pub fn set_processor_info(&mut self, processor_info: ProcessorInfo) {
-        self.processor_info = processor_info;
     }
 
     pub fn set_node_logs(&mut self, node_logs: NodeLogs) {
@@ -430,26 +310,6 @@ impl DAGSetSchedulerLog {
             node_set_logs: NodeSetLogs::new(dag_set),
             processor_log: ProcessorLog::new(num_cores),
         }
-    }
-
-    pub fn get_dag_set_info(&self) -> DAGSetInfo {
-        self.dag_set_info.clone()
-    }
-
-    pub fn get_processor_info(&self) -> ProcessorInfo {
-        self.processor_info.clone()
-    }
-
-    pub fn get_dag_set_log(&self) -> DAGSetLog {
-        self.dag_set_log.clone()
-    }
-
-    pub fn get_node_set_logs(&self) -> NodeSetLogs {
-        self.node_set_logs.clone()
-    }
-
-    pub fn get_processor_log(&self) -> ProcessorLog {
-        self.processor_log.clone()
     }
 
     pub fn write_dag_release_time_log(&mut self, dag_id: usize, release_time: i32) {

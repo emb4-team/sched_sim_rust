@@ -45,6 +45,26 @@ mod tests {
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
 
+    #[derive(Deserialize)]
+    pub struct TestDAGSetInfo {
+        total_utilization: f32,
+        each_dag_info: Vec<TestDAGInfo>,
+    }
+
+    #[derive(Deserialize)]
+    struct TestDAGInfo {
+        critical_path_length: i32,
+        period: i32,
+        end_to_end_deadline: i32,
+        volume: i32,
+        utilization: f32,
+    }
+
+    #[derive(Deserialize)]
+    struct TestProcessorInfo {
+        number_of_cores: usize,
+    }
+
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
@@ -211,16 +231,15 @@ mod tests {
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let dag_set_info: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let dag_set_info: TestDAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
 
-        assert_eq!(dag_set_info.get_total_utilization(), 2.8);
-        assert_eq!(dag_set_info.get_each_dag_info().len(), 2);
-        assert_eq!(
-            dag_set_info.get_each_dag_info()[1].get_critical_path_length(),
-            8
-        );
-        assert_eq!(dag_set_info.get_each_dag_info()[1].get_period(), 10);
-        assert_eq!(dag_set_info.get_each_dag_info()[1].get_volume(), 14);
+        assert_eq!(dag_set_info.total_utilization, 1.4285715);
+        assert_eq!(dag_set_info.each_dag_info.len(), 2);
+        assert_eq!(dag_set_info.each_dag_info[1].critical_path_length, 8);
+        assert_eq!(dag_set_info.each_dag_info[1].period, 10);
+        assert_eq!(dag_set_info.each_dag_info[1].end_to_end_deadline, 0);
+        assert_eq!(dag_set_info.each_dag_info[1].volume, 14);
+        assert_eq!(dag_set_info.each_dag_info[1].utilization, 0.71428573);
 
         remove_file(file_path).unwrap();
     }
@@ -232,9 +251,9 @@ mod tests {
         dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let processor_info: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let processor_info: TestProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
 
-        assert_eq!(processor_info.get_number_of_cores(), 4);
+        assert_eq!(processor_info.number_of_cores, 4);
 
         remove_file(file_path).unwrap();
     }
