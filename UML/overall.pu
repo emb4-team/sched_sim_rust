@@ -2,17 +2,17 @@
 title Proposed Scheduler
 
     interface DAGSchedulerBase<T: ProcessorBase + Clone> {
-        + {abstract} new(&Graph, &T) : DAGSchedulerBase
-        + {abstract} get_name() : String
-        + {abstract} set_dag(&Graph)
-        + {abstract} set_processor(&T)
-        + {abstract} set_log(DAGSchedulerLog)
-        + {abstract} get_dag() : Graph
-        + {abstract} get_processor() : T
-        + {abstract} get_log() : &DAGSchedulerLog
-        + {static} schedule() : (i32, VecDeque)
-        + {abstract} sort_ready_queue(VecDeque)
-        + {static} dump_log(&str, &str)
+        + {abstract} new(&Graph, &T) : Self
+        + {abstract} get_name(&self) : String
+        + {abstract} set_dag(&mut self, &Graph)
+        + {abstract} set_processor(&mut self, &T)
+        + {abstract} set_log(&mut self, DAGSchedulerLog)
+        + {abstract} get_dag(&self) : Graph
+        + {abstract} get_processor(&self) : T
+        + {abstract} get_log(&self) : &DAGSchedulerLog
+        + {static} schedule(&mut self) : (i32, VecDeque)
+        + {abstract} sort_ready_queue(&mut VecDeque)
+        + {static} dump_log(&self, &str, &str)
     }
 
     note left of DAGSchedulerBase::schedule
@@ -23,62 +23,100 @@ title Proposed Scheduler
     "default implementation"
     end note
 
-    struct DAGInfo {
-        - critical_path_length: i32
-        - end_to_end_deadline: i32
-        - volume: i32
-
-        + {static} new(&Graph) : DAGInfo
-        + {static} dump_dag_info_to_yaml(&str)
-        + {static} get_utilization() : f32
-
+    interface DAGSetSchedulerBase<T: ProcessorBase + Clone> {
+        + {abstract} new(&[Graph], T) : Self
+        + {abstract} schedule(&mut self) : i32
+        + {abstract} get_name(&self) : String
+        + {abstract} get_log(&self) : DAGSchedulerLog
+        + {abstract} set_log(&mut self, DAGSchedulerLog)
+        + {static} dump_log(&self, &str, &str)
     }
 
-    struct ProcessorInfo {
-        - number_of_cores: usize
-
-        + {static} new(usize) : ProcessorInfo
-        + {static} dump_processor_info_to_yaml(&str)
-    }
-
-    struct DAGSchedulerLog {
-        - dag_info: DAGInfo
-        - processor_info: ProcessorInfo
-        - node_logs: NodeLogs
-        - processor_log: ProcessorLog
-
-        + {static} new(Graph, usize) : DAGSchedulerLog
-        + {static} write_allocating_log(&NodeData, usize, i32)
-        + {static} write_finishing_node_log(&NodeData, i32)
-        + {static} write_scheduling_log(i32)
-        + {static} dump_log_to_yaml(&str)
-    }
+    note left of DAGSetSchedulerBase::dump_log
+    "default implementation"
+    end note
 
     struct DAG_Scheduler<T: ProcessorBase + Clone> {
         - dag : Graph
         - processor : T
         - log: DAGSchedulerLog
-        + {static} new(Graph, T) : DAG_Scheduler
-        + {static} get_name() : String
-        + {static} set_dag(&Graph)
-        + {static} set_processor(&T)
-        + {static} set_log(DAGSchedulerLog)
-        + {static} get_dag() : Graph
-        + {static} get_processor() : ProcessorBase
-        + {static} get_log() : DAGSchedulerLog
-        + **{static} sort_ready_queue(VecDeque)**
-        + {static} dump_characteristic_log(&str)
+        + {static} new(&Graph, &T) : Self
+        + {static} get_name(&self) : String
+        + {static} set_dag(&mut self, &Graph)
+        + {static} set_processor(&mut self, &T)
+        + {static} set_log(&mut self, DAGSchedulerLog)
+        + {static} get_dag(&self) : Graph
+        + {static} get_processor(&self) : ProcessorBase
+        + {static} get_log(&self) : DAGSchedulerLog
+        + **{static} sort_ready_queue(&mut VecDeque)**
     }
 
     note right of DAG_Scheduler::sort_ready_queue
     "Individually implemented"
     end note
 
+    struct DAGSet_Scheduler<T: DAGSchedulerBase<HomogeneousProcessor>> {
+        - dag_set : Vec<Graph>
+        - processor : HomogeneousProcessor
+        - scheduler: T
+        - log: DAGSetSchedulerLog
+        + {static} new(&[Graph<NodeData, i32>], &HomogeneousProcessor) : Self
+        + {static} schedule(&mut self) : i32
+        + {static} get_name(&self) : String
+        + {static} get_log(&self) : DAGSchedulerLog
+        + {static} set_log(&mut self, DAGSchedulerLog)
+    }
+
+    struct DAGSetInfo {
+        - total_utilization: f32
+        - each_dag_info: Vec<DAGInfo>
+
+        + {static} new(&[Graph]) : DAGSetInfo
+    }
+
+    struct DAGInfo {
+        - critical_path_length: i32
+        - end_to_end_deadline: i32
+        - end_to_end_deadline: i32,
+        - volume: i32,
+        - utilization: f32,
+
+        ~ {static} new(&Graph) : Self
+        + {static} get_utilization(&self) : f32
+
+    }
+
+    struct ProcessorInfo {
+        - number_of_cores: usize
+
+        + {static} new(usize) : Self
+    }
+
+    struct DAGSetLog {
+        - dag_set_log: Vec<DAGLog>
+
+        + {static} new(&[Graph<NodeData, i32>]) : Self
+    }
+
+    struct DAGLog {
+        - dag_id: usize
+        - release_time: i32
+        - start_time: i32
+        - finish_time: i32
+
+        + {static} new(usize) : Self
+    }
+
+    struct NodeSetLogs {
+        - node_set_logs: Vec<Vec<NodeSetLog>>
+
+        + {static} new(&[Graph<NodeData, i32>]) : Self
+    }
+
     struct NodeLogs {
         - node_logs: Vec<NodeLog>
 
-        + {static} new() : NodeLogs
-        + {static} dump_node_logs_to_yaml(&str)
+        + {static} new() : Self
     }
     
     struct NodeLog {
@@ -88,7 +126,7 @@ title Proposed Scheduler
         - start_time: i32,
         - finish_time: i32,
 
-        + {static} new(dag_id: usize, node_id: usize) : NodeLog
+        ~ {static} new(usize, usize) : Self
     }
 
     struct ProcessorLog {
@@ -96,11 +134,10 @@ title Proposed Scheduler
         - variance_utilization: f32,
         - core_logs: Vec<CoreLog>,
 
-        + {static} new(num_cores: usize) : ProcessorLog;
-        + {static} calculate_average_utilization();
-        + {static} calculate_variance_utilization();
-        + {static} calculate_cores_utilization(schedule_length: i32);
-        + {static} dump_processor_log_to_yaml(&str);
+        + {static} new(usize) : Self;
+        ~ {static} calculate_average_utilization(&mut self);
+        ~ {static} calculate_variance_utilization(&mut self);
+        ~ {static} calculate_cores_utilization(&mut self, i32);
     }
 
     struct CoreLog {
@@ -108,58 +145,23 @@ title Proposed Scheduler
         - total_proc_time: i32,
         - utilization: f32,
 
-        + {static} new(core_id: usize) : CoreLog;
-        + {static} calculate_utilization(schedule_length: i32);
+        ~ {static} new(usize) : Self;
+        ~ {static} calculate_utilization(&mut self, i32);
     }  
 
-    DAGSchedulerBase <|-down- DAG_Scheduler
+    struct DAGSchedulerLog {
+        - dag_info: DAGInfo
+        - processor_info: ProcessorInfo
+        - node_logs: NodeLogs
+        - processor_log: ProcessorLog
 
-    DAGSchedulerLog o-down- DAGInfo
-    DAGSchedulerLog o-down- ProcessorInfo
-
-    DAG_Scheduler o-down- DAGSchedulerLog
-    DAGSchedulerLog o-down- NodeLogs
-    NodeLogs o-down- NodeLog
-    DAGSchedulerLog o-down- ProcessorLog
-    ProcessorLog o-down- CoreLog
-
-    interface DAGSetSchedulerBase<T: ProcessorBase + Clone> {
-        + {abstract} new(&[Graph], T) : DAGSetSchedulerBase
-        + {abstract} schedule() : i32
-        + {abstract} get_name() : String
-        + {abstract} get_log() : DAGSchedulerLog
-        + {abstract} set_log(DAGSchedulerLog)
-        + {static} dump_log(&str, &str)
-    }
-
-    note left of DAGSetSchedulerBase::dump_log
-    "default implementation"
-    end note
-
-    struct DAGSetInfo {
-        - total_utilization: f32
-        - each_dag_info: Vec<DAGInfo>
-
-        + {static} new(&[Graph]) : DAGSetInfo
-        + {static} dump_dag_set_info_to_yaml(&str)
-    }
-
-    struct DAGInfo {
-        - critical_path_length: i32
-        - end_to_end_deadline: i32
-        - volume: i32
-
-        + {static} new(&Graph) : DAGInfo
-        + {static} dump_dag_info_to_yaml(&str)
-        + {static} get_utilization() : f32
-
-    }
-
-    struct ProcessorInfo {
-        - number_of_cores: usize
-
-        + {static} new(usize) : ProcessorInfo
-        + {static} dump_processor_info_to_yaml(&str)
+        + {static} new(&Graph, usize) : Self
+        + {static} set_node_logs(&mut self, NodeLogs)
+        + {static} set_processor_log(&mut self, ProcessorLog)
+        + {static} write_allocating_log(&mut self, &NodeData, usize, i32)
+        + {static} write_finishing_node_log(&mut self, &NodeData, i32)
+        + {static} write_scheduling_log(&mut self, i32)
+        + {static} dump_log_to_yaml(&self, &str)
     }
 
     struct DAGSetSchedulerLog {
@@ -169,85 +171,25 @@ title Proposed Scheduler
         - node_set_logs: NodeSetLogs
         - processor_log: ProcessorLog
 
-        + {static} new(&[Graph<NodeData, i32>], usize) : DAGSetSchedulerLog
-        + {static} write_dag_release_time_log(usize, i32)
-        + {static} write_dag_start_time_log(usize, i32)
-        + {static} write_dag_finish_time_log(usize, i32)
-        + {static} write_allocating_log(usize, usize, usize, i32, i32)
-        + {static} write_finishing_node_log(&NodeData, i32)
-        + {static} write_scheduling_log(i32)
-        + {static} dump_log_to_yaml(&str)
-        + {static} dump_dag_set_info_to_yaml(&str)
-        + {static} dump_processor_info_to_yaml(&str)
+        + {static} new(&[Graph<NodeData, i32>], usize) : Self
+        + {static} write_dag_release_time_log(&mut self, usize, i32)
+        + {static} write_dag_start_time_log(&mut self,usize, i32)
+        + {static} write_dag_finish_time_log(&mut self,usize, i32)
+        + {static} write_allocating_log(&mut self, usize, usize, usize, i32, i32)
+        + {static} write_finishing_node_log(&mut self, &NodeData, i32)
+        + {static} write_scheduling_log(&mut self, i32)
+        + {static} dump_log_to_yaml(&self, &str)
     }
 
-    struct DAGSet_Scheduler<T: DAGSchedulerBase<HomogeneousProcessor>> {
-        - dag_set : Vec<Graph>
-        - processor : HomogeneousProcessor
-        - scheduler: T
-        - log: DAGSetSchedulerLog
-        + {static} new(&[Graph<NodeData, i32>], &HomogeneousProcessor) : DAGSet_Scheduler
-        + {static} schedule() : i32
-        + {static} get_name() : String
-        + {static} get_log() : DAGSchedulerLog
-        + {static} set_log(DAGSchedulerLog)
-    }
-
-    struct DAGSetLog {
-        - dag_set_log: Vec<DAGLog>
-
-        + {static} new(&[Graph<NodeData, i32>]) : DAGSetLog
-        + {static} dump_dag_set_log_to_yaml(&str)
-    }
-
-    struct DAGLog {
-        - dag_id: usize
-        - release_time: i32
-        - start_time: i32
-        - finish_time: i32
-
-        + {static} new(usize) : DAGLog
-    }
-
-    struct NodeSetLogs {
-        - node_set_logs: Vec<Vec<NodeSetLog>>
-
-        + {static} new(&[Graph<NodeData, i32>]) : NodeSetLogs
-        + {static} dump_node_set_logs_to_yaml(&str)
-    }
-    
-    struct NodeLog {
-        - core_id: usize,
-        - dag_id: usize,
-        - node_id: usize,
-        - start_time: i32,
-        - finish_time: i32,
-
-        + {static} new(dag_id: usize, node_id: usize) : NodeLog
-    }
-
-    struct ProcessorLog {
-        - average_utilization: f32,
-        - variance_utilization: f32,
-        - core_logs: Vec<CoreLog>,
-
-        + {static} new(num_cores: usize) : ProcessorLog;
-        + {static} calculate_average_utilization();
-        + {static} calculate_variance_utilization();
-        + {static} calculate_cores_utilization(schedule_length: i32);
-        + {static} dump_processor_log_to_yaml(&str);
-    }
-
-    struct CoreLog {
-        - core_id: usize,
-        - total_proc_time: i32,
-        - utilization: f32,
-
-        + {static} new(core_id: usize) : CoreLog;
-        + {static} calculate_utilization(schedule_length: i32);
-    }  
-
+    DAGSchedulerBase <|-down- DAG_Scheduler
     DAGSetSchedulerBase <|-down- DAGSet_Scheduler
+
+    DAG_Scheduler o-down- DAGSchedulerLog
+
+    DAGSchedulerLog o-down- DAGInfo
+    DAGSchedulerLog o-down- ProcessorInfo
+    DAGSchedulerLog o-down- NodeLogs
+    DAGSchedulerLog o-down- ProcessorLog
 
     DAGSet_Scheduler o-down- DAGSetSchedulerLog
 
@@ -257,9 +199,11 @@ title Proposed Scheduler
     DAGSetSchedulerLog o-down- NodeSetLogs
     DAGSetSchedulerLog o-down- ProcessorLog
     
+
     DAGSetInfo o-down- DAGInfo
     DAGSetLog o-down- DAGLog
     NodeSetLogs o-down- NodeLog
+    NodeLogs o-down- NodeLog
     ProcessorLog o-down- CoreLog
 
 @enduml
