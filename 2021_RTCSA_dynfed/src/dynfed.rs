@@ -398,13 +398,13 @@ mod tests {
             0.08862758
         );
 
-        assert_eq!(dynfed.log.processor_log.get_core_logs()[0].core_id, 0);
+        assert_eq!(dynfed.log.processor_log.get_core_logs()[0].get_core_id(), 0);
         assert_eq!(
-            dynfed.log.processor_log.get_core_logs()[0].total_proc_time,
+            dynfed.log.processor_log.get_core_logs()[0].get_total_proc_time(),
             83
         );
         assert_eq!(
-            dynfed.log.processor_log.get_core_logs()[0].utilization,
+            dynfed.log.processor_log.get_core_logs()[0].get_utilization(),
             0.80582523
         );
 

@@ -342,9 +342,9 @@ impl ProcessorLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct CoreLog {
-    pub core_id: usize,
-    pub total_proc_time: i32,
-    pub utilization: f32,
+    core_id: usize,
+    total_proc_time: i32,
+    utilization: f32,
 }
 
 impl CoreLog {
@@ -354,6 +354,18 @@ impl CoreLog {
             total_proc_time: Default::default(),
             utilization: Default::default(),
         }
+    }
+
+    pub fn get_core_id(&self) -> usize {
+        self.core_id
+    }
+
+    pub fn get_total_proc_time(&self) -> i32 {
+        self.total_proc_time
+    }
+
+    pub fn get_utilization(&self) -> f32 {
+        self.utilization
     }
 
     fn calculate_utilization(&mut self, schedule_length: i32) {

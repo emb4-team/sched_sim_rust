@@ -248,7 +248,7 @@ mod tests {
                 .get_log()
                 .processor_log
                 .get_core_logs()[0]
-                .core_id,
+                .get_core_id(),
             0
         );
         assert_eq!(
@@ -256,7 +256,7 @@ mod tests {
                 .get_log()
                 .processor_log
                 .get_core_logs()[0]
-                .total_proc_time,
+                .get_total_proc_time(),
             92
         );
         assert_eq!(
@@ -264,7 +264,7 @@ mod tests {
                 .get_log()
                 .processor_log
                 .get_core_logs()[0]
-                .utilization,
+                .get_utilization(),
             1.0
         );
 
