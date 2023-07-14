@@ -125,7 +125,7 @@ impl ProcessorInfo {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetLog {
-    pub dag_set_log: Vec<DAGLog>,
+    dag_set_log: Vec<DAGLog>,
 }
 
 impl DAGSetLog {
@@ -135,6 +135,10 @@ impl DAGSetLog {
             dag_set_log.push(DAGLog::new(i));
         }
         Self { dag_set_log }
+    }
+
+    pub fn get_dag_set_log(&self) -> Vec<DAGLog> {
+        self.dag_set_log.clone()
     }
 
     pub fn dump_dag_set_log_to_yaml(&self, file_path: &str) {
