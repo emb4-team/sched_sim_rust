@@ -1,8 +1,8 @@
 use lib::{
     graph_extension::NodeData,
     log::{DAGSetInfo, ProcessorInfo},
-    output_log::append_info_to_yaml,
     processor::ProcessorBase,
+    util::append_info_to_yaml,
 };
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
@@ -41,9 +41,33 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::{graph_extension::NodeData, homogeneous, output_log::create_scheduler_log_yaml_file};
+    use chrono::{DateTime, Utc};
+    use lib::{graph_extension::NodeData, homogeneous};
+    use log::{info, warn};
     use petgraph::Graph;
-    use std::{collections::HashMap, fs::remove_file};
+    use std::{
+        collections::HashMap,
+        fs::{self, remove_file},
+    };
+
+    fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
+        if fs::metadata(folder_path).is_err() {
+            let _ = fs::create_dir_all(folder_path);
+            info!("Created folder: {}", folder_path);
+        }
+        let file_path = format!("{}/{}.yaml", folder_path, file_name);
+        if let Err(err) = fs::File::create(&file_path) {
+            warn!("Failed to create file: {}", err);
+        }
+        file_path
+    }
+
+    fn create_scheduler_log_yaml_file(folder_path: &str, sched_name: &str) -> String {
+        let now: DateTime<Utc> = Utc::now();
+        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
+        let file_name = format!("{}-{}-log", date, sched_name);
+        create_yaml_file_core(folder_path, &file_name)
+    }
 
     #[derive(Deserialize)]
     pub struct TestDAGSetInfo {

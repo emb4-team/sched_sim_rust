@@ -2,10 +2,8 @@ use log::warn;
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
 
-use crate::{
-    graph_extension::{GraphExtension, NodeData},
-    output_log::append_info_to_yaml,
-};
+use crate::graph_extension::{GraphExtension, NodeData};
+use crate::util::append_info_to_yaml;
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetInfo {

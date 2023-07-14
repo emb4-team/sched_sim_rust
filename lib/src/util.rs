@@ -1,3 +1,5 @@
+use std::{fs::OpenOptions, io::Write};
+
 use crate::graph_extension::{GraphExtension, NodeData};
 use log::warn;
 use num_integer::lcm;
@@ -37,6 +39,21 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
                 panic!("Either an period or end-to-end deadline is required for the schedule.");
             }
         }
+    }
+}
+
+pub fn append_info_to_yaml(file_path: &str, info: &str) {
+    if let Ok(mut file) = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(file_path)
+    {
+        if let Err(err) = file.write_all(info.as_bytes()) {
+            eprintln!("Failed to write to file: {}", err);
+        }
+    } else {
+        eprintln!("Failed to open file: {}", file_path);
     }
 }
 

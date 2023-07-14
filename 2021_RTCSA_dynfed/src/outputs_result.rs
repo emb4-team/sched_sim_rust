@@ -1,4 +1,4 @@
-use lib::output_log::append_info_to_yaml;
+use lib::util::append_info_to_yaml;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -30,18 +30,19 @@ mod tests {
     use super::*;
     use crate::adjust_to_implicit_deadline;
     use crate::dynfed::DynamicFederatedScheduler;
+    use chrono::{DateTime, Utc};
     use lib::{
         fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
-        output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSetSchedulerBase,
         util::get_hyper_period,
     };
+    use log::{info, warn};
     use petgraph::Graph;
-    use std::collections::HashMap;
     use std::fs::remove_file;
+    use std::{collections::HashMap, fs};
 
     use super::dump_dynfed_result_to_file;
 
@@ -94,6 +95,25 @@ mod tests {
         dag.add_edge(n0_0, c2, 1);
 
         dag
+    }
+
+    fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
+        if fs::metadata(folder_path).is_err() {
+            let _ = fs::create_dir_all(folder_path);
+            info!("Created folder: {}", folder_path);
+        }
+        let file_path = format!("{}/{}.yaml", folder_path, file_name);
+        if let Err(err) = fs::File::create(&file_path) {
+            warn!("Failed to create file: {}", err);
+        }
+        file_path
+    }
+
+    fn create_scheduler_log_yaml_file(folder_path: &str, sched_name: &str) -> String {
+        let now: DateTime<Utc> = Utc::now();
+        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
+        let file_name = format!("{}-{}-log", date, sched_name);
+        create_yaml_file_core(folder_path, &file_name)
     }
 
     #[test]
