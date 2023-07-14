@@ -254,7 +254,7 @@ impl NodeLogs {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeSetLogs {
-    pub node_set_logs: Vec<Vec<NodeLog>>,
+    node_set_logs: Vec<Vec<NodeLog>>,
 }
 
 impl NodeSetLogs {
@@ -269,6 +269,10 @@ impl NodeSetLogs {
         }
 
         Self { node_set_logs }
+    }
+
+    pub fn get_node_set_logs(&self) -> Vec<Vec<NodeLog>> {
+        self.node_set_logs.clone()
     }
 
     pub fn dump_node_set_logs_to_yaml(&self, file_path: &str) {
