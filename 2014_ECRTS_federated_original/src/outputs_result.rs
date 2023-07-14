@@ -215,9 +215,12 @@ mod tests {
 
         assert_eq!(dag_set_info.get_total_utilization(), 2.8);
         assert_eq!(dag_set_info.get_each_dag_info().len(), 2);
-        assert_eq!(dag_set_info.get_each_dag_info()[1].critical_path_length, 8);
-        assert_eq!(dag_set_info.get_each_dag_info()[1].period, 10);
-        assert_eq!(dag_set_info.get_each_dag_info()[1].volume, 14);
+        assert_eq!(
+            dag_set_info.get_each_dag_info()[1].get_critical_path_length(),
+            8
+        );
+        assert_eq!(dag_set_info.get_each_dag_info()[1].get_period(), 10);
+        assert_eq!(dag_set_info.get_each_dag_info()[1].get_volume(), 14);
 
         remove_file(file_path).unwrap();
     }

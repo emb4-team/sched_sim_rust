@@ -376,11 +376,17 @@ mod tests {
         );
 
         assert_eq!(
-            dynfed.log.dag_set_info.get_each_dag_info()[0].critical_path_length,
+            dynfed.log.dag_set_info.get_each_dag_info()[0].get_critical_path_length(),
             50
         );
-        assert_eq!(dynfed.log.dag_set_info.get_each_dag_info()[0].period, 100);
-        assert_eq!(dynfed.log.dag_set_info.get_each_dag_info()[0].volume, 70);
+        assert_eq!(
+            dynfed.log.dag_set_info.get_each_dag_info()[0].get_period(),
+            100
+        );
+        assert_eq!(
+            dynfed.log.dag_set_info.get_each_dag_info()[0].get_volume(),
+            70
+        );
 
         assert_eq!(dynfed.log.processor_info.number_of_cores, 4);
     }

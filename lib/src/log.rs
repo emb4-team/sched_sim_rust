@@ -46,11 +46,11 @@ impl DAGSetInfo {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGInfo {
-    pub critical_path_length: i32,
-    pub period: i32,
-    pub end_to_end_deadline: i32,
-    pub volume: i32,
-    pub utilization: f32,
+    critical_path_length: i32,
+    period: i32,
+    end_to_end_deadline: i32,
+    volume: i32,
+    utilization: f32,
 }
 
 impl DAGInfo {
@@ -71,8 +71,7 @@ impl DAGInfo {
             (_, _) => period as f32 / volume as f32,
         };
 
-        let mut dag = dag.clone();
-        let critical_path = dag.get_critical_path();
+        let critical_path = dag.clone().get_critical_path();
         Self {
             critical_path_length: dag.get_total_wcet_from_nodes(&critical_path),
             period,
@@ -80,6 +79,18 @@ impl DAGInfo {
             volume,
             utilization,
         }
+    }
+
+    pub fn get_critical_path_length(&self) -> i32 {
+        self.critical_path_length
+    }
+
+    pub fn get_period(&self) -> i32 {
+        self.period
+    }
+
+    pub fn get_volume(&self) -> i32 {
+        self.volume
     }
 
     pub fn dump_dag_info_to_yaml(&self, file_path: &str) {

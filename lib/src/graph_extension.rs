@@ -39,7 +39,7 @@ pub trait GraphExtension {
     fn get_source_nodes(&self) -> Vec<NodeIndex>;
     fn get_sink_nodes(&self) -> Vec<NodeIndex>;
     fn get_volume(&self) -> i32;
-    fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> i32;
+    fn get_total_wcet_from_nodes(&self, nodes: &[NodeIndex]) -> i32;
     fn get_end_to_end_deadline(&self) -> Option<i32>;
     fn get_head_period(&self) -> Option<i32>;
     fn get_all_periods(&self) -> Option<HashMap<NodeIndex, i32>>;
@@ -353,7 +353,7 @@ impl GraphExtension for Graph<NodeData, i32> {
             .sum()
     }
 
-    fn get_total_wcet_from_nodes(&mut self, nodes: &[NodeIndex]) -> i32 {
+    fn get_total_wcet_from_nodes(&self, nodes: &[NodeIndex]) -> i32 {
         nodes
             .iter()
             .map(|node| {
