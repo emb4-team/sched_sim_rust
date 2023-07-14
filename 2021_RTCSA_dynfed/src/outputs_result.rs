@@ -106,7 +106,7 @@ mod tests {
 
         let mut dynfed_scheduler: DynamicFederatedScheduler<
             FixedPriorityScheduler<HomogeneousProcessor>,
-        > = DynamicFederatedScheduler::new(&mut dag_set, &HomogeneousProcessor::new(4));
+        > = DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
 
         let schedule_length = dynfed_scheduler.schedule();
 

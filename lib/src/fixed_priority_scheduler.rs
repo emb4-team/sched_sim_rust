@@ -18,7 +18,7 @@ impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &mut Graph<NodeData, i32>, processor: &T) -> Self {
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self {
         Self {
             dag: dag.clone(),
             processor: processor.clone(),

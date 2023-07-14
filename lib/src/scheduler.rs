@@ -15,7 +15,7 @@ pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &mut Graph<NodeData, i32>, processor: &T) -> Self
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
     where
         Self: Sized;
     fn get_name(&self) -> String;
@@ -142,7 +142,7 @@ where
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
-    fn new(dag_set: &mut [Graph<NodeData, i32>], processor: &T) -> Self;
+    fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
     fn get_name(&self) -> String;
     fn get_log(&self) -> DAGSetSchedulerLog;

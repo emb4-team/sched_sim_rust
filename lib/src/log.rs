@@ -382,7 +382,7 @@ pub struct DAGSchedulerLog {
 }
 
 impl DAGSchedulerLog {
-    pub fn new(dag: &mut Graph<NodeData, i32>, num_cores: usize) -> Self {
+    pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
@@ -465,7 +465,7 @@ pub struct DAGSetSchedulerLog {
 }
 
 impl DAGSetSchedulerLog {
-    pub fn new(dag_set: &mut [Graph<NodeData, i32>], num_cores: usize) -> Self {
+    pub fn new(dag_set: &[Graph<NodeData, i32>], num_cores: usize) -> Self {
         Self {
             dag_set_info: DAGSetInfo::new(dag_set),
             processor_info: ProcessorInfo::new(num_cores),
