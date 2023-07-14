@@ -185,11 +185,11 @@ impl DAGLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
-    pub core_id: usize,
-    pub dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
-    pub node_id: usize,
-    pub start_time: i32,
-    pub finish_time: i32,
+    core_id: usize,
+    dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
+    node_id: usize,
+    start_time: i32,
+    finish_time: i32,
 }
 
 impl NodeLog {
@@ -201,6 +201,26 @@ impl NodeLog {
             start_time: Default::default(),
             finish_time: Default::default(),
         }
+    }
+
+    pub fn get_core_id(&self) -> usize {
+        self.core_id
+    }
+
+    pub fn get_dag_id(&self) -> usize {
+        self.dag_id
+    }
+
+    pub fn get_node_id(&self) -> usize {
+        self.node_id
+    }
+
+    pub fn get_start_time(&self) -> i32 {
+        self.start_time
+    }
+
+    pub fn get_finish_time(&self) -> i32 {
+        self.finish_time
     }
 }
 
