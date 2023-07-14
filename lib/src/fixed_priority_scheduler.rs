@@ -231,7 +231,7 @@ mod tests {
             fixed_priority_scheduler
                 .get_log()
                 .processor_log
-                .average_utilization,
+                .get_average_utilization(),
             0.61956525
         );
 
@@ -239,20 +239,32 @@ mod tests {
             fixed_priority_scheduler
                 .get_log()
                 .processor_log
-                .variance_utilization,
+                .get_variance_utilization(),
             0.14473063
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_log().processor_log.core_logs[0].core_id,
+            fixed_priority_scheduler
+                .get_log()
+                .processor_log
+                .get_core_logs()[0]
+                .core_id,
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().processor_log.core_logs[0].total_proc_time,
+            fixed_priority_scheduler
+                .get_log()
+                .processor_log
+                .get_core_logs()[0]
+                .total_proc_time,
             92
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().processor_log.core_logs[0].utilization,
+            fixed_priority_scheduler
+                .get_log()
+                .processor_log
+                .get_core_logs()[0]
+                .utilization,
             1.0
         );
 

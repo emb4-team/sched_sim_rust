@@ -389,13 +389,22 @@ mod tests {
             72
         );
 
-        assert_eq!(dynfed.log.processor_log.average_utilization, 0.32524273);
-        assert_eq!(dynfed.log.processor_log.variance_utilization, 0.08862758);
-
-        assert_eq!(dynfed.log.processor_log.core_logs[0].core_id, 0);
-        assert_eq!(dynfed.log.processor_log.core_logs[0].total_proc_time, 83);
         assert_eq!(
-            dynfed.log.processor_log.core_logs[0].utilization,
+            dynfed.log.processor_log.get_average_utilization(),
+            0.32524273
+        );
+        assert_eq!(
+            dynfed.log.processor_log.get_variance_utilization(),
+            0.08862758
+        );
+
+        assert_eq!(dynfed.log.processor_log.get_core_logs()[0].core_id, 0);
+        assert_eq!(
+            dynfed.log.processor_log.get_core_logs()[0].total_proc_time,
+            83
+        );
+        assert_eq!(
+            dynfed.log.processor_log.get_core_logs()[0].utilization,
             0.80582523
         );
 

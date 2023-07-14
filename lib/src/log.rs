@@ -284,9 +284,9 @@ impl NodeSetLogs {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ProcessorLog {
-    pub average_utilization: f32,
-    pub variance_utilization: f32,
-    pub core_logs: Vec<CoreLog>,
+    average_utilization: f32,
+    variance_utilization: f32,
+    core_logs: Vec<CoreLog>,
 }
 
 impl ProcessorLog {
@@ -296,6 +296,18 @@ impl ProcessorLog {
             variance_utilization: Default::default(),
             core_logs: (0..num_cores).map(CoreLog::new).collect(),
         }
+    }
+
+    pub fn get_average_utilization(&self) -> f32 {
+        self.average_utilization
+    }
+
+    pub fn get_variance_utilization(&self) -> f32 {
+        self.variance_utilization
+    }
+
+    pub fn get_core_logs(&self) -> Vec<CoreLog> {
+        self.core_logs.clone()
     }
 
     fn calculate_average_utilization(&mut self) {
