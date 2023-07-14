@@ -12,10 +12,15 @@ title Proposed Scheduler
         + {abstract} get_log(&self) : &DAGSchedulerLog
         + {static} schedule(&mut self) : (i32, VecDeque)
         + {abstract} sort_ready_queue(&mut VecDeque)
+        + {static} create_scheduler_log_yaml_file(&str, &str) : String
         + {static} dump_log(&self, &str, &str)
     }
 
     note left of DAGSchedulerBase::schedule
+    "default implementation"
+    end note
+
+    note left of DAGSetSchedulerBase::create_scheduler_log_yaml_file
     "default implementation"
     end note
 
@@ -29,8 +34,13 @@ title Proposed Scheduler
         + {abstract} get_name(&self) : String
         + {abstract} get_log(&self) : DAGSchedulerLog
         + {abstract} set_log(&mut self, DAGSchedulerLog)
+        + {static} create_scheduler_log_yaml_file(&str, &str) : String
         + {static} dump_log(&self, &str, &str)
     }
+
+    note left of DAGSetSchedulerBase::create_scheduler_log_yaml_file
+    "default implementation"
+    end note
 
     note left of DAGSetSchedulerBase::dump_log
     "default implementation"
@@ -51,7 +61,7 @@ title Proposed Scheduler
         + **{static} sort_ready_queue(&mut VecDeque)**
     }
 
-    note right of DAG_Scheduler::sort_ready_queue
+    note left of DAG_Scheduler::sort_ready_queue
     "Individually implemented"
     end note
 
