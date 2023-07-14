@@ -20,7 +20,7 @@ impl DAGSetInfo {
 
         for dag in dag_set.iter() {
             let dag_info = DAGInfo::new(dag);
-            total_utilization += dag_info.volume as f32 / dag_info.period as f32;
+            total_utilization += dag_info.get_utilization();
             each_dag_info.push(dag_info);
         }
 
