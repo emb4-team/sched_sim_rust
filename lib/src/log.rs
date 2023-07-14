@@ -37,11 +37,6 @@ impl DAGSetInfo {
     pub fn get_each_dag_info(&self) -> Vec<DAGInfo> {
         self.each_dag_info.clone()
     }
-
-    pub fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGSetInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
-    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -93,11 +88,6 @@ impl DAGInfo {
         self.volume
     }
 
-    pub fn dump_dag_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
-    }
-
     pub fn get_utilization(&self) -> f32 {
         self.utilization
     }
@@ -115,11 +105,6 @@ impl ProcessorInfo {
 
     pub fn get_number_of_cores(&self) -> usize {
         self.number_of_cores
-    }
-
-    pub fn dump_processor_info_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize ProcessorInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -139,12 +124,6 @@ impl DAGSetLog {
 
     pub fn get_dag_set_log(&self) -> Vec<DAGLog> {
         self.dag_set_log.clone()
-    }
-
-    pub fn dump_dag_set_log_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self.dag_set_log)
-            .expect("Failed to serialize ProcessorInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -241,15 +220,6 @@ impl NodeLogs {
     pub fn get_node_logs(&self) -> Vec<NodeLog> {
         self.node_logs.clone()
     }
-
-    pub fn dump_node_logs_to_yaml(&self, file_path: &str) {
-        let node_logs = NodeLogs {
-            node_logs: self.node_logs.to_vec(),
-        };
-
-        let yaml = serde_yaml::to_string(&node_logs).expect("Failed to serialize NodeLogs to YAML");
-        append_info_to_yaml(file_path, &yaml);
-    }
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -273,12 +243,6 @@ impl NodeSetLogs {
 
     pub fn get_node_set_logs(&self) -> Vec<Vec<NodeLog>> {
         self.node_set_logs.clone()
-    }
-
-    pub fn dump_node_set_logs_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self.node_set_logs)
-            .expect("Failed to serialize NodeSetLogs to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -332,11 +296,6 @@ impl ProcessorLog {
         for core_log in self.core_logs.iter_mut() {
             core_log.calculate_utilization(schedule_length);
         }
-    }
-
-    fn dump_processor_log_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize ProcessorLog to YAML");
-        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -448,10 +407,8 @@ impl DAGSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        self.dag_info.dump_dag_info_to_yaml(file_path);
-        self.processor_info.dump_processor_info_to_yaml(file_path);
-        self.node_logs.dump_node_logs_to_yaml(file_path);
-        self.processor_log.dump_processor_log_to_yaml(file_path);
+        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
+        append_info_to_yaml(file_path, &yaml);
     }
 }
 
@@ -534,10 +491,7 @@ impl DAGSetSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        self.dag_set_info.dump_dag_set_info_to_yaml(file_path);
-        self.processor_info.dump_processor_info_to_yaml(file_path);
-        self.dag_set_log.dump_dag_set_log_to_yaml(file_path);
-        self.node_set_logs.dump_node_set_logs_to_yaml(file_path);
-        self.processor_log.dump_processor_log_to_yaml(file_path);
+        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
+        append_info_to_yaml(file_path, &yaml);
     }
 }

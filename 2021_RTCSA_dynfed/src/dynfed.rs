@@ -352,6 +352,8 @@ mod tests {
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
         let time = dynfed.schedule();
 
+        let _file_path = dynfed.dump_log("../lib/tests", "test");
+
         assert_eq!(time, 103);
 
         assert_eq!(

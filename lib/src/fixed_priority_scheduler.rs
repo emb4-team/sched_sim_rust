@@ -228,6 +228,8 @@ mod tests {
         );
         fixed_priority_scheduler.schedule();
 
+        let _file_path = fixed_priority_scheduler.dump_log("tests", "test");
+
         assert_eq!(
             fixed_priority_scheduler
                 .get_log()
