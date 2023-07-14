@@ -31,21 +31,7 @@ pub fn dump_federated_result_to_file(file_path: &str, result: FederateResult) {
 }
 
 pub fn dump_dag_set_info_to_yaml(file_path: &str, mut dag_set: Vec<Graph<NodeData, i32>>) {
-    let mut total_utilization = 0.0;
-    let mut each_dag_info = Vec::new();
-
-    for dag in dag_set.iter_mut() {
-        let dag_info = DAGInfo::new(dag);
-        total_utilization += dag_info.get_utilization();
-
-        each_dag_info.push(dag_info);
-    }
-
-    let dag_set_info = DAGSetInfo {
-        total_utilization,
-        each_dag_info,
-    };
-
+    let dag_set_info = DAGSetInfo::new(&mut dag_set);
     let yaml =
         serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
 
@@ -225,13 +211,13 @@ mod tests {
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let dag_set: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let dag_set_info: DAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
 
-        assert_eq!(dag_set.total_utilization, 1.4285715);
-        assert_eq!(dag_set.each_dag_info.len(), 2);
-        assert_eq!(dag_set.each_dag_info[1].critical_path_length, 8);
-        assert_eq!(dag_set.each_dag_info[1].period, 10);
-        assert_eq!(dag_set.each_dag_info[1].volume, 14);
+        assert_eq!(dag_set_info.get_total_utilization(), 2.8);
+        assert_eq!(dag_set_info.get_each_dag_info().len(), 2);
+        assert_eq!(dag_set_info.get_each_dag_info()[1].critical_path_length, 8);
+        assert_eq!(dag_set_info.get_each_dag_info()[1].period, 10);
+        assert_eq!(dag_set_info.get_each_dag_info()[1].volume, 14);
 
         remove_file(file_path).unwrap();
     }

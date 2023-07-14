@@ -9,8 +9,8 @@ use crate::{
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetInfo {
-    pub total_utilization: f32,
-    pub each_dag_info: Vec<DAGInfo>,
+    total_utilization: f32,
+    each_dag_info: Vec<DAGInfo>,
 }
 
 impl DAGSetInfo {
@@ -28,6 +28,14 @@ impl DAGSetInfo {
             total_utilization,
             each_dag_info,
         }
+    }
+
+    pub fn get_total_utilization(&self) -> f32 {
+        self.total_utilization
+    }
+
+    pub fn get_each_dag_info(&self) -> Vec<DAGInfo> {
+        self.each_dag_info.clone()
     }
 
     pub fn dump_dag_set_info_to_yaml(&self, file_path: &str) {
