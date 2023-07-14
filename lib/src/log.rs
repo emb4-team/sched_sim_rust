@@ -150,10 +150,10 @@ impl DAGSetLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGLog {
-    pub dag_id: usize,
-    pub release_time: i32,
-    pub start_time: i32,
-    pub finish_time: i32,
+    dag_id: usize,
+    release_time: i32,
+    start_time: i32,
+    finish_time: i32,
 }
 
 impl DAGLog {
@@ -164,6 +164,22 @@ impl DAGLog {
             start_time: Default::default(),
             finish_time: Default::default(),
         }
+    }
+
+    pub fn get_dag_id(&self) -> usize {
+        self.dag_id
+    }
+
+    pub fn get_release_time(&self) -> i32 {
+        self.release_time
+    }
+
+    pub fn get_start_time(&self) -> i32 {
+        self.start_time
+    }
+
+    pub fn get_finish_time(&self) -> i32 {
+        self.finish_time
     }
 }
 

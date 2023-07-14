@@ -354,10 +354,19 @@ mod tests {
 
         assert_eq!(time, 103);
 
-        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].dag_id, 1);
-        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].release_time, 0);
-        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].start_time, 50);
-        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].finish_time, 103);
+        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].get_dag_id(), 1);
+        assert_eq!(
+            dynfed.log.dag_set_log.get_dag_set_log()[1].get_release_time(),
+            0
+        );
+        assert_eq!(
+            dynfed.log.dag_set_log.get_dag_set_log()[1].get_start_time(),
+            50
+        );
+        assert_eq!(
+            dynfed.log.dag_set_log.get_dag_set_log()[1].get_finish_time(),
+            103
+        );
 
         assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].core_id, 0);
         assert_eq!(dynfed.log.node_set_logs.node_set_logs[1][3].dag_id, 1);
