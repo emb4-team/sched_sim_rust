@@ -1,7 +1,7 @@
 use std::vec;
 
-use lib::graph_extension::NodeData;
-use petgraph::graph::Graph;
+use lib::graph_extension::{GraphExtension, NodeData};
+use petgraph::graph::{Graph, NodeIndex};
 
 use crate::handle_segment::*;
 
@@ -17,9 +17,11 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
         });
     }
 
-    for node_deadline in nodes_deadline {
+    for (i, node_deadline) in nodes_deadline.iter().enumerate() {
+        let node_i = NodeIndex::new(i);
         if node_deadline.fract() == 0.0 {
-            println!("{} 1 {}", node_deadline, node_deadline as i32);
+            dag.add_param(node_i, "deadline_factor", 1);
+            dag.add_param(node_i, "deadline", *node_deadline as i32);
             continue;
         }
 
@@ -32,13 +34,12 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
             .skip(integer_part_str.len() + 1)
             .collect::<String>();
 
-        let pow = 10u64.pow(decimal_part_str.len().try_into().unwrap()) as f32;
-
-        println!(
-            "{} * {} = {}",
-            rounded_node_deadline,
-            pow,
-            rounded_node_deadline * pow
+        let deadline_factor = 10u64.pow(decimal_part_str.len().try_into().unwrap()) as i32;
+        dag.add_param(node_i, "deadline_factor", deadline_factor);
+        dag.add_param(
+            node_i,
+            "deadline",
+            (rounded_node_deadline * deadline_factor as f32) as i32,
         );
     }
 }
@@ -72,8 +73,29 @@ mod tests {
     }
 
     #[test]
-    fn test_decompose_normal() {
+    fn test_decompose_normal_float() {
         let mut dag = create_sample_dag(120);
         decompose(&mut dag);
+
+        let expect_deadline = [322857, 1033721, 7318570, 5316279, 4358571];
+        for node_i in dag.node_indices() {
+            assert_eq!(
+                dag[node_i].params["deadline"],
+                expect_deadline[node_i.index()]
+            );
+            assert_eq!(dag[node_i].params["deadline_factor"], 100000);
+        }
+    }
+
+    #[test]
+    fn test_decompose_normal_int() {
+        let mut dag = Graph::<NodeData, i32>::new();
+        let n0 = dag.add_node(create_node(0, "execution_time", 4));
+        dag.add_param(n0, "period", 20);
+
+        decompose(&mut dag);
+
+        assert_eq!(dag[n0].params["deadline"], 20);
+        assert_eq!(dag[n0].params["deadline_factor"], 1);
     }
 }
