@@ -257,44 +257,44 @@ mod tests {
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[0].get_core_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_core_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[0].get_dag_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_dag_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[0].get_node_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_node_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[0].get_start_time(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_start_time(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[0].get_finish_time(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[0].get_finish_time(),
             52
         );
 
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[1].get_core_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_core_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[1].get_dag_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_dag_id(),
             0
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[1].get_node_id(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_node_id(),
             1
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[1].get_start_time(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_start_time(),
             52
         );
         assert_eq!(
-            fixed_priority_scheduler.get_log().node_logs.node_logs[1].get_finish_time(),
+            fixed_priority_scheduler.get_log().node_logs.get_node_logs()[1].get_finish_time(),
             92
         );
     }

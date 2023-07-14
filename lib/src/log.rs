@@ -226,7 +226,7 @@ impl NodeLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLogs {
-    pub node_logs: Vec<NodeLog>,
+    node_logs: Vec<NodeLog>,
 }
 
 impl NodeLogs {
@@ -236,6 +236,10 @@ impl NodeLogs {
             node_logs.push(NodeLog::new(0, dag[node].id as usize));
         }
         Self { node_logs }
+    }
+
+    pub fn get_node_logs(&self) -> Vec<NodeLog> {
+        self.node_logs.clone()
     }
 
     pub fn dump_node_logs_to_yaml(&self, file_path: &str) {
