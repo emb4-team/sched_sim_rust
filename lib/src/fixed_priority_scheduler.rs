@@ -9,9 +9,9 @@ pub struct FixedPriorityScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
-    pub dag: Graph<NodeData, i32>,
-    pub processor: T,
-    pub log: DAGSchedulerLog,
+    dag: Graph<NodeData, i32>,
+    processor: T,
+    log: DAGSchedulerLog,
 }
 
 impl<T> DAGSchedulerBase<T> for FixedPriorityScheduler<T>
