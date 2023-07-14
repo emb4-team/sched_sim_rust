@@ -105,12 +105,16 @@ impl DAGInfo {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ProcessorInfo {
-    pub number_of_cores: usize,
+    number_of_cores: usize,
 }
 
 impl ProcessorInfo {
     pub fn new(number_of_cores: usize) -> Self {
         Self { number_of_cores }
+    }
+
+    pub fn get_number_of_cores(&self) -> usize {
+        self.number_of_cores
     }
 
     pub fn dump_processor_info_to_yaml(&self, file_path: &str) {

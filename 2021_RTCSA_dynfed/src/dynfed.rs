@@ -388,6 +388,6 @@ mod tests {
             70
         );
 
-        assert_eq!(dynfed.log.processor_info.number_of_cores, 4);
+        assert_eq!(dynfed.log.processor_info.get_number_of_cores(), 4);
     }
 }

@@ -16,7 +16,7 @@ struct ResultInfo<FederateResult> {
 
 pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
     let number_of_cores = processor.get_number_of_cores();
-    let processor_info = ProcessorInfo { number_of_cores };
+    let processor_info = ProcessorInfo::new(number_of_cores);
     let yaml =
         serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
     append_info_to_yaml(file_path, &yaml);
@@ -232,9 +232,9 @@ mod tests {
         dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let number_of_cores: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let processor_info: ProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
 
-        assert_eq!(number_of_cores.number_of_cores, 4);
+        assert_eq!(processor_info.get_number_of_cores(), 4);
 
         remove_file(file_path).unwrap();
     }
