@@ -455,14 +455,13 @@ impl DAGSchedulerLog {
     }
 }
 
-#[allow(dead_code)] //TODO remove
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetSchedulerLog {
-    pub dag_set_info: DAGSetInfo,
-    pub processor_info: ProcessorInfo,
-    pub dag_set_log: DAGSetLog,
-    pub node_set_logs: NodeSetLogs,
-    pub processor_log: ProcessorLog,
+    dag_set_info: DAGSetInfo,
+    processor_info: ProcessorInfo,
+    dag_set_log: DAGSetLog,
+    node_set_logs: NodeSetLogs,
+    processor_log: ProcessorLog,
 }
 
 impl DAGSetSchedulerLog {
@@ -474,6 +473,26 @@ impl DAGSetSchedulerLog {
             node_set_logs: NodeSetLogs::new(dag_set),
             processor_log: ProcessorLog::new(num_cores),
         }
+    }
+
+    pub fn get_dag_set_info(&self) -> DAGSetInfo {
+        self.dag_set_info.clone()
+    }
+
+    pub fn get_processor_info(&self) -> ProcessorInfo {
+        self.processor_info.clone()
+    }
+
+    pub fn get_dag_set_log(&self) -> DAGSetLog {
+        self.dag_set_log.clone()
+    }
+
+    pub fn get_node_set_logs(&self) -> NodeSetLogs {
+        self.node_set_logs.clone()
+    }
+
+    pub fn get_processor_log(&self) -> ProcessorLog {
+        self.processor_log.clone()
     }
 
     pub fn write_dag_release_time_log(&mut self, dag_id: usize, release_time: i32) {

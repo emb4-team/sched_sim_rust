@@ -354,73 +354,79 @@ mod tests {
 
         assert_eq!(time, 103);
 
-        assert_eq!(dynfed.log.dag_set_log.get_dag_set_log()[1].get_dag_id(), 1);
         assert_eq!(
-            dynfed.log.dag_set_log.get_dag_set_log()[1].get_release_time(),
+            dynfed.log.get_dag_set_log().get_dag_set_log()[1].get_dag_id(),
+            1
+        );
+        assert_eq!(
+            dynfed.log.get_dag_set_log().get_dag_set_log()[1].get_release_time(),
             0
         );
         assert_eq!(
-            dynfed.log.dag_set_log.get_dag_set_log()[1].get_start_time(),
+            dynfed.log.get_dag_set_log().get_dag_set_log()[1].get_start_time(),
             50
         );
         assert_eq!(
-            dynfed.log.dag_set_log.get_dag_set_log()[1].get_finish_time(),
+            dynfed.log.get_dag_set_log().get_dag_set_log()[1].get_finish_time(),
             103
         );
 
         assert_eq!(
-            dynfed.log.node_set_logs.get_node_set_logs()[1][3].get_core_id(),
+            dynfed.log.get_node_set_logs().get_node_set_logs()[1][3].get_core_id(),
             0
         );
         assert_eq!(
-            dynfed.log.node_set_logs.get_node_set_logs()[1][3].get_dag_id(),
+            dynfed.log.get_node_set_logs().get_node_set_logs()[1][3].get_dag_id(),
             1
         );
         assert_eq!(
-            dynfed.log.node_set_logs.get_node_set_logs()[1][3].get_node_id(),
+            dynfed.log.get_node_set_logs().get_node_set_logs()[1][3].get_node_id(),
             3
         );
         assert_eq!(
-            dynfed.log.node_set_logs.get_node_set_logs()[1][3].get_start_time(),
+            dynfed.log.get_node_set_logs().get_node_set_logs()[1][3].get_start_time(),
             61
         );
         assert_eq!(
-            dynfed.log.node_set_logs.get_node_set_logs()[1][3].get_finish_time(),
+            dynfed.log.get_node_set_logs().get_node_set_logs()[1][3].get_finish_time(),
             72
         );
 
         assert_eq!(
-            dynfed.log.processor_log.get_average_utilization(),
+            dynfed.log.get_processor_log().get_average_utilization(),
             0.32524273
         );
         assert_eq!(
-            dynfed.log.processor_log.get_variance_utilization(),
+            dynfed.log.get_processor_log().get_variance_utilization(),
             0.08862758
         );
 
-        assert_eq!(dynfed.log.processor_log.get_core_logs()[0].get_core_id(), 0);
         assert_eq!(
-            dynfed.log.processor_log.get_core_logs()[0].get_total_proc_time(),
+            dynfed.log.get_processor_log().get_core_logs()[0].get_core_id(),
+            0
+        );
+        assert_eq!(
+            dynfed.log.get_processor_log().get_core_logs()[0].get_total_proc_time(),
             83
         );
         assert_eq!(
-            dynfed.log.processor_log.get_core_logs()[0].get_utilization(),
+            dynfed.log.get_processor_log().get_core_logs()[0].get_utilization(),
             0.80582523
         );
 
         assert_eq!(
-            dynfed.log.dag_set_info.get_each_dag_info()[0].get_critical_path_length(),
+            dynfed.log.get_dag_set_info().get_each_dag_info()[0].get_critical_path_length(),
             50
         );
         assert_eq!(
-            dynfed.log.dag_set_info.get_each_dag_info()[0].get_period(),
+            dynfed.log.get_dag_set_info().get_each_dag_info()[0].get_period(),
             100
         );
         assert_eq!(
-            dynfed.log.dag_set_info.get_each_dag_info()[0].get_volume(),
+            dynfed.log.get_dag_set_info().get_each_dag_info()[0].get_volume(),
             70
         );
 
-        assert_eq!(dynfed.log.processor_info.get_number_of_cores(), 4);
+        assert_eq!(dynfed.log.get_processor_info().get_number_of_cores(), 4);
     }
 }
