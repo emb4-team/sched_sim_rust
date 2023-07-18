@@ -13,11 +13,6 @@ struct ResultInfo<FederateResult> {
     result: FederateResult,
 }
 
-pub(crate) fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
-    let processor_info = ProcessorInfo::new(processor.get_number_of_cores());
-    dump_struct(file_path, &processor_info);
-}
-
 pub(crate) fn dump_federated_result_to_yaml(file_path: &str, result: FederateResult) {
     let result_info = ResultInfo { result };
     dump_struct(file_path, &result_info);
@@ -26,6 +21,11 @@ pub(crate) fn dump_federated_result_to_yaml(file_path: &str, result: FederateRes
 pub(crate) fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i32>>) {
     let dag_set_info = DAGSetInfo::new(&dag_set);
     dump_struct(file_path, &dag_set_info);
+}
+
+pub(crate) fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
+    let processor_info = ProcessorInfo::new(processor.get_number_of_cores());
+    dump_struct(file_path, &processor_info);
 }
 
 #[cfg(test)]
