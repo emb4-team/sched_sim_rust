@@ -12,18 +12,6 @@ use petgraph::graph::{Graph, NodeIndex};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
-fn create_yaml_core(folder_path: &str, file_name: &str) -> String {
-    if fs::metadata(folder_path).is_err() {
-        let _ = fs::create_dir_all(folder_path);
-        info!("Created folder: {}", folder_path);
-    }
-    let file_path = format!("{}/{}.yaml", folder_path, file_name);
-    if let Err(err) = fs::File::create(&file_path) {
-        warn!("Failed to create file: {}", err);
-    }
-    file_path
-}
-
 pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
@@ -144,14 +132,11 @@ where
         }
     }
     fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>);
-    fn create_scheduler_log_yaml(folder_path: &str, sched_name: &str) -> String {
+    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-{}-log", date, sched_name);
-        create_yaml_core(folder_path, &file_name)
-    }
-    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let file_path = Self::create_scheduler_log_yaml(dir_path, sched_name);
+        let file_path = create_yaml_core(dir_path, &file_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
@@ -163,14 +148,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn schedule(&mut self) -> i32;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
-    fn create_scheduler_log_yaml(folder_path: &str, sched_name: &str) -> String {
+    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-{}-log", date, sched_name);
-        create_yaml_core(folder_path, &file_name)
-    }
-    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let file_path = Self::create_scheduler_log_yaml(dir_path, sched_name);
+        let file_path = create_yaml_core(dir_path, &file_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path

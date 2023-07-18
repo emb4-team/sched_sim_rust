@@ -1,7 +1,10 @@
-use std::{fs::OpenOptions, io::Write};
+use std::{
+    fs::{self, OpenOptions},
+    io::Write,
+};
 
 use crate::graph_extension::{GraphExtension, NodeData};
-use log::warn;
+use log::{info, warn};
 use num_integer::lcm;
 use petgraph::graph::Graph;
 
@@ -55,6 +58,18 @@ pub fn append_info_to_yaml(file_path: &str, info: &str) {
     } else {
         eprintln!("Failed to open file: {}", file_path);
     }
+}
+
+pub fn create_yaml(folder_path: &str, file_name: &str) -> String {
+    if fs::metadata(folder_path).is_err() {
+        let _ = fs::create_dir_all(folder_path);
+        info!("Created folder: {}", folder_path);
+    }
+    let file_path = format!("{}/{}.yaml", folder_path, file_name);
+    if let Err(err) = fs::File::create(&file_path) {
+        warn!("Failed to create file: {}", err);
+    }
+    file_path
 }
 
 #[cfg(test)]
