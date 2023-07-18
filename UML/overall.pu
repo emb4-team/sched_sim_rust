@@ -45,9 +45,6 @@ title Proposed Scheduler
     end note
 
     struct DAG_Scheduler<T: ProcessorBase + Clone> {
-        - dag : Graph
-        - processor : T
-        - log: DAGSchedulerLog
         + {static} new(&Graph, &T) : Self
         + {static} set_dag(&mut self, &Graph)
         + {static} set_processor(&mut self, &T)
@@ -63,10 +60,6 @@ title Proposed Scheduler
     end note
 
     struct DAGSet_Scheduler<T: DAGSchedulerBase<HomogeneousProcessor>> {
-        - dag_set : Vec<Graph>
-        - processor : HomogeneousProcessor
-        - scheduler: T
-        - log: DAGSetSchedulerLog
         + {static} new(&[Graph<NodeData, i32>], &HomogeneousProcessor) : Self
         + {static} schedule(&mut self) : i32
         + {static} get_log(&self) : DAGSchedulerLog
@@ -74,93 +67,45 @@ title Proposed Scheduler
     }
 
     struct DAGSetInfo {
-        - total_utilization: f32
-        - each_dag_info: Vec<DAGInfo>
-
         + {static} new(&[Graph]) : DAGSetInfo
     }
 
     struct DAGInfo {
-        - critical_path_length: i32
-        - end_to_end_deadline: i32
-        - end_to_end_deadline: i32,
-        - volume: i32,
-        - utilization: f32,
-
-        ~ {static} new(&Graph) : Self
         + {static} get_utilization(&self) : f32
 
     }
 
     struct ProcessorInfo {
-        - number_of_cores: usize
-
         + {static} new(usize) : Self
     }
 
     struct DAGSetLog {
-        - dag_set_log: Vec<DAGLog>
-
         + {static} new(&[Graph<NodeData, i32>]) : Self
     }
 
     struct DAGLog {
-        - dag_id: usize
-        - release_time: i32
-        - start_time: i32
-        - finish_time: i32
-
         + {static} new(usize) : Self
     }
 
     struct NodeSetLogs {
-        - node_set_logs: Vec<Vec<NodeSetLog>>
-
         + {static} new(&[Graph<NodeData, i32>]) : Self
     }
 
     struct NodeLogs {
-        - node_logs: Vec<NodeLog>
-
         + {static} new() : Self
     }
     
     struct NodeLog {
-        - core_id: usize,
-        - dag_id: usize,
-        - node_id: usize,
-        - start_time: i32,
-        - finish_time: i32,
-
-        ~ {static} new(usize, usize) : Self
     }
 
     struct ProcessorLog {
-        - average_utilization: f32,
-        - variance_utilization: f32,
-        - core_logs: Vec<CoreLog>,
-
         + {static} new(usize) : Self;
-        ~ {static} calculate_average_utilization(&mut self);
-        ~ {static} calculate_variance_utilization(&mut self);
-        ~ {static} calculate_cores_utilization(&mut self, i32);
     }
 
     struct CoreLog {
-        - core_id: usize,
-        - total_proc_time: i32,
-        - utilization: f32,
-
-        ~ {static} new(usize) : Self;
-        ~ {static} calculate_utilization(&mut self, i32);
     }  
 
     struct DAGSchedulerLog {
-        - dag_info: DAGInfo
-        - processor_info: ProcessorInfo
-        - node_logs: NodeLogs
-        - processor_log: ProcessorLog
-
         + {static} new(&Graph, usize) : Self
         + {static} set_node_logs(&mut self, NodeLogs)
         + {static} set_processor_log(&mut self, ProcessorLog)
@@ -171,12 +116,6 @@ title Proposed Scheduler
     }
 
     struct DAGSetSchedulerLog {
-        - dag_set_info: DAGSetInfo
-        - processor_info: ProcessorInfo
-        - dag_set_log: DAGSetLog
-        - node_set_logs: NodeSetLogs
-        - processor_log: ProcessorLog
-
         + {static} new(&[Graph<NodeData, i32>], usize) : Self
         + {static} write_dag_release_time_log(&mut self, usize, i32)
         + {static} write_dag_start_time_log(&mut self,usize, i32)
