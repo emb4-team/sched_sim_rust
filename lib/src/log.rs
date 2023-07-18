@@ -1,9 +1,24 @@
 use log::warn;
 use petgraph::Graph;
+use serde::Serialize;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::graph_extension::{GraphExtension, NodeData};
 use crate::util::append_info_to_yaml;
+
+pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
+    let yaml = serde_yaml::to_string(&target_struct).expect("Failed to serialize.");
+    append_info_to_yaml(file_path, &yaml);
+}
+
+fn init_node_logs(dag: &Graph<NodeData, i32>) -> Vec<NodeLog> {
+    let mut node_logs = Vec::with_capacity(dag.node_count());
+    for node in dag.node_indices() {
+        node_logs.push(NodeLog::new(0, dag[node].id as usize));
+    }
+
+    node_logs
+}
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetInfo {
@@ -194,24 +209,16 @@ pub struct DAGSchedulerLog {
 
 impl DAGSchedulerLog {
     pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
-        let mut node_logs = Vec::with_capacity(dag.node_count());
-        for node in dag.node_indices() {
-            node_logs.push(NodeLog::new(0, dag[node].id as usize));
-        }
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
-            node_logs,
+            node_logs: init_node_logs(dag),
             processor_log: ProcessorLog::new(num_cores),
         }
     }
 
     pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        let mut node_logs = Vec::with_capacity(dag.node_count());
-        for node in dag.node_indices() {
-            node_logs.push(NodeLog::new(0, dag[node].id as usize));
-        }
-        self.node_logs = node_logs;
+        self.node_logs = init_node_logs(dag);
     }
 
     pub fn update_processor(&mut self, processor_log: ProcessorLog) {
@@ -243,8 +250,7 @@ impl DAGSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
+        dump_struct(file_path, self);
     }
 }
 
@@ -265,11 +271,8 @@ impl DAGSetSchedulerLog {
         }
 
         let mut node_set_logs = Vec::with_capacity(dag_set.len());
-        for (i, dag) in dag_set.iter().enumerate() {
-            let mut node_logs = Vec::with_capacity(dag.node_count());
-            for node in dag.node_indices() {
-                node_logs.push(NodeLog::new(i, dag[node].id as usize));
-            }
+        for dag in dag_set {
+            let node_logs = init_node_logs(dag);
             node_set_logs.push(node_logs);
         }
 
@@ -320,7 +323,6 @@ impl DAGSetSchedulerLog {
     }
 
     pub fn dump_log_to_yaml(&self, file_path: &str) {
-        let yaml = serde_yaml::to_string(&self).expect("Failed to serialize DAGInfo to YAML");
-        append_info_to_yaml(file_path, &yaml);
+        dump_struct(file_path, self);
     }
 }

@@ -1,19 +1,11 @@
-use chrono::{DateTime, Utc};
 use clap::Parser;
 use lib::dag_creator::*;
 use lib::homogeneous;
 use lib::processor::ProcessorBase;
-use lib::util::create_yaml;
+use lib::scheduler::create_scheduler_log_yaml;
 use outputs_result::*;
 mod federated;
 mod outputs_result;
-
-fn create_scheduler_log_yaml(folder_path: &str, sched_name: &str) -> String {
-    let now: DateTime<Utc> = Utc::now();
-    let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-    let file_name = format!("{}-{}-log", date, sched_name);
-    create_yaml(folder_path, &file_name)
-}
 
 /// Application description and arguments definition using clap crate
 #[derive(Parser)]

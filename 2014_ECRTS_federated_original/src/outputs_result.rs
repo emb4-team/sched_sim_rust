@@ -1,8 +1,7 @@
 use lib::{
     graph_extension::NodeData,
-    log::{DAGSetInfo, ProcessorInfo},
+    log::{dump_struct, DAGSetInfo, ProcessorInfo},
     processor::ProcessorBase,
-    util::append_info_to_yaml,
 };
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
@@ -14,28 +13,19 @@ struct ResultInfo<FederateResult> {
     result: FederateResult,
 }
 
-pub fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
-    let number_of_cores = processor.get_number_of_cores();
-    let processor_info = ProcessorInfo::new(number_of_cores);
-    let yaml =
-        serde_yaml::to_string(&processor_info).expect("Failed to serialize ProcessorInfo to YAML");
-    append_info_to_yaml(file_path, &yaml);
+pub(crate) fn dump_processor_info_to_yaml(file_path: &str, processor: &impl ProcessorBase) {
+    let processor_info = ProcessorInfo::new(processor.get_number_of_cores());
+    dump_struct(file_path, &processor_info);
 }
 
-pub fn dump_federated_result_to_yaml(file_path: &str, result: FederateResult) {
+pub(crate) fn dump_federated_result_to_yaml(file_path: &str, result: FederateResult) {
     let result_info = ResultInfo { result };
-    let yaml =
-        serde_yaml::to_string(&result_info).expect("Failed to serialize federated result to YAML");
-
-    append_info_to_yaml(file_path, &yaml);
+    dump_struct(file_path, &result_info);
 }
 
-pub fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i32>>) {
+pub(crate) fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i32>>) {
     let dag_set_info = DAGSetInfo::new(&dag_set);
-    let yaml =
-        serde_yaml::to_string(&dag_set_info).expect("Failed to serialize DAGSetInfo to YAML");
-
-    append_info_to_yaml(file_path, &yaml);
+    dump_struct(file_path, &dag_set_info);
 }
 
 #[cfg(test)]

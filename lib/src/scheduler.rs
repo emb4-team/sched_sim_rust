@@ -12,6 +12,13 @@ use petgraph::graph::{Graph, NodeIndex};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 
+pub fn create_scheduler_log_yaml(dir_path: &str, alg_name: &str) -> String {
+    let now: DateTime<Utc> = Utc::now();
+    let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
+    let file_name = format!("{}-{}-log", date, alg_name);
+    create_yaml(dir_path, &file_name)
+}
+
 pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
@@ -132,11 +139,8 @@ where
         }
     }
     fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>);
-    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let now: DateTime<Utc> = Utc::now();
-        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-        let file_name = format!("{}-{}-log", date, sched_name);
-        let file_path = create_yaml(dir_path, &file_name);
+    fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
+        let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
@@ -148,11 +152,8 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn schedule(&mut self) -> i32;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
-    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let now: DateTime<Utc> = Utc::now();
-        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-        let file_name = format!("{}-{}-log", date, sched_name);
-        let file_path = create_yaml(dir_path, &file_name);
+    fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
+        let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
