@@ -8,7 +8,7 @@ struct ResultInfo {
     result: bool,
 }
 
-pub fn dump_dynfed_result_to_file(
+pub fn dump_dynfed_result_to_yaml(
     file_path: &str,
     schedule_length: i32,
     hyper_period: i32,
@@ -44,7 +44,7 @@ mod tests {
     use std::fs::remove_file;
     use std::{collections::HashMap, fs};
 
-    use super::dump_dynfed_result_to_file;
+    use super::dump_dynfed_result_to_yaml;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -117,7 +117,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_dynfed_result_to_file_normal() {
+    fn test_dump_dynfed_result_to_yaml_normal() {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
         let mut dag_set = vec![dag, dag2];
@@ -131,9 +131,9 @@ mod tests {
         let schedule_length = dynfed_scheduler.schedule();
 
         let file_path =
-            create_scheduler_log_yaml("../lib/tests", "test_dump_dynfed_result_to_file_normal()");
+            create_scheduler_log_yaml("../lib/tests", "test_dump_dynfed_result_to_yaml_normal()");
 
-        dump_dynfed_result_to_file(
+        dump_dynfed_result_to_yaml(
             &file_path,
             schedule_length,
             get_hyper_period(&dag_set),

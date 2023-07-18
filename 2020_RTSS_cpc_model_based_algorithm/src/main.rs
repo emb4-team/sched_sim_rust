@@ -10,7 +10,7 @@ use lib::scheduler::DAGSchedulerBase;
 use lib::scheduler_creator::{create_scheduler, SchedulerType};
 use lib::{dag_creator::*, graph_extension::GraphExtension};
 use log::warn;
-use outputs_result::dump_cpc_result_to_file;
+use outputs_result::dump_cpc_result_to_yaml;
 
 #[derive(Parser)]
 #[clap(
@@ -60,7 +60,7 @@ fn main() {
     let result = (schedule_length as f32) < constrained_end_to_end_deadline;
     let file_path = fixed_priority_scheduler.dump_log(&arg.output_dir_path, "cpc_model_based");
 
-    dump_cpc_result_to_file(
+    dump_cpc_result_to_yaml(
         &file_path,
         schedule_length,
         arg.ratio_deadline_to_period,

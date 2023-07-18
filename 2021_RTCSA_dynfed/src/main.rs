@@ -9,7 +9,7 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
 use lib::util::{adjust_to_implicit_deadline, get_hyper_period};
-use outputs_result::dump_dynfed_result_to_file;
+use outputs_result::dump_dynfed_result_to_yaml;
 
 #[derive(Parser)]
 #[clap(
@@ -47,7 +47,7 @@ fn main() {
 
     let file_path = dynfed_scheduler.dump_log(&arg.output_dir_path, "FixedPriority");
 
-    dump_dynfed_result_to_file(
+    dump_dynfed_result_to_yaml(
         &file_path,
         schedule_length,
         get_hyper_period(&dag_set),

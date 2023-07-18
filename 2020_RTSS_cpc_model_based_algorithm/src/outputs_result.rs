@@ -8,7 +8,7 @@ struct ResultInfo {
     result: bool,
 }
 
-pub fn dump_cpc_result_to_file(
+pub fn dump_cpc_result_to_yaml(
     file_path: &str,
     schedule_length: i32,
     period_factor: f32,
@@ -97,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_cpc_result_to_file_normal() {
+    fn test_dump_cpc_result_to_yaml_normal() {
         let mut dag = create_cpc_dag();
 
         prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
@@ -114,7 +114,7 @@ mod tests {
         let file_path =
             create_scheduler_log_yaml("../lib/tests", "test_dump_federated_info_normal");
         let result = schedule_length < dag.get_head_period().unwrap();
-        dump_cpc_result_to_file(&file_path, schedule_length, 10.0, result);
+        dump_cpc_result_to_yaml(&file_path, schedule_length, 10.0, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo = serde_yaml::from_str(&file_contents).unwrap();
