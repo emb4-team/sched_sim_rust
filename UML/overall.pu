@@ -94,7 +94,7 @@ title Proposed Scheduler
     struct DAGSchedulerLog {
         + {static} new(&Graph, usize) : Self
         + {static} update_dag(&mut self, NodeLogs)
-        + {static} set_processor_log(&mut self, ProcessorLog)
+        + {static} update_processor(&mut self, ProcessorLog)
         + {static} write_allocating_log(&mut self, &NodeData, usize, i32)
         + {static} write_finishing_node_log(&mut self, &NodeData, i32)
         + {static} write_scheduling_log(&mut self, i32)
