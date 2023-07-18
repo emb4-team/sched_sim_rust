@@ -1,13 +1,13 @@
-use std::{collections::VecDeque, fs};
+use std::collections::VecDeque;
 
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
+    util::create_yaml,
 };
 use chrono::{DateTime, Utc};
-use log::{info, warn};
 use petgraph::graph::{Graph, NodeIndex};
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
@@ -136,7 +136,7 @@ where
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-{}-log", date, sched_name);
-        let file_path = create_yaml_core(dir_path, &file_name);
+        let file_path = create_yaml(dir_path, &file_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
@@ -152,7 +152,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-{}-log", date, sched_name);
-        let file_path = create_yaml_core(dir_path, &file_name);
+        let file_path = create_yaml(dir_path, &file_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
