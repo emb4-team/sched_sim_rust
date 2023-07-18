@@ -28,7 +28,7 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.set_node_logs(NodeLogs::new(dag));
+        self.log.update_dag(dag);
     }
 
     fn set_processor(&mut self, processor: &T) {
@@ -82,7 +82,7 @@ mod tests {
     struct TestDAGSchedulerLog {
         dag_info: TestDAGInfo,
         processor_info: TestProcessorInfo,
-        node_logs: TestNodeLogs,
+        node_logs: Vec<TestNodeLog>,
         processor_log: TestProcessorLog,
     }
 
@@ -98,11 +98,6 @@ mod tests {
     #[derive(Deserialize)]
     struct TestProcessorInfo {
         number_of_cores: usize,
-    }
-
-    #[derive(Deserialize)]
-    struct TestNodeLogs {
-        node_logs: Vec<TestNodeLog>,
     }
 
     #[derive(Deserialize)]
@@ -294,11 +289,11 @@ mod tests {
         assert_eq!(log.processor_log.core_logs[0].total_proc_time, 92);
         assert_eq!(log.processor_log.core_logs[0].utilization, 1.0);
 
-        assert_eq!(log.node_logs.node_logs[0].dag_id, 0);
-        assert_eq!(log.node_logs.node_logs[0].node_id, 0);
-        assert_eq!(log.node_logs.node_logs[0].core_id, 0);
-        assert_eq!(log.node_logs.node_logs[0].start_time, 0);
-        assert_eq!(log.node_logs.node_logs[0].finish_time, 52);
+        assert_eq!(log.node_logs[0].dag_id, 0);
+        assert_eq!(log.node_logs[0].node_id, 0);
+        assert_eq!(log.node_logs[0].core_id, 0);
+        assert_eq!(log.node_logs[0].start_time, 0);
+        assert_eq!(log.node_logs[0].finish_time, 52);
 
         remove_file(file_path).unwrap();
     }

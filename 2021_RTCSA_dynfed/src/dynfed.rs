@@ -308,8 +308,8 @@ mod tests {
     struct TestDAGSetSchedulerLog {
         dag_set_info: TestDAGSetInfo,
         processor_info: TestProcessorInfo,
-        dag_set_log: TestDAGSetLog,
-        node_set_logs: TestNodeSetLogs,
+        dag_set_log: Vec<TestDAGLog>,
+        node_set_logs: Vec<Vec<TestNodeLog>>,
         processor_log: TestProcessorLog,
     }
 
@@ -334,21 +334,11 @@ mod tests {
     }
 
     #[derive(Deserialize)]
-    struct TestDAGSetLog {
-        dag_set_log: Vec<TestDAGLog>,
-    }
-
-    #[derive(Deserialize)]
     struct TestDAGLog {
         dag_id: usize,
         release_time: i32,
         start_time: i32,
         finish_time: i32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestNodeSetLogs {
-        node_set_logs: Vec<Vec<TestNodeLog>>,
     }
 
     #[derive(Deserialize)]
@@ -451,16 +441,16 @@ mod tests {
 
         assert_eq!(log.processor_info.number_of_cores, 4);
 
-        assert_eq!(log.dag_set_log.dag_set_log[1].dag_id, 1);
-        assert_eq!(log.dag_set_log.dag_set_log[1].release_time, 0);
-        assert_eq!(log.dag_set_log.dag_set_log[1].start_time, 50);
-        assert_eq!(log.dag_set_log.dag_set_log[1].finish_time, 103);
+        assert_eq!(log.dag_set_log[1].dag_id, 1);
+        assert_eq!(log.dag_set_log[1].release_time, 0);
+        assert_eq!(log.dag_set_log[1].start_time, 50);
+        assert_eq!(log.dag_set_log[1].finish_time, 103);
 
-        assert_eq!(log.node_set_logs.node_set_logs[1][3].core_id, 0);
-        assert_eq!(log.node_set_logs.node_set_logs[1][3].dag_id, 1);
-        assert_eq!(log.node_set_logs.node_set_logs[1][3].node_id, 3);
-        assert_eq!(log.node_set_logs.node_set_logs[1][3].start_time, 61);
-        assert_eq!(log.node_set_logs.node_set_logs[1][3].finish_time, 72);
+        assert_eq!(log.node_set_logs[1][3].core_id, 0);
+        assert_eq!(log.node_set_logs[1][3].dag_id, 1);
+        assert_eq!(log.node_set_logs[1][3].node_id, 3);
+        assert_eq!(log.node_set_logs[1][3].start_time, 61);
+        assert_eq!(log.node_set_logs[1][3].finish_time, 72);
 
         assert_eq!(log.processor_log.average_utilization, 0.32524273);
         assert_eq!(log.processor_log.variance_utilization, 0.08862758);
