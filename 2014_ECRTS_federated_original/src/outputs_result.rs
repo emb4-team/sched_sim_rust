@@ -50,7 +50,7 @@ mod tests {
         fs::{self, remove_file},
     };
 
-    fn create_yaml_file_core(folder_path: &str, file_name: &str) -> String {
+    fn create_yaml_core(folder_path: &str, file_name: &str) -> String {
         if fs::metadata(folder_path).is_err() {
             let _ = fs::create_dir_all(folder_path);
             info!("Created folder: {}", folder_path);
@@ -62,11 +62,11 @@ mod tests {
         file_path
     }
 
-    fn create_scheduler_log_yaml_file(folder_path: &str, sched_name: &str) -> String {
+    fn create_scheduler_log_yaml(folder_path: &str, sched_name: &str) -> String {
         let now: DateTime<Utc> = Utc::now();
         let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
         let file_name = format!("{}-{}-log", date, sched_name);
-        create_yaml_file_core(folder_path, &file_name)
+        create_yaml_core(folder_path, &file_name)
     }
 
     #[derive(Deserialize)]
@@ -148,7 +148,7 @@ mod tests {
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path =
-            create_scheduler_log_yaml_file("../lib/tests", "test_dump_federated_info_normal");
+            create_scheduler_log_yaml("../lib/tests", "test_dump_federated_info_normal");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -174,10 +174,8 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_scheduler_log_yaml_file(
-            "../lib/tests",
-            "test_federated_lack_cores_for_high_tasks",
-        );
+        let file_path =
+            create_scheduler_log_yaml("../lib/tests", "test_federated_lack_cores_for_high_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -203,10 +201,8 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_scheduler_log_yaml_file(
-            "../lib/tests",
-            "test_federated_lack_cores_for_low_tasks",
-        );
+        let file_path =
+            create_scheduler_log_yaml("../lib/tests", "test_federated_lack_cores_for_low_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -228,8 +224,7 @@ mod tests {
         let number_of_cores = 1;
         let mut dag_set = vec![create_period_exceeding_dag()];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path =
-            create_scheduler_log_yaml_file("../lib/tests", "test_federated_unsuited_tasks");
+        let file_path = create_scheduler_log_yaml("../lib/tests", "test_federated_unsuited_tasks");
         dump_federated_result_to_file(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -249,9 +244,9 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_dag_set_info_to_yaml_file_normal() {
+    fn test_dump_dag_set_info_to_yaml_normal() {
         let dag_set = vec![create_high_utilization_dag(), create_high_utilization_dag()];
-        let file_path = create_scheduler_log_yaml_file("../lib/tests", "dag_set_info");
+        let file_path = create_scheduler_log_yaml("../lib/tests", "dag_set_info");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -270,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_scheduler_log_yaml_file("../lib/tests", "processor_info");
+        let file_path = create_scheduler_log_yaml("../lib/tests", "processor_info");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 
