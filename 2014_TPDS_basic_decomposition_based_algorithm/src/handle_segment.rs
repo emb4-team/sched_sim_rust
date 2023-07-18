@@ -23,7 +23,6 @@ pub struct Segment {
     pub volume: i32,                // execution_requirement * nodes.len()
 }
 
-#[allow(dead_code)] //TODO: remove
 pub fn create_segments(dag: &mut Graph<NodeData, i32>) -> Vec<Segment> {
     dag.calculate_earliest_finish_times();
 
@@ -111,7 +110,6 @@ fn classify_dag(
     }
 }
 
-#[allow(dead_code)] //TODO: remove
 pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mut [Segment]) {
     let volume = dag.get_volume() as f32;
     let period = dag.get_head_period().unwrap() as f32;
