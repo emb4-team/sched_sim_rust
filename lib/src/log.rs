@@ -209,16 +209,18 @@ pub struct DAGSchedulerLog {
 
 impl DAGSchedulerLog {
     pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
+        let dag_id = 0;
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
-            node_logs: init_node_logs(dag, 0),
+            node_logs: init_node_logs(dag, dag_id),
             processor_log: ProcessorLog::new(num_cores),
         }
     }
 
     pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.node_logs = init_node_logs(dag, 0);
+        let dag_id = 0;
+        self.node_logs = init_node_logs(dag, dag_id);
     }
 
     pub fn update_processor(&mut self, processor_log: ProcessorLog) {
