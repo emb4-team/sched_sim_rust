@@ -11,7 +11,6 @@ title Proposed Scheduler
         + {abstract} get_log(&self) : &DAGSchedulerLog
         + {static} schedule(&mut self) : (i32, VecDeque)
         + {abstract} sort_ready_queue(&mut VecDeque)
-        + {static} create_scheduler_log_yaml_file(&str, &str) : String
         + {static} dump_log(&self, &str, &str)
     }
 
@@ -32,7 +31,6 @@ title Proposed Scheduler
         + {abstract} schedule(&mut self) : i32
         + {abstract} get_log(&self) : DAGSchedulerLog
         + {abstract} set_log(&mut self, DAGSchedulerLog)
-        + {static} create_scheduler_log_yaml_file(&str, &str) : String
         + {static} dump_log(&self, &str, &str)
     }
 
