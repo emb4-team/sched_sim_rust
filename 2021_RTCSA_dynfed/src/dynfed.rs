@@ -285,10 +285,6 @@ where
         current_time
     }
 
-    fn get_name(&self) -> String {
-        "DynFed".to_string()
-    }
-
     fn get_log(&self) -> DAGSetSchedulerLog {
         self.log.clone()
     }

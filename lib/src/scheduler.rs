@@ -31,7 +31,6 @@ where
     fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
     where
         Self: Sized;
-    fn get_name(&self) -> String;
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
     fn set_log(&mut self, log: DAGSchedulerLog);
@@ -151,8 +150,7 @@ where
         let file_name = format!("{}-{}-log", date, sched_name);
         create_yaml_file_core(folder_path, &file_name)
     }
-    fn dump_log(&self, dir_path: &str, algorithm_name: &str) -> String {
-        let sched_name = format!("{}_{}", algorithm_name, self.get_name());
+    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
         let file_path = Self::create_scheduler_log_yaml_file(dir_path, &sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
@@ -163,7 +161,6 @@ where
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn schedule(&mut self) -> i32;
-    fn get_name(&self) -> String;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn create_scheduler_log_yaml_file(folder_path: &str, sched_name: &str) -> String {
@@ -172,8 +169,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let file_name = format!("{}-{}-log", date, sched_name);
         create_yaml_file_core(folder_path, &file_name)
     }
-    fn dump_log(&self, dir_path: &str, algorithm_name: &str) -> String {
-        let sched_name = format!("{}_{}", algorithm_name, self.get_name());
+    fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
         let file_path = Self::create_scheduler_log_yaml_file(dir_path, &sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
 

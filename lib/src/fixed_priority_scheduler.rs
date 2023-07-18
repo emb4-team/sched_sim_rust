@@ -26,10 +26,6 @@ where
         }
     }
 
-    fn get_name(&self) -> String {
-        "FixedPriorityScheduler".to_string()
-    }
-
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
         self.log.set_node_logs(NodeLogs::new(dag));
