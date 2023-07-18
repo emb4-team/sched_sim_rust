@@ -186,7 +186,7 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 ///
 /// ```
 /// use lib::dag_creator::create_dag_set_from_dir;
-/// let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yamls");
+/// let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml");
 /// let first_node_num = dag_set[0].node_count();
 /// let first_edge_num = dag_set[0].edge_count();
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
@@ -214,8 +214,8 @@ mod tests {
         assert_eq!(number_of_digits, 1, "number of digits is expected to be 1");
     }
     #[test]
-    fn test_create_dag_set_from_dir_multiple_yamls() {
-        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yamls");
+    fn test_create_dag_set_from_dir_multiple_yaml() {
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
 
@@ -233,8 +233,8 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_create_dag_set_from_dir_no_yamls() {
-        create_dag_set_from_dir("tests/sample_dags/no_yamls");
+    fn test_create_dag_set_from_dir_no_yaml() {
+        create_dag_set_from_dir("tests/sample_dags/no_yaml");
     }
 
     #[test]
@@ -503,6 +503,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_broken_link() {
-        let _dag = create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
+        create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
     }
 }
