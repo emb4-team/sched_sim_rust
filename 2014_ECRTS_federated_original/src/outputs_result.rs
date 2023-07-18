@@ -41,29 +41,13 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::{graph_extension::NodeData, homogeneous, util::create_yaml};
+    use lib::{
+        graph_extension::NodeData,
+        homogeneous,
+        util::{create_yaml, load_yaml},
+    };
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
-
-    #[derive(Deserialize)]
-    pub struct TestDAGSetInfo {
-        total_utilization: f32,
-        each_dag_info: Vec<TestDAGInfo>,
-    }
-
-    #[derive(Deserialize)]
-    struct TestDAGInfo {
-        critical_path_length: i32,
-        period: i32,
-        end_to_end_deadline: i32,
-        volume: i32,
-        utilization: f32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestProcessorInfo {
-        number_of_cores: usize,
-    }
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -222,16 +206,30 @@ mod tests {
         let file_path = create_yaml("../lib/tests", "dag_set_info");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let dag_set_info: TestDAGSetInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
 
-        assert_eq!(dag_set_info.total_utilization, 1.4285715);
-        assert_eq!(dag_set_info.each_dag_info.len(), 2);
-        assert_eq!(dag_set_info.each_dag_info[1].critical_path_length, 8);
-        assert_eq!(dag_set_info.each_dag_info[1].period, 10);
-        assert_eq!(dag_set_info.each_dag_info[1].end_to_end_deadline, 0);
-        assert_eq!(dag_set_info.each_dag_info[1].volume, 14);
-        assert_eq!(dag_set_info.each_dag_info[1].utilization, 0.71428573);
+        assert_eq!(yaml_doc["total_utilization"].as_f64().unwrap(), 1.4285715);
+        assert_eq!(
+            yaml_doc["each_dag_info"][1]["critical_path_length"]
+                .as_i64()
+                .unwrap(),
+            8
+        );
+        assert_eq!(yaml_doc["each_dag_info"][1]["period"].as_i64().unwrap(), 10);
+        assert_eq!(
+            yaml_doc["each_dag_info"][1]["end_to_end_deadline"]
+                .as_i64()
+                .unwrap(),
+            0
+        );
+        assert_eq!(yaml_doc["each_dag_info"][1]["volume"].as_i64().unwrap(), 14);
+        assert_eq!(
+            yaml_doc["each_dag_info"][1]["utilization"]
+                .as_f64()
+                .unwrap(),
+            0.71428573
+        );
 
         remove_file(file_path).unwrap();
     }
@@ -242,10 +240,10 @@ mod tests {
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let processor_info: TestProcessorInfo = serde_yaml::from_str(&file_contents).unwrap();
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
 
-        assert_eq!(processor_info.number_of_cores, 4);
+        assert_eq!(yaml_doc["number_of_cores"].as_i64().unwrap(), 4);
 
         remove_file(file_path).unwrap();
     }
