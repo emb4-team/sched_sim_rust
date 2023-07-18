@@ -11,10 +11,10 @@ pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     append_info_to_yaml(file_path, &yaml);
 }
 
-fn init_node_logs(dag: &Graph<NodeData, i32>) -> Vec<NodeLog> {
+fn init_node_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<NodeLog> {
     let mut node_logs = Vec::with_capacity(dag.node_count());
     for node in dag.node_indices() {
-        node_logs.push(NodeLog::new(0, dag[node].id as usize));
+        node_logs.push(NodeLog::new(dag_id, dag[node].id as usize));
     }
 
     node_logs
@@ -212,13 +212,13 @@ impl DAGSchedulerLog {
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
-            node_logs: init_node_logs(dag),
+            node_logs: init_node_logs(dag, 0),
             processor_log: ProcessorLog::new(num_cores),
         }
     }
 
     pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        self.node_logs = init_node_logs(dag);
+        self.node_logs = init_node_logs(dag, 0);
     }
 
     pub fn update_processor(&mut self, processor_log: ProcessorLog) {
@@ -271,8 +271,8 @@ impl DAGSetSchedulerLog {
         }
 
         let mut node_set_logs = Vec::with_capacity(dag_set.len());
-        for dag in dag_set {
-            let node_logs = init_node_logs(dag);
+        for (dag_id, dag) in dag_set.iter().enumerate() {
+            let node_logs = init_node_logs(dag, dag_id);
             node_set_logs.push(node_logs);
         }
 
