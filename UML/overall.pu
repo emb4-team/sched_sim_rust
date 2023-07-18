@@ -3,7 +3,6 @@ title Proposed Scheduler
 
     interface DAGSchedulerBase<T: ProcessorBase + Clone> {
         + {abstract} new(&Graph, &T) : Self
-        + {abstract} get_name(&self) : String
         + {abstract} set_dag(&mut self, &Graph)
         + {abstract} set_processor(&mut self, &T)
         + {abstract} set_log(&mut self, DAGSchedulerLog)
@@ -31,7 +30,6 @@ title Proposed Scheduler
     interface DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         + {abstract} new(&[Graph], T) : Self
         + {abstract} schedule(&mut self) : i32
-        + {abstract} get_name(&self) : String
         + {abstract} get_log(&self) : DAGSchedulerLog
         + {abstract} set_log(&mut self, DAGSchedulerLog)
         + {static} create_scheduler_log_yaml_file(&str, &str) : String
@@ -51,7 +49,6 @@ title Proposed Scheduler
         - processor : T
         - log: DAGSchedulerLog
         + {static} new(&Graph, &T) : Self
-        + {static} get_name(&self) : String
         + {static} set_dag(&mut self, &Graph)
         + {static} set_processor(&mut self, &T)
         + {static} set_log(&mut self, DAGSchedulerLog)
@@ -72,7 +69,6 @@ title Proposed Scheduler
         - log: DAGSetSchedulerLog
         + {static} new(&[Graph<NodeData, i32>], &HomogeneousProcessor) : Self
         + {static} schedule(&mut self) : i32
-        + {static} get_name(&self) : String
         + {static} get_log(&self) : DAGSchedulerLog
         + {static} set_log(&mut self, DAGSchedulerLog)
     }
