@@ -214,7 +214,7 @@ impl DAGSchedulerLog {
         self.node_logs = node_logs;
     }
 
-    pub fn set_processor_log(&mut self, processor_log: ProcessorLog) {
+    pub fn update_processor(&mut self, processor_log: ProcessorLog) {
         self.processor_log = processor_log;
     }
 

@@ -300,69 +300,9 @@ mod tests {
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
-    use serde_derive::Deserialize;
+    use lib::util::load_yaml;
     use std::collections::HashMap;
     use std::fs::remove_file;
-
-    #[derive(Deserialize)]
-    struct TestDAGSetSchedulerLog {
-        dag_set_info: TestDAGSetInfo,
-        processor_info: TestProcessorInfo,
-        dag_set_log: Vec<TestDAGLog>,
-        node_set_logs: Vec<Vec<TestNodeLog>>,
-        processor_log: TestProcessorLog,
-    }
-
-    #[derive(Deserialize)]
-    pub struct TestDAGSetInfo {
-        total_utilization: f32,
-        each_dag_info: Vec<TestDAGInfo>,
-    }
-
-    #[derive(Deserialize)]
-    struct TestDAGInfo {
-        critical_path_length: i32,
-        period: i32,
-        end_to_end_deadline: i32,
-        volume: i32,
-        utilization: f32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestProcessorInfo {
-        number_of_cores: usize,
-    }
-
-    #[derive(Deserialize)]
-    struct TestDAGLog {
-        dag_id: usize,
-        release_time: i32,
-        start_time: i32,
-        finish_time: i32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestNodeLog {
-        core_id: usize,
-        dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
-        node_id: usize,
-        start_time: i32,
-        finish_time: i32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestProcessorLog {
-        average_utilization: f32,
-        variance_utilization: f32,
-        core_logs: Vec<TestCoreLog>,
-    }
-
-    #[derive(Deserialize)]
-    struct TestCoreLog {
-        core_id: usize,
-        total_proc_time: i32,
-        utilization: f32,
-    }
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -428,36 +368,129 @@ mod tests {
         assert_eq!(time, 103);
 
         let file_path = dynfed.dump_log("../lib/tests", "test");
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let log: TestDAGSetSchedulerLog = serde_yaml::from_str(&file_contents).unwrap();
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
 
-        assert_eq!(log.dag_set_info.total_utilization, 2.9910715);
-        assert_eq!(log.dag_set_info.each_dag_info[0].critical_path_length, 50);
-        assert_eq!(log.dag_set_info.each_dag_info[0].period, 100);
-        assert_eq!(log.dag_set_info.each_dag_info[0].end_to_end_deadline, 50);
-        assert_eq!(log.dag_set_info.each_dag_info[0].volume, 70);
-        assert_eq!(log.dag_set_info.each_dag_info[0].utilization, 1.4285715);
-        assert_eq!(log.dag_set_info.each_dag_info[1].utilization, 1.5625);
+        assert_eq!(
+            yaml_doc["dag_set_info"]["total_utilization"]
+                .as_f64()
+                .unwrap(),
+            2.9910715
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][0]["critical_path_length"]
+                .as_i64()
+                .unwrap(),
+            50
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][0]["period"]
+                .as_i64()
+                .unwrap(),
+            100
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][0]["end_to_end_deadline"]
+                .as_i64()
+                .unwrap(),
+            50
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][0]["volume"]
+                .as_i64()
+                .unwrap(),
+            70
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][0]["utilization"]
+                .as_f64()
+                .unwrap(),
+            1.4285715
+        );
+        assert_eq!(
+            yaml_doc["dag_set_info"]["each_dag_info"][1]["utilization"]
+                .as_f64()
+                .unwrap(),
+            1.5625
+        );
 
-        assert_eq!(log.processor_info.number_of_cores, 4);
+        assert_eq!(
+            yaml_doc["processor_info"]["number_of_cores"]
+                .as_i64()
+                .unwrap(),
+            4
+        );
 
-        assert_eq!(log.dag_set_log[1].dag_id, 1);
-        assert_eq!(log.dag_set_log[1].release_time, 0);
-        assert_eq!(log.dag_set_log[1].start_time, 50);
-        assert_eq!(log.dag_set_log[1].finish_time, 103);
+        assert_eq!(yaml_doc["dag_set_log"][1]["dag_id"].as_i64().unwrap(), 1);
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["release_time"].as_i64().unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["start_time"].as_i64().unwrap(),
+            50
+        );
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["finish_time"].as_i64().unwrap(),
+            103
+        );
 
-        assert_eq!(log.node_set_logs[1][3].core_id, 0);
-        assert_eq!(log.node_set_logs[1][3].dag_id, 1);
-        assert_eq!(log.node_set_logs[1][3].node_id, 3);
-        assert_eq!(log.node_set_logs[1][3].start_time, 61);
-        assert_eq!(log.node_set_logs[1][3].finish_time, 72);
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][3]["core_id"].as_i64().unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][3]["dag_id"].as_i64().unwrap(),
+            1
+        );
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][3]["node_id"].as_i64().unwrap(),
+            3
+        );
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][3]["start_time"]
+                .as_i64()
+                .unwrap(),
+            61
+        );
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][3]["finish_time"]
+                .as_i64()
+                .unwrap(),
+            72
+        );
 
-        assert_eq!(log.processor_log.average_utilization, 0.32524273);
-        assert_eq!(log.processor_log.variance_utilization, 0.08862758);
+        assert_eq!(
+            yaml_doc["processor_log"]["average_utilization"]
+                .as_f64()
+                .unwrap(),
+            0.32524273
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["variance_utilization"]
+                .as_f64()
+                .unwrap(),
+            0.08862758
+        );
 
-        assert_eq!(log.processor_log.core_logs[0].core_id, 0);
-        assert_eq!(log.processor_log.core_logs[0].total_proc_time, 83);
-        assert_eq!(log.processor_log.core_logs[0].utilization, 0.80582523);
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["core_id"]
+                .as_i64()
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["total_proc_time"]
+                .as_i64()
+                .unwrap(),
+            83
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["utilization"]
+                .as_f64()
+                .unwrap(),
+            0.80582523
+        );
 
         remove_file(file_path).unwrap();
     }

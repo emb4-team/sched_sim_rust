@@ -7,6 +7,7 @@ use crate::graph_extension::{GraphExtension, NodeData};
 use log::{info, warn};
 use num_integer::lcm;
 use petgraph::graph::Graph;
+use yaml_rust::YamlLoader;
 
 pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
     let mut hyper_period = 1;
@@ -43,6 +44,14 @@ pub fn adjust_to_implicit_deadline(dag_set: &mut [Graph<NodeData, i32>]) {
             }
         }
     }
+}
+
+pub fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
+    if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
+        panic!("Invalid file type: {}", file_path);
+    }
+    let file_content = fs::read_to_string(file_path).unwrap();
+    YamlLoader::load_from_str(&file_content).unwrap()
 }
 
 pub fn append_info_to_yaml(file_path: &str, info: &str) {

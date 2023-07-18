@@ -4,21 +4,12 @@ use log::warn;
 use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
-use std::fs;
 use yaml_rust::Yaml;
-use yaml_rust::YamlLoader;
 
 use std::path::PathBuf;
 
 use crate::graph_extension::NodeData;
-
-fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
-    if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
-        panic!("Invalid file type: {}", file_path);
-    }
-    let file_content = fs::read_to_string(file_path).unwrap();
-    YamlLoader::load_from_str(&file_content).unwrap()
-}
+use crate::util::load_yaml;
 
 fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     let mut minimum_decimal_places = 0;

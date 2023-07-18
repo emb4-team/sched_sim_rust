@@ -41,33 +41,9 @@ pub fn dump_dag_set_info_to_yaml(file_path: &str, dag_set: Vec<Graph<NodeData, i
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{DateTime, Utc};
-    use lib::{graph_extension::NodeData, homogeneous};
-    use log::{info, warn};
+    use lib::{graph_extension::NodeData, homogeneous, util::create_yaml};
     use petgraph::Graph;
-    use std::{
-        collections::HashMap,
-        fs::{self, remove_file},
-    };
-
-    fn create_yaml_core(folder_path: &str, file_name: &str) -> String {
-        if fs::metadata(folder_path).is_err() {
-            let _ = fs::create_dir_all(folder_path);
-            info!("Created folder: {}", folder_path);
-        }
-        let file_path = format!("{}/{}.yaml", folder_path, file_name);
-        if let Err(err) = fs::File::create(&file_path) {
-            warn!("Failed to create file: {}", err);
-        }
-        file_path
-    }
-
-    fn create_scheduler_log_yaml(folder_path: &str, sched_name: &str) -> String {
-        let now: DateTime<Utc> = Utc::now();
-        let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
-        let file_name = format!("{}-{}-log", date, sched_name);
-        create_yaml_core(folder_path, &file_name)
-    }
+    use std::{collections::HashMap, fs::remove_file};
 
     #[derive(Deserialize)]
     pub struct TestDAGSetInfo {
@@ -147,8 +123,7 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path =
-            create_scheduler_log_yaml("../lib/tests", "test_dump_federated_info_normal");
+        let file_path = create_yaml("../lib/tests", "test_dump_federated_info_normal");
         dump_federated_result_to_yaml(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -174,8 +149,7 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path =
-            create_scheduler_log_yaml("../lib/tests", "test_federated_lack_cores_for_high_tasks");
+        let file_path = create_yaml("../lib/tests", "test_federated_lack_cores_for_high_tasks");
         dump_federated_result_to_yaml(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -201,8 +175,7 @@ mod tests {
             create_low_utilization_dag(),
         ];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path =
-            create_scheduler_log_yaml("../lib/tests", "test_federated_lack_cores_for_low_tasks");
+        let file_path = create_yaml("../lib/tests", "test_federated_lack_cores_for_low_tasks");
         dump_federated_result_to_yaml(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -224,7 +197,7 @@ mod tests {
         let number_of_cores = 1;
         let mut dag_set = vec![create_period_exceeding_dag()];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_scheduler_log_yaml("../lib/tests", "test_federated_unsuited_tasks");
+        let file_path = create_yaml("../lib/tests", "test_federated_unsuited_tasks");
         dump_federated_result_to_yaml(&file_path, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -246,7 +219,7 @@ mod tests {
     #[test]
     fn test_dump_dag_set_info_to_yaml_normal() {
         let dag_set = vec![create_high_utilization_dag(), create_high_utilization_dag()];
-        let file_path = create_scheduler_log_yaml("../lib/tests", "dag_set_info");
+        let file_path = create_yaml("../lib/tests", "dag_set_info");
         dump_dag_set_info_to_yaml(&file_path, dag_set);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
@@ -265,7 +238,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_scheduler_log_yaml("../lib/tests", "processor_info");
+        let file_path = create_yaml("../lib/tests", "processor_info");
         let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
         dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
 

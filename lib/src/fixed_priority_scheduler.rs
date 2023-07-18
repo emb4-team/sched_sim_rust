@@ -34,7 +34,7 @@ where
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
         self.log
-            .set_processor_log(ProcessorLog::new(processor.get_number_of_cores()));
+            .update_processor(ProcessorLog::new(processor.get_number_of_cores()));
     }
 
     fn set_log(&mut self, log: DAGSchedulerLog) {
@@ -72,66 +72,17 @@ mod tests {
     use std::fs::remove_file;
 
     use super::*;
+    use crate::graph_extension::GraphExtension;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
     use crate::scheduler_creator::{create_scheduler, SchedulerType};
+    use crate::util::load_yaml;
     use petgraph::graph::{Graph, NodeIndex};
-    use serde_derive::Deserialize;
-
-    #[derive(Deserialize)]
-    struct TestDAGSchedulerLog {
-        dag_info: TestDAGInfo,
-        processor_info: TestProcessorInfo,
-        node_logs: Vec<TestNodeLog>,
-        processor_log: TestProcessorLog,
-    }
-
-    #[derive(Deserialize)]
-    struct TestDAGInfo {
-        critical_path_length: i32,
-        period: i32,
-        end_to_end_deadline: i32,
-        volume: i32,
-        utilization: f32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestProcessorInfo {
-        number_of_cores: usize,
-    }
-
-    #[derive(Deserialize)]
-    struct TestNodeLog {
-        core_id: usize,
-        dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
-        node_id: usize,
-        start_time: i32,
-        finish_time: i32,
-    }
-
-    #[derive(Deserialize)]
-    struct TestProcessorLog {
-        average_utilization: f32,
-        variance_utilization: f32,
-        core_logs: Vec<TestCoreLog>,
-    }
-
-    #[derive(Deserialize)]
-    struct TestCoreLog {
-        core_id: usize,
-        total_proc_time: i32,
-        utilization: f32,
-    }
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
-    }
-
-    fn add_params(dag: &mut Graph<NodeData, i32>, node: NodeIndex, key: &str, value: i32) {
-        let node_added = dag.node_weight_mut(node).unwrap();
-        node_added.params.insert(key.to_string(), value);
     }
 
     #[test]
@@ -140,14 +91,14 @@ mod tests {
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
-        add_params(&mut dag, c0, "priority", 0);
-        add_params(&mut dag, c0, "period", 100);
-        add_params(&mut dag, c1, "priority", 0);
+        dag.add_param(c0, "priority", 0);
+        dag.add_param(c0, "period", 100);
+        dag.add_param(c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
-        add_params(&mut dag, n0_0, "priority", 2);
-        add_params(&mut dag, n1_0, "priority", 1);
+        dag.add_param(n0_0, "priority", 2);
+        dag.add_param(n1_0, "priority", 1);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1);
@@ -182,14 +133,14 @@ mod tests {
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
-        add_params(&mut dag, c0, "priority", 0);
-        add_params(&mut dag, c0, "period", 100);
-        add_params(&mut dag, c1, "priority", 0);
+        dag.add_param(c0, "priority", 0);
+        dag.add_param(c0, "period", 100);
+        dag.add_param(c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 10));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
-        add_params(&mut dag, n0_0, "priority", 2);
-        add_params(&mut dag, n1_0, "priority", 1);
+        dag.add_param(n0_0, "priority", 2);
+        dag.add_param(n1_0, "priority", 1);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1);
@@ -222,7 +173,7 @@ mod tests {
         let mut dag = Graph::<NodeData, i32>::new();
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1));
-        add_params(&mut dag, c0, "period", 100);
+        dag.add_param(c0, "period", 100);
         let mut fixed_priority_scheduler = create_scheduler(
             SchedulerType::FixedPriorityScheduler,
             &mut dag,
@@ -248,14 +199,14 @@ mod tests {
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 52));
         let c1 = dag.add_node(create_node(1, "execution_time", 40));
-        add_params(&mut dag, c0, "priority", 0);
-        add_params(&mut dag, c0, "period", 100);
-        add_params(&mut dag, c1, "priority", 0);
+        dag.add_param(c0, "priority", 0);
+        dag.add_param(c0, "period", 100);
+        dag.add_param(c1, "priority", 0);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(2, "execution_time", 12));
         let n1_0 = dag.add_node(create_node(3, "execution_time", 10));
-        add_params(&mut dag, n0_0, "priority", 2);
-        add_params(&mut dag, n1_0, "priority", 1);
+        dag.add_param(n0_0, "priority", 2);
+        dag.add_param(n1_0, "priority", 1);
 
         //create critical path edges
         dag.add_edge(c0, c1, 1);
@@ -272,28 +223,75 @@ mod tests {
         fixed_priority_scheduler.schedule();
 
         let file_path = fixed_priority_scheduler.dump_log("tests", "test");
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let log: TestDAGSchedulerLog = serde_yaml::from_str(&file_contents).unwrap();
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
 
-        assert_eq!(log.dag_info.critical_path_length, 92);
-        assert_eq!(log.dag_info.period, 100);
-        assert_eq!(log.dag_info.end_to_end_deadline, 0);
-        assert_eq!(log.dag_info.volume, 114);
-        assert_eq!(log.dag_info.utilization, 0.877193);
+        assert_eq!(
+            yaml_doc["dag_info"]["critical_path_length"]
+                .as_i64()
+                .unwrap(),
+            92
+        );
 
-        assert_eq!(log.processor_info.number_of_cores, 2);
+        assert_eq!(yaml_doc["dag_info"]["period"].as_i64().unwrap(), 100);
+        assert_eq!(
+            yaml_doc["dag_info"]["end_to_end_deadline"]
+                .as_i64()
+                .unwrap(),
+            0
+        );
+        assert_eq!(yaml_doc["dag_info"]["volume"].as_i64().unwrap(), 114);
+        assert_eq!(
+            yaml_doc["dag_info"]["utilization"].as_f64().unwrap(),
+            0.877193
+        );
 
-        assert_eq!(log.processor_log.average_utilization, 0.61956525);
-        assert_eq!(log.processor_log.variance_utilization, 0.14473063);
-        assert_eq!(log.processor_log.core_logs[0].core_id, 0);
-        assert_eq!(log.processor_log.core_logs[0].total_proc_time, 92);
-        assert_eq!(log.processor_log.core_logs[0].utilization, 1.0);
+        assert_eq!(
+            yaml_doc["processor_info"]["number_of_cores"]
+                .as_i64()
+                .unwrap(),
+            2
+        );
 
-        assert_eq!(log.node_logs[0].dag_id, 0);
-        assert_eq!(log.node_logs[0].node_id, 0);
-        assert_eq!(log.node_logs[0].core_id, 0);
-        assert_eq!(log.node_logs[0].start_time, 0);
-        assert_eq!(log.node_logs[0].finish_time, 52);
+        assert_eq!(
+            yaml_doc["processor_log"]["average_utilization"]
+                .as_f64()
+                .unwrap(),
+            0.61956525
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["variance_utilization"]
+                .as_f64()
+                .unwrap(),
+            0.14473063
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["core_id"]
+                .as_i64()
+                .unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["total_proc_time"]
+                .as_i64()
+                .unwrap(),
+            92
+        );
+        assert_eq!(
+            yaml_doc["processor_log"]["core_logs"][0]["utilization"]
+                .as_f64()
+                .unwrap(),
+            1.0
+        );
+
+        assert_eq!(yaml_doc["node_logs"][0]["dag_id"].as_i64().unwrap(), 0);
+        assert_eq!(yaml_doc["node_logs"][0]["node_id"].as_i64().unwrap(), 0);
+        assert_eq!(yaml_doc["node_logs"][0]["core_id"].as_i64().unwrap(), 0);
+        assert_eq!(yaml_doc["node_logs"][0]["start_time"].as_i64().unwrap(), 0);
+        assert_eq!(
+            yaml_doc["node_logs"][0]["finish_time"].as_i64().unwrap(),
+            52
+        );
 
         remove_file(file_path).unwrap();
     }
