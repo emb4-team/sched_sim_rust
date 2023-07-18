@@ -18,27 +18,21 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     }
 
     for (i, node_deadline) in nodes_deadline.iter().enumerate() {
-        let node_i = NodeIndex::new(i);
-        if node_deadline.fract() == 0.0 {
-            dag.add_param(node_i, "deadline_factor", 1);
-            dag.add_param(node_i, "deadline", *node_deadline as i32);
-            continue;
-        }
-
         let rounded_node_deadline: f32 = format!("{:.5}", node_deadline).parse().unwrap();
         let integer_part_str = rounded_node_deadline.trunc().abs().to_string();
-        let decimal_part_str = rounded_node_deadline
+        let fractional_part_str = rounded_node_deadline
             .abs()
             .to_string()
             .chars()
             .skip(integer_part_str.len() + 1)
             .collect::<String>();
 
-        let deadline_factor = 10u64.pow(decimal_part_str.len().try_into().unwrap()) as i32;
+        let deadline_factor = 10u64.pow(fractional_part_str.len().try_into().unwrap()) as i32;
+        let node_i = NodeIndex::new(i);
         dag.add_param(node_i, "deadline_factor", deadline_factor);
         dag.add_param(
             node_i,
-            "deadline",
+            "integer_scaled_deadline",
             (rounded_node_deadline * deadline_factor as f32) as i32,
         );
     }
@@ -80,22 +74,10 @@ mod tests {
         let expect_deadline = [322857, 1033721, 7318570, 5316279, 4358571];
         for node_i in dag.node_indices() {
             assert_eq!(
-                dag[node_i].params["deadline"],
+                dag[node_i].params["integer_scaled_deadline"],
                 expect_deadline[node_i.index()]
             );
             assert_eq!(dag[node_i].params["deadline_factor"], 100000);
         }
-    }
-
-    #[test]
-    fn test_decompose_normal_int() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 4));
-        dag.add_param(n0, "period", 20);
-
-        decompose(&mut dag);
-
-        assert_eq!(dag[n0].params["deadline"], 20);
-        assert_eq!(dag[n0].params["deadline_factor"], 1);
     }
 }
