@@ -151,7 +151,7 @@ where
         create_yaml_file_core(folder_path, &file_name)
     }
     fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let file_path = Self::create_scheduler_log_yaml_file(dir_path, &sched_name);
+        let file_path = Self::create_scheduler_log_yaml_file(dir_path, sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
@@ -170,7 +170,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         create_yaml_file_core(folder_path, &file_name)
     }
     fn dump_log(&self, dir_path: &str, sched_name: &str) -> String {
-        let file_path = Self::create_scheduler_log_yaml_file(dir_path, &sched_name);
+        let file_path = Self::create_scheduler_log_yaml_file(dir_path, sched_name);
         self.get_log().dump_log_to_yaml(&file_path);
 
         file_path
