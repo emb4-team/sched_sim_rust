@@ -77,22 +77,10 @@ title Proposed Scheduler
         + {static} new(usize) : Self
     }
 
-    struct DAGSetLog {
-        + {static} new(&[Graph<NodeData, i32>]) : Self
-    }
-
     struct DAGLog {
         + {static} new(usize) : Self
     }
 
-    struct NodeSetLogs {
-        + {static} new(&[Graph<NodeData, i32>]) : Self
-    }
-
-    struct NodeLogs {
-        + {static} new() : Self
-    }
-    
     struct NodeLog {
     }
 
@@ -131,22 +119,19 @@ title Proposed Scheduler
 
     DAGSchedulerLog o-down- DAGInfo
     DAGSchedulerLog o-down- ProcessorInfo
-    DAGSchedulerLog o-down- NodeLogs
     DAGSchedulerLog o-down- ProcessorLog
+    DAGSchedulerLog o-down- NodeLog
 
     DAGSet_Scheduler o-down- DAGSetSchedulerLog
 
     DAGSetSchedulerLog o-down- DAGSetInfo
     DAGSetSchedulerLog o-down- ProcessorInfo
-    DAGSetSchedulerLog o-down- DAGSetLog
-    DAGSetSchedulerLog o-down- NodeSetLogs
     DAGSetSchedulerLog o-down- ProcessorLog
+    DAGSetSchedulerLog o-down- NodeLog
+    DAGSetSchedulerLog o-down- DAGLog
     
 
     DAGSetInfo o-down- DAGInfo
-    DAGSetLog o-down- DAGLog
-    NodeSetLogs o-down- NodeLog
-    NodeLogs o-down- NodeLog
     ProcessorLog o-down- CoreLog
 
 @enduml
