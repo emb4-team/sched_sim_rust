@@ -7,5 +7,4 @@ pub mod homogeneous;
 pub mod log;
 pub mod processor;
 pub mod scheduler;
-pub mod scheduler_creator;
 pub mod util;
