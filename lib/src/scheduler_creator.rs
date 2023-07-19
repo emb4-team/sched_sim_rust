@@ -1,4 +1,4 @@
-use petgraph::Graph;
+/*use petgraph::Graph;
 
 use crate::{
     fixed_priority_scheduler::FixedPriorityScheduler, graph_extension::NodeData,
@@ -13,9 +13,9 @@ pub fn create_scheduler<T>(
     scheduler_type: SchedulerType,
     dag: &mut Graph<NodeData, i32>,
     processor: &T,
-) -> Box<impl DAGSchedulerBase<T> + 'static>
+) -> Box<impl DAGSchedulerBase<T>>
 where
-    T: ProcessorBase + Clone + 'static,
+    T: ProcessorBase + Clone,
 {
     match scheduler_type {
         SchedulerType::FixedPriorityScheduler => {
@@ -23,3 +23,4 @@ where
         }
     }
 }
+*/
