@@ -57,7 +57,7 @@ impl DAGStateManager {
         self.num_allocated_cores - self.num_using_cores
     }
 
-    fn release_allocated_cores(&mut self) {
+    fn free_allocated_cores(&mut self) {
         self.num_allocated_cores = 0;
     }
 
@@ -65,7 +65,7 @@ impl DAGStateManager {
         self.minimum_cores = minimum_cores;
     }
 
-    fn front_execution_order(&self) -> Option<&NodeIndex> {
+    fn get_execution_order_head(&self) -> Option<&NodeIndex> {
         self.execution_order.front()
     }
 
@@ -191,7 +191,7 @@ where
                     .filter(|dag| current_time == dag.get_head_offset())
                     .for_each(|dag| {
                         ready_dag_queue.push_back(dag.clone());
-                        log.write_dag_release_time_log(dag.get_dag_id(), current_time);
+                        log.write_dag_release_time(dag.get_dag_id(), current_time);
                     });
                 head_offsets.pop_front();
             }
@@ -206,7 +206,7 @@ where
                 {
                     ready_dag_queue.pop_front();
                     dag_state_managers[dag_id].start();
-                    log.write_dag_start_time_log(dag_id, current_time);
+                    log.write_dag_start_time(dag_id, current_time);
                 } else {
                     break;
                 }
@@ -219,13 +219,13 @@ where
                     continue;
                 }
 
-                while let Some(node_i) = dag_state_managers[dag_id].front_execution_order() {
+                while let Some(node_i) = dag_state_managers[dag_id].get_execution_order_head() {
                     let unused_cores = dag_state_managers[dag_id].get_unused_cores();
                     if dag.is_node_ready(*node_i) && unused_cores > 0 {
                         let node_id = dag[*node_i].id as usize;
                         let core_id = self.processor.get_idle_core_index().unwrap();
                         let proc_time = dag[*node_i].params.get("execution_time").unwrap_or(&0);
-                        log.write_allocating_log(
+                        log.write_allocating_node(
                             dag_id,
                             node_id,
                             core_id,
@@ -249,7 +249,7 @@ where
                 .iter()
                 .filter_map(|result| {
                     if let ProcessResult::Done(node_data) = result {
-                        log.write_finishing_node_log(node_data, current_time);
+                        log.write_finishing_node(node_data, current_time);
                         Some(node_data.clone())
                     } else {
                         None
@@ -269,8 +269,8 @@ where
 
                 if suc_nodes.is_empty() {
                     finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
-                    log.write_dag_finish_time_log(dag_id, current_time);
-                    dag_state_managers[dag_id].release_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
+                    log.write_dag_finish_time(dag_id, current_time);
+                    dag_state_managers[dag_id].free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
                 }
 
                 for suc_node in suc_nodes {
@@ -279,7 +279,7 @@ where
             }
         }
 
-        log.write_scheduling_log(current_time);
+        log.calculate_utilization(current_time);
 
         self.set_log(log);
         current_time

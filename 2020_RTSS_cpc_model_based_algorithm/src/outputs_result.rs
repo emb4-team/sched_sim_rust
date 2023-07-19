@@ -1,4 +1,4 @@
-use lib::util::append_info_to_yaml;
+use lib::log::dump_struct;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -19,10 +19,7 @@ pub fn dump_cpc_result_to_yaml(
         period_factor,
         result,
     };
-    let yaml =
-        serde_yaml::to_string(&result_info).expect("Failed to serialize federated result to YAML");
-
-    append_info_to_yaml(file_path, &yaml);
+    dump_struct(file_path, &result_info);
 }
 
 #[cfg(test)]

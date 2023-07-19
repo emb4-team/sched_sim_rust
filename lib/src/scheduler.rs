@@ -61,7 +61,7 @@ where
                         processor.allocate_specific_core(core_index, &node_d);
 
                         if node_d.id != dag[source_node_i].id && node_d.id != dag[sink_node_i].id {
-                            log.write_allocating_log(
+                            log.write_allocating_node(
                                 &node_d,
                                 core_index,
                                 current_time - DUMMY_EXECUTION_TIME,
@@ -93,7 +93,7 @@ where
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
-                                log.write_finishing_node_log(
+                                log.write_finishing_node(
                                     node_data,
                                     current_time - DUMMY_EXECUTION_TIME,
                                 );
@@ -130,7 +130,7 @@ where
             execution_order.pop_front();
 
             let schedule_length = current_time - DUMMY_EXECUTION_TIME * 2;
-            log.write_scheduling_log(schedule_length);
+            log.calculate_utilization(schedule_length);
 
             self.set_log(log);
 
