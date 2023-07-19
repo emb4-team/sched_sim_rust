@@ -75,7 +75,6 @@ mod tests {
     use crate::graph_extension::GraphExtension;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
-    use crate::scheduler_creator::{create_scheduler, SchedulerType};
     use crate::util::load_yaml;
     use petgraph::graph::{Graph, NodeIndex};
 
@@ -107,11 +106,8 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler = create_scheduler(
-            SchedulerType::FixedPriorityScheduler,
-            &mut dag,
-            &HomogeneousProcessor::new(2),
-        );
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -149,11 +145,8 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler = create_scheduler(
-            SchedulerType::FixedPriorityScheduler,
-            &mut dag,
-            &HomogeneousProcessor::new(3),
-        );
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(3));
         let result = fixed_priority_scheduler.schedule();
 
         assert_eq!(result.0, 92);
@@ -174,20 +167,14 @@ mod tests {
         //cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 1));
         dag.add_param(c0, "period", 100);
-        let mut fixed_priority_scheduler = create_scheduler(
-            SchedulerType::FixedPriorityScheduler,
-            &mut dag,
-            &HomogeneousProcessor::new(1),
-        );
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
 
-        let mut fixed_priority_scheduler = create_scheduler(
-            SchedulerType::FixedPriorityScheduler,
-            &mut dag,
-            &HomogeneousProcessor::new(1),
-        );
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(1));
         let result = fixed_priority_scheduler.schedule();
         assert_eq!(result.0, 1);
         assert_eq!(result.1, vec![NodeIndex::new(0)]);
@@ -215,11 +202,8 @@ mod tests {
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
 
-        let mut fixed_priority_scheduler = create_scheduler(
-            SchedulerType::FixedPriorityScheduler,
-            &mut dag,
-            &HomogeneousProcessor::new(2),
-        );
+        let mut fixed_priority_scheduler =
+            FixedPriorityScheduler::new(&dag, &HomogeneousProcessor::new(2));
         fixed_priority_scheduler.schedule();
 
         let file_path = fixed_priority_scheduler.dump_log("tests", "test");
