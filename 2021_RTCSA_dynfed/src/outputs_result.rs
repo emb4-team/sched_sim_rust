@@ -1,4 +1,4 @@
-use lib::output_log::append_info_to_yaml;
+use lib::log::dump_struct;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -8,7 +8,7 @@ struct ResultInfo {
     result: bool,
 }
 
-pub fn dump_dynfed_result_to_file(
+pub fn dump_dynfed_result_to_yaml(
     file_path: &str,
     schedule_length: i32,
     hyper_period: i32,
@@ -19,10 +19,7 @@ pub fn dump_dynfed_result_to_file(
         hyper_period,
         result,
     };
-    let yaml =
-        serde_yaml::to_string(&result_info).expect("Failed to serialize federated result to YAML");
-
-    append_info_to_yaml(file_path, &yaml);
+    dump_struct(file_path, &result_info);
 }
 
 #[cfg(test)]
@@ -34,16 +31,16 @@ mod tests {
         fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
-        output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSetSchedulerBase,
-        util::get_hyper_period,
+        util::{create_yaml, get_hyper_period},
     };
+
     use petgraph::Graph;
     use std::collections::HashMap;
     use std::fs::remove_file;
 
-    use super::dump_dynfed_result_to_file;
+    use super::dump_dynfed_result_to_yaml;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
@@ -97,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_dynfed_result_to_file_normal() {
+    fn test_dump_dynfed_result_to_yaml_normal() {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
         let mut dag_set = vec![dag, dag2];
@@ -110,12 +107,9 @@ mod tests {
 
         let schedule_length = dynfed_scheduler.schedule();
 
-        let file_path = create_scheduler_log_yaml_file(
-            "../lib/tests",
-            "test_dump_dynfed_result_to_file_normal()",
-        );
+        let file_path = create_yaml("../lib/tests", "test_dump_dynfed_result_to_yaml_normal()");
 
-        dump_dynfed_result_to_file(
+        dump_dynfed_result_to_yaml(
             &file_path,
             schedule_length,
             get_hyper_period(&dag_set),

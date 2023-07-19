@@ -1,4 +1,4 @@
-use lib::output_log::append_info_to_yaml;
+use lib::log::dump_struct;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -8,7 +8,7 @@ struct ResultInfo {
     result: bool,
 }
 
-pub fn dump_cpc_result_to_file(
+pub fn dump_cpc_result_to_yaml(
     file_path: &str,
     schedule_length: i32,
     period_factor: f32,
@@ -19,10 +19,7 @@ pub fn dump_cpc_result_to_file(
         period_factor,
         result,
     };
-    let yaml =
-        serde_yaml::to_string(&result_info).expect("Failed to serialize federated result to YAML");
-
-    append_info_to_yaml(file_path, &yaml);
+    dump_struct(file_path, &result_info);
 }
 
 #[cfg(test)]
@@ -31,12 +28,12 @@ mod tests {
 
     use super::*;
     use lib::{
-        fixed_priority_scheduler::FixedPriorityScheduler,
         graph_extension::{GraphExtension, NodeData},
         homogeneous::HomogeneousProcessor,
-        output_log::create_scheduler_log_yaml_file,
         processor::ProcessorBase,
         scheduler::DAGSchedulerBase,
+        scheduler_creator::{create_scheduler, SchedulerType},
+        util::create_yaml,
     };
     use petgraph::Graph;
     use std::{collections::HashMap, fs::remove_file};
@@ -74,21 +71,23 @@ mod tests {
     }
 
     #[test]
-    fn test_dump_cpc_result_to_file_normal() {
+    fn test_dump_cpc_result_to_yaml_normal() {
         let mut dag = create_cpc_dag();
 
         prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
 
         let homogeneous_processor = HomogeneousProcessor::new(7);
-        let mut fixed_priority_scheduler =
-            FixedPriorityScheduler::new(&dag, &homogeneous_processor);
+        let mut fixed_priority_scheduler = create_scheduler(
+            SchedulerType::FixedPriorityScheduler,
+            &mut dag,
+            &homogeneous_processor,
+        );
 
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 
-        let file_path =
-            create_scheduler_log_yaml_file("../lib/tests", "test_dump_federated_info_normal");
+        let file_path = create_yaml("../lib/tests", "test_dump_federated_info_normal");
         let result = schedule_length < dag.get_head_period().unwrap();
-        dump_cpc_result_to_file(&file_path, schedule_length, 10.0, result);
+        dump_cpc_result_to_yaml(&file_path, schedule_length, 10.0, result);
 
         let file_contents = std::fs::read_to_string(&file_path).unwrap();
         let result_info: ResultInfo = serde_yaml::from_str(&file_contents).unwrap();

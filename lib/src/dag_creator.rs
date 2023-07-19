@@ -4,21 +4,12 @@ use log::warn;
 use petgraph::graph::Graph;
 use petgraph::prelude::*;
 use std::collections::HashMap;
-use std::fs;
 use yaml_rust::Yaml;
-use yaml_rust::YamlLoader;
 
 use std::path::PathBuf;
 
 use crate::graph_extension::NodeData;
-
-fn load_yaml(file_path: &str) -> Vec<yaml_rust::Yaml> {
-    if !file_path.ends_with(".yaml") && !file_path.ends_with(".yml") {
-        panic!("Invalid file type: {}", file_path);
-    }
-    let file_content = fs::read_to_string(file_path).unwrap();
-    YamlLoader::load_from_str(&file_content).unwrap()
-}
+use crate::util::load_yaml;
 
 fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     let mut minimum_decimal_places = 0;
@@ -186,7 +177,7 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 ///
 /// ```
 /// use lib::dag_creator::create_dag_set_from_dir;
-/// let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml_files");
+/// let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml");
 /// let first_node_num = dag_set[0].node_count();
 /// let first_edge_num = dag_set[0].edge_count();
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
@@ -214,8 +205,8 @@ mod tests {
         assert_eq!(number_of_digits, 1, "number of digits is expected to be 1");
     }
     #[test]
-    fn test_create_dag_set_from_dir_multiple_yaml_files() {
-        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml_files");
+    fn test_create_dag_set_from_dir_multiple_yaml() {
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml");
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
     }
 
@@ -233,8 +224,8 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_create_dag_set_from_dir_no_yaml_files() {
-        create_dag_set_from_dir("tests/sample_dags/no_yaml_files");
+    fn test_create_dag_set_from_dir_no_yaml() {
+        create_dag_set_from_dir("tests/sample_dags/no_yaml");
     }
 
     #[test]
@@ -503,6 +494,6 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_broken_link() {
-        let _dag = create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
+        create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
     }
 }
