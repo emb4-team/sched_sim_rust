@@ -36,6 +36,9 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
             (rounded_node_deadline * deadline_factor as f32) as i32,
         );
     }
+
+    //calculate nodes_offset
+    dag.calculate_earliest_start_times();
 }
 
 #[cfg(test)]
