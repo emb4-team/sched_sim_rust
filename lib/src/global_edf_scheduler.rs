@@ -5,7 +5,7 @@ use crate::{graph_extension::NodeData, log::*, processor::ProcessorBase, schedul
 use petgraph::Graph;
 
 #[derive(Clone, Default)]
-pub struct GlobalEarliestDeadlineFirstScheduler<T>
+pub struct GlobalEDFScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
@@ -14,7 +14,7 @@ where
     log: DAGSchedulerLog,
 }
 
-impl<T> DAGSchedulerBase<T> for GlobalEarliestDeadlineFirstScheduler<T>
+impl<T> DAGSchedulerBase<T> for GlobalEDFScheduler<T>
 where
     T: ProcessorBase + Clone,
 {
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_global_earliest_deadline_first_scheduler_schedule_normal() {
+    fn test_global_edf_scheduler_schedule_normal() {
         let mut dag = create_sample_dag(120);
 
         dag.add_dummy_source_node();
@@ -118,9 +118,8 @@ mod tests {
         dag.calculate_latest_finish_times();
         dag.remove_dummy_source_node();
         dag.remove_dummy_sink_node();
-        let mut global_earliest_deadline_first_scheduler =
-            GlobalEarliestDeadlineFirstScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        let result = global_earliest_deadline_first_scheduler.schedule();
+        let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let result = global_edf_scheduler.schedule();
 
         assert_eq!(result.0, 113);
 

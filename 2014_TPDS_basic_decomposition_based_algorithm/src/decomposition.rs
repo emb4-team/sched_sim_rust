@@ -44,9 +44,8 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
 #[cfg(test)]
 mod tests {
     use lib::{
-        global_earliest_deadline_first_scheduler::GlobalEarliestDeadlineFirstScheduler,
-        graph_extension::GraphExtension, homogeneous::HomogeneousProcessor,
-        processor::ProcessorBase, scheduler::DAGSchedulerBase,
+        global_edf_scheduler::GlobalEDFScheduler, graph_extension::GraphExtension,
+        homogeneous::HomogeneousProcessor, processor::ProcessorBase, scheduler::DAGSchedulerBase,
     };
 
     use super::*;
@@ -89,13 +88,12 @@ mod tests {
     }
 
     #[test]
-    fn test_global_earliest_deadline_first_scheduler_schedule_decomposition_normal() {
+    fn test_global_edf_scheduler_schedule_decomposition_normal() {
         let mut dag = create_sample_dag(120);
         decompose(&mut dag);
 
-        let mut global_earliest_deadline_first_scheduler =
-            GlobalEarliestDeadlineFirstScheduler::new(&dag, &HomogeneousProcessor::new(2));
-        let result = global_earliest_deadline_first_scheduler.schedule();
+        let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let result = global_edf_scheduler.schedule();
 
         assert_eq!(result.0, 113);
 
