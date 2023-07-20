@@ -44,9 +44,10 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
 #[cfg(test)]
 mod tests {
     use lib::{
-        global_edf_scheduler::GlobalEDFScheduler, graph_extension::GraphExtension,
         homogeneous::HomogeneousProcessor, processor::ProcessorBase, scheduler::DAGSchedulerBase,
     };
+
+    use crate::global_edf_scheduler::GlobalEDFScheduler;
 
     use super::*;
     use std::collections::HashMap;
