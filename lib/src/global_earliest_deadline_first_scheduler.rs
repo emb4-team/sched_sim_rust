@@ -89,6 +89,7 @@ mod tests {
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
         params.insert(key.to_string(), value);
+
         NodeData { id, params }
     }
 
