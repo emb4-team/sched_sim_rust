@@ -79,6 +79,7 @@ mod tests {
         let homogeneous_processor = HomogeneousProcessor::new(7);
         let mut fixed_priority_scheduler =
             FixedPriorityScheduler::new(&dag, &homogeneous_processor);
+
         let (schedule_length, _) = fixed_priority_scheduler.schedule();
 
         let file_path = create_yaml("../lib/tests", "test_dump_federated_info_normal");
