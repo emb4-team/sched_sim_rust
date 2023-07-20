@@ -79,15 +79,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    //use std::fs::remove_file;
-
     use super::*;
     use crate::graph_extension::GraphExtension;
     use crate::homogeneous::HomogeneousProcessor;
     use crate::processor::ProcessorBase;
-    //use crate::util::load_yaml;
     use petgraph::graph::{Graph, NodeIndex};
+    use std::collections::HashMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = HashMap::new();
