@@ -328,3 +328,34 @@ impl DAGSetSchedulerLog {
         dump_struct(file_path, self);
     }
 }
+
+#[derive(Serialize, Deserialize)]
+struct DAGSchedulerResultInfo {
+    schedule_length: i32,
+    period_factor: f32,
+    result: bool,
+}
+
+pub fn dump_dag_scheduler_result_to_yaml(
+    file_path: &str,
+    schedule_length: i32,
+    period_factor: f32,
+    result: bool,
+) {
+    let result_info = DAGSchedulerResultInfo {
+        schedule_length,
+        period_factor,
+        result,
+    };
+    dump_struct(file_path, &result_info);
+}
+
+#[derive(Serialize, Deserialize)]
+struct DAGSetSchedulerResultInfo {
+    result: bool,
+}
+
+pub fn dump_dag_set_scheduler_result_to_yaml(file_path: &str, result: bool) {
+    let result_info = DAGSetSchedulerResultInfo { result };
+    dump_struct(file_path, &result_info);
+}
