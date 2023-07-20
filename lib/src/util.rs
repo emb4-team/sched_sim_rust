@@ -3,14 +3,10 @@ use std::{
     io::Write,
 };
 
-use crate::{
-    graph_extension::{GraphExtension, NodeData},
-    log::dump_struct,
-};
+use crate::graph_extension::{GraphExtension, NodeData};
 use log::{info, warn};
 use num_integer::lcm;
 use petgraph::graph::Graph;
-use serde_derive::{Deserialize, Serialize};
 use yaml_rust::YamlLoader;
 
 pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
