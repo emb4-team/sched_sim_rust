@@ -62,7 +62,7 @@ where
                 .contains_key("deadline_factor")
         {
             ready_queue.make_contiguous().sort_by_key(|node| {
-                *node.params.get("earliest_start_times").unwrap()
+                *node.params.get("earliest_start_time").unwrap()
                     + *node.params.get("integer_scaled_deadline").unwrap()
                         / *node.params.get("deadline_factor").unwrap()
             });

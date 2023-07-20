@@ -43,7 +43,11 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
 
 #[cfg(test)]
 mod tests {
-    use lib::graph_extension::GraphExtension;
+    use lib::{
+        global_earliest_deadline_first_scheduler::GlobalEarliestDeadlineFirstScheduler,
+        graph_extension::GraphExtension, homogeneous::HomogeneousProcessor,
+        processor::ProcessorBase, scheduler::DAGSchedulerBase,
+    };
 
     use super::*;
     use std::collections::HashMap;
@@ -82,5 +86,28 @@ mod tests {
             );
             assert_eq!(dag[node_i].params["deadline_factor"], 100000);
         }
+    }
+
+    #[test]
+    fn test_global_earliest_deadline_first_scheduler_schedule_decomposition_normal() {
+        let mut dag = create_sample_dag(120);
+        decompose(&mut dag);
+
+        let mut global_earliest_deadline_first_scheduler =
+            GlobalEarliestDeadlineFirstScheduler::new(&dag, &HomogeneousProcessor::new(2));
+        let result = global_earliest_deadline_first_scheduler.schedule();
+
+        assert_eq!(result.0, 113);
+
+        assert_eq!(
+            result.1,
+            vec![
+                NodeIndex::new(0),
+                NodeIndex::new(1),
+                NodeIndex::new(2),
+                NodeIndex::new(3),
+                NodeIndex::new(4)
+            ]
+        );
     }
 }
