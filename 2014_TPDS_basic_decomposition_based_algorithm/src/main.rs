@@ -42,7 +42,7 @@ fn main() {
     dump_dag_scheduler_result_to_yaml(
         &file_path,
         schedule_length,
-        arg.ratio_deadline_to_period,
+        1,
         result,
     );
     */
