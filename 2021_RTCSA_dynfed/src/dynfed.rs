@@ -209,7 +209,7 @@ where
                 let dag_id = dag.get_dag_id();
                 if current_time
                     == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * release_count[dag_id] as i32
+                        + dag.get_head_period().unwrap() * release_count[dag_id]
                 {
                     ready_dag_queue.push_back(dag.clone());
                     release_count[dag.get_dag_id()] += 1;
