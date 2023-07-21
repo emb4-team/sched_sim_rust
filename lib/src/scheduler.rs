@@ -149,7 +149,7 @@ where
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
-    fn schedule(&mut self) -> i32;
+    fn schedule(&mut self) -> Vec<Vec<i32>>;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {

@@ -4,11 +4,12 @@ use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
+use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::log::dump_dag_set_scheduler_result_to_yaml;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
-use lib::util::{adjust_to_implicit_deadline, get_hyper_period};
+use lib::util::adjust_to_implicit_deadline;
 
 #[derive(Parser)]
 #[clap(
@@ -46,5 +47,18 @@ fn main() {
 
     let file_path = dynfed_scheduler.dump_log(&arg.output_dir_path, "FixedPriority");
 
-    dump_dag_set_scheduler_result_to_yaml(&file_path, schedule_length < get_hyper_period(&dag_set));
+    let mut result = true;
+
+    'outer: for dag in dag_set.iter_mut() {
+        for dag_schedule_length in schedule_length.iter() {
+            for each_schedule_length in dag_schedule_length.iter() {
+                if *each_schedule_length < dag.get_head_period().unwrap() {
+                    result = false;
+                    break 'outer;
+                }
+            }
+        }
+    }
+
+    dump_dag_set_scheduler_result_to_yaml(&file_path, result);
 }

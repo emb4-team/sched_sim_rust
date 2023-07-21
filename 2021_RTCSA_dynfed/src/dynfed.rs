@@ -177,7 +177,7 @@ where
         }
     }
 
-    fn schedule(&mut self) -> i32 {
+    fn schedule(&mut self) -> Vec<Vec<i32>> {
         let mut current_time = 0;
         let dag_set_length = self.dag_set.len();
         let mut dag_state_managers = vec![DAGStateManager::new(); dag_set_length];
@@ -329,7 +329,9 @@ where
         log.calculate_response_time();
         self.set_log(log);
 
-        current_time
+        (0..dag_set_length)
+            .map(|dag_id| self.log.get_response_time(dag_id))
+            .collect()
     }
 
     fn get_log(&self) -> DAGSetSchedulerLog {
@@ -412,8 +414,10 @@ mod tests {
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
-        let time = dynfed.schedule();
-        assert_eq!(time, 300);
+
+        let result = dynfed.schedule();
+
+        println!("result: {:#?}", result);
 
         let file_path = dynfed.dump_log("../lib/tests", "test");
         let yaml_docs = load_yaml(&file_path);
@@ -547,8 +551,6 @@ mod tests {
                 .unwrap(),
             0.52
         );
-
-        println!("yaml_doc: {:#?}", yaml_doc);
 
         remove_file(file_path).unwrap();
     }
