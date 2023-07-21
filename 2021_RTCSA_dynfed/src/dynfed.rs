@@ -14,6 +14,7 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::*;
+use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Clone, Debug)]
@@ -163,7 +164,6 @@ where
         let dag_set_length = self.dag_set.len();
         let mut dag_state_managers = vec![DAGStateManager::new(); dag_set_length];
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
-        let mut finished_dags_count = 0;
         let mut log = self.get_log();
 
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
@@ -183,8 +183,9 @@ where
             .collect::<Vec<i32>>();
         head_offsets.sort();
         let mut head_offsets: VecDeque<i32> = head_offsets.into_iter().collect();
+        let hyper_period = get_hyper_period(&self.dag_set);
 
-        while finished_dags_count < dag_set_length {
+        while current_time < hyper_period {
             if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
                 self.dag_set
                     .iter_mut()
@@ -268,7 +269,6 @@ where
                     .unwrap_or_default();
 
                 if suc_nodes.is_empty() {
-                    finished_dags_count += 1; //Source node is terminated, and its DAG is terminated
                     log.write_dag_finish_time(dag_id, current_time);
                     dag_state_managers[dag_id].free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
                 }
@@ -316,7 +316,7 @@ mod tests {
         let c0 = dag.add_node(create_node(0, "execution_time", 10));
         let c1 = dag.add_node(create_node(1, "execution_time", 20));
         let c2 = dag.add_node(create_node(2, "execution_time", 20));
-        dag.add_param(c0, "period", 100);
+        dag.add_param(c0, "period", 150);
         dag.add_param(c2, "end_to_end_deadline", 50);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
@@ -342,7 +342,7 @@ mod tests {
         let c1 = dag.add_node(create_node(1, "execution_time", 21));
         let c2 = dag.add_node(create_node(2, "execution_time", 21));
         dag.add_param(c0, "period", 100);
-        dag.add_param(c2, "end_to_end_deadline", 53);
+        dag.add_param(c2, "end_to_end_deadline", 60);
         //nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 11));
 
@@ -363,9 +363,9 @@ mod tests {
         let dag2 = create_sample_dag2();
         let dag_set = vec![dag, dag2];
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
-            DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(4));
+            DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
         let time = dynfed.schedule();
-        assert_eq!(time, 103);
+        assert_eq!(time, 300);
 
         let file_path = dynfed.dump_log("../lib/tests", "test");
         let yaml_docs = load_yaml(&file_path);
@@ -375,7 +375,7 @@ mod tests {
             yaml_doc["dag_set_info"]["total_utilization"]
                 .as_f64()
                 .unwrap(),
-            2.9910715
+            3.705357
         );
         assert_eq!(
             yaml_doc["dag_set_info"]["each_dag_info"][0]["critical_path_length"]
@@ -387,7 +387,7 @@ mod tests {
             yaml_doc["dag_set_info"]["each_dag_info"][0]["period"]
                 .as_i64()
                 .unwrap(),
-            100
+            150
         );
         assert_eq!(
             yaml_doc["dag_set_info"]["each_dag_info"][0]["end_to_end_deadline"]
@@ -405,7 +405,7 @@ mod tests {
             yaml_doc["dag_set_info"]["each_dag_info"][0]["utilization"]
                 .as_f64()
                 .unwrap(),
-            1.4285715
+            2.142857
         );
         assert_eq!(
             yaml_doc["dag_set_info"]["each_dag_info"][1]["utilization"]
@@ -418,7 +418,7 @@ mod tests {
             yaml_doc["processor_info"]["number_of_cores"]
                 .as_i64()
                 .unwrap(),
-            4
+            5
         );
 
         assert_eq!(yaml_doc["dag_set_log"][1]["dag_id"].as_i64().unwrap(), 1);
@@ -428,16 +428,16 @@ mod tests {
         );
         assert_eq!(
             yaml_doc["dag_set_log"][1]["start_time"].as_i64().unwrap(),
-            50
+            0
         );
         assert_eq!(
             yaml_doc["dag_set_log"][1]["finish_time"].as_i64().unwrap(),
-            103
+            53
         );
 
         assert_eq!(
             yaml_doc["node_set_logs"][1][3]["core_id"].as_i64().unwrap(),
-            0
+            1
         );
         assert_eq!(
             yaml_doc["node_set_logs"][1][3]["dag_id"].as_i64().unwrap(),
@@ -451,26 +451,26 @@ mod tests {
             yaml_doc["node_set_logs"][1][3]["start_time"]
                 .as_i64()
                 .unwrap(),
-            61
+            11
         );
         assert_eq!(
             yaml_doc["node_set_logs"][1][3]["finish_time"]
                 .as_i64()
                 .unwrap(),
-            72
+            22
         );
 
         assert_eq!(
             yaml_doc["processor_log"]["average_utilization"]
                 .as_f64()
                 .unwrap(),
-            0.32524273
+            0.08933333
         );
         assert_eq!(
             yaml_doc["processor_log"]["variance_utilization"]
                 .as_f64()
                 .unwrap(),
-            0.08862758
+            0.0017751111
         );
 
         assert_eq!(
@@ -483,13 +483,13 @@ mod tests {
             yaml_doc["processor_log"]["core_logs"][0]["total_proc_time"]
                 .as_i64()
                 .unwrap(),
-            83
+            40
         );
         assert_eq!(
             yaml_doc["processor_log"]["core_logs"][0]["utilization"]
                 .as_f64()
                 .unwrap(),
-            0.80582523
+            0.13333334
         );
 
         remove_file(file_path).unwrap();
