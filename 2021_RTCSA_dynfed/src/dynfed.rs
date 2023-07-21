@@ -97,6 +97,18 @@ fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
     total_allocated_cores
 }
 
+fn release_dag(
+    dag: &Graph<NodeData, i32>,
+    current_time: i32,
+    ready_dag_queue: &mut VecDeque<Graph<NodeData, i32>>,
+    release_count: &mut [i32],
+    log: &mut DAGSetSchedulerLog,
+) {
+    ready_dag_queue.push_back(dag.clone());
+    release_count[dag.get_dag_id()] += 1;
+    log.write_dag_release_time(dag.get_dag_id(), current_time);
+}
+
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///
 /// # Arguments
@@ -201,9 +213,13 @@ where
                     .iter_mut()
                     .filter(|dag| current_time == dag.get_head_offset())
                     .for_each(|dag| {
-                        ready_dag_queue.push_back(dag.clone());
-                        release_count[dag.get_dag_id()] += 1;
-                        log.write_dag_release_time(dag.get_dag_id(), current_time);
+                        release_dag(
+                            dag,
+                            current_time,
+                            &mut ready_dag_queue,
+                            &mut release_count,
+                            &mut log,
+                        );
                     });
                 head_offsets.pop_front();
             }
@@ -215,9 +231,13 @@ where
                     == dag.get_head_offset()
                         + dag.get_head_period().unwrap() * release_count[dag_id]
                 {
-                    ready_dag_queue.push_back(dag.clone());
-                    release_count[dag.get_dag_id()] += 1;
-                    log.write_dag_release_time(dag.get_dag_id(), current_time);
+                    release_dag(
+                        dag,
+                        current_time,
+                        &mut ready_dag_queue,
+                        &mut release_count,
+                        &mut log,
+                    );
                 }
             }
 
