@@ -326,6 +326,7 @@ where
         }
 
         log.calculate_utilization(current_time);
+        log.calculate_response_time();
         self.set_log(log);
 
         current_time
