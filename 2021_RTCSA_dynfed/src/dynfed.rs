@@ -166,12 +166,15 @@ where
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut log = self.get_log();
 
+        let mut execution_order: Vec<VecDeque<NodeIndex>> = vec![VecDeque::new(); dag_set_length];
+        let mut minimum_cores: Vec<usize> = vec![0; dag_set_length];
+
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
-            let (minimum_cores, execution_order) =
+            (minimum_cores[dag_id], execution_order[dag_id]) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            dag_state_managers[dag_id].set_minimum_cores(minimum_cores as i32);
-            dag_state_managers[dag_id].set_execution_order(execution_order);
+            dag_state_managers[dag_id].set_minimum_cores(minimum_cores[dag_id] as i32);
+            dag_state_managers[dag_id].set_execution_order(execution_order[dag_id].clone());
         }
 
         let mut head_offsets: Vec<i32> = self
@@ -219,7 +222,10 @@ where
                 let dag_id = dag.get_dag_id();
                 let num_processor_cores = self.processor.get_number_of_cores() as i32;
                 let total_allocated_cores = get_total_allocated_cores(&dag_state_managers);
-
+                println!(
+                    "dag_id: {}, num_processor_cores: {}, total_allocated_cores: {}",
+                    dag_id, num_processor_cores, total_allocated_cores
+                );
                 if dag_state_managers[dag_id].can_start(num_processor_cores, total_allocated_cores)
                 {
                     ready_dag_queue.pop_front();
@@ -287,6 +293,11 @@ where
 
                 if suc_nodes.is_empty() {
                     log.write_dag_finish_time(dag_id, current_time);
+                    for node_i in dag.node_indices() {
+                        dag.update_param(node_i, "pre_done_count", 0);
+                    }
+                    dag_state_managers[dag_id].is_started = false;
+                    dag_state_managers[dag_id].set_execution_order(execution_order[dag_id].clone());
                     dag_state_managers[dag_id].free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
                 }
 
