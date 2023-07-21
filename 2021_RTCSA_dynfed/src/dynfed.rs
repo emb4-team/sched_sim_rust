@@ -178,12 +178,8 @@ where
     }
 
     fn schedule(&mut self) -> i32 {
-        let mut current_time = 0;
-        let dag_set_length = self.dag_set.len();
-        let mut dag_state_managers = vec![DAGStateManager::new(); dag_set_length];
-        let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
-        let mut log = self.get_log();
-
+        // Initialize DAGStateManagers
+        let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
             let (minimum_cores, execution_order) =
@@ -192,9 +188,13 @@ where
             dag_state_managers[dag_id].set_execution_order(execution_order);
         }
 
+        // Start scheduling
+        let mut current_time = 0;
+        let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
+        let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
-            //Second and subsequent DAG releases
+            // Release DAGs
             for dag in self.dag_set.iter_mut() {
                 let dag_id = dag.get_dag_id();
                 if current_time
@@ -208,7 +208,7 @@ where
                 }
             }
 
-            //Start DAG if there are enough free core
+            // Start DAG if there are enough free core
             while let Some(dag) = ready_dag_queue.front() {
                 let dag_id = dag.get_dag_id();
                 let num_processor_cores = self.processor.get_number_of_cores() as i32;
@@ -223,7 +223,7 @@ where
                 }
             }
 
-            //Allocate the nodes of each DAG
+            // Allocate the nodes of each DAG
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();
                 if !dag_state_managers[dag_id].get_is_started() {
@@ -231,17 +231,16 @@ where
                 }
 
                 while let Some(node_i) = dag_state_managers[dag_id].get_execution_order_head() {
-                    let unused_cores = dag_state_managers[dag_id].get_unused_cores();
-                    if dag.is_node_ready(*node_i) && unused_cores > 0 {
-                        let node_id = dag[*node_i].id as usize;
+                    if dag.is_node_ready(*node_i)
+                        && dag_state_managers[dag_id].get_unused_cores() > 0
+                    {
                         let core_id = self.processor.get_idle_core_index().unwrap();
-                        let proc_time = dag[*node_i].params.get("execution_time").unwrap_or(&0);
                         log.write_allocating_node(
                             dag_id,
-                            node_id,
+                            node_i.index(),
                             core_id,
                             current_time,
-                            *proc_time,
+                            *dag[*node_i].params.get("execution_time").unwrap(),
                         );
                         self.processor.allocate_specific_core(
                             core_id,
@@ -253,41 +252,34 @@ where
                 }
             }
 
+            // Process unit time
             let process_result = self.processor.process();
             current_time += 1;
 
-            let finish_nodes: Vec<NodeData> = process_result
-                .iter()
-                .filter_map(|result| {
-                    if let ProcessResult::Done(node_data) = result {
-                        log.write_finishing_node(node_data, current_time);
-                        Some(node_data.clone())
+            // Post-process on completion of node execution
+            for result in process_result {
+                if let ProcessResult::Done(node_data) = result {
+                    log.write_finishing_node(&node_data, current_time);
+                    let dag_id = node_data.params["dag_id"] as usize;
+                    dag_state_managers[dag_id].decrement_num_using_cores();
+
+                    // Increase pre_done_count of successor nodes
+                    let dag = &mut self.dag_set[dag_id];
+                    let suc_nodes = dag
+                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                        .unwrap_or_default();
+                    if suc_nodes.is_empty() {
+                        log.write_dag_finish_time(dag_id, current_time);
+                        // Reset the state of the DAG
+                        for node_i in dag.node_indices() {
+                            dag.update_param(node_i, "pre_done_count", 0);
+                        }
+                        dag_state_managers[dag_id].reset_state();
                     } else {
-                        None
+                        for suc_node in suc_nodes {
+                            dag.increment_pre_done_count(suc_node);
+                        }
                     }
-                })
-                .collect();
-
-            for finish_node_data in finish_nodes {
-                let dag_id = finish_node_data.params["dag_id"] as usize;
-                dag_state_managers[dag_id].decrement_num_using_cores();
-
-                let dag = &mut self.dag_set[dag_id];
-                let suc_nodes = dag
-                    .get_suc_nodes(NodeIndex::new(finish_node_data.id as usize))
-                    .unwrap_or_default();
-
-                if suc_nodes.is_empty() {
-                    log.write_dag_finish_time(dag_id, current_time);
-                    //Reset the state of the DAG
-                    for node_i in dag.node_indices() {
-                        dag.update_param(node_i, "pre_done_count", 0);
-                    }
-                    dag_state_managers[dag_id].reset_state();
-                }
-
-                for suc_node in suc_nodes {
-                    dag.increment_pre_done_count(suc_node);
                 }
             }
         }
