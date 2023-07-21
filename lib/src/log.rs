@@ -100,9 +100,9 @@ impl ProcessorInfo {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGLog {
     dag_id: usize,
-    release_time: i32,
-    start_time: i32,
-    finish_time: i32,
+    release_time: Vec<i32>,
+    start_time: Vec<i32>,
+    finish_time: Vec<i32>,
 }
 
 impl DAGLog {
@@ -288,15 +288,15 @@ impl DAGSetSchedulerLog {
     }
 
     pub fn write_dag_release_time(&mut self, dag_id: usize, release_time: i32) {
-        self.dag_set_log[dag_id].release_time = release_time;
+        self.dag_set_log[dag_id].release_time.push(release_time);
     }
 
     pub fn write_dag_start_time(&mut self, dag_id: usize, start_time: i32) {
-        self.dag_set_log[dag_id].start_time = start_time;
+        self.dag_set_log[dag_id].start_time.push(start_time);
     }
 
     pub fn write_dag_finish_time(&mut self, dag_id: usize, finish_time: i32) {
-        self.dag_set_log[dag_id].finish_time = finish_time;
+        self.dag_set_log[dag_id].finish_time.push(finish_time);
     }
 
     pub fn write_allocating_node(

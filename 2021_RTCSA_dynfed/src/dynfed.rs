@@ -423,15 +423,21 @@ mod tests {
 
         assert_eq!(yaml_doc["dag_set_log"][1]["dag_id"].as_i64().unwrap(), 1);
         assert_eq!(
-            yaml_doc["dag_set_log"][1]["release_time"].as_i64().unwrap(),
+            yaml_doc["dag_set_log"][1]["release_time"][0]
+                .as_i64()
+                .unwrap(),
             0
         );
         assert_eq!(
-            yaml_doc["dag_set_log"][1]["start_time"].as_i64().unwrap(),
+            yaml_doc["dag_set_log"][1]["start_time"][0]
+                .as_i64()
+                .unwrap(),
             0
         );
         assert_eq!(
-            yaml_doc["dag_set_log"][1]["finish_time"].as_i64().unwrap(),
+            yaml_doc["dag_set_log"][1]["finish_time"][0]
+                .as_i64()
+                .unwrap(),
             53
         );
 
