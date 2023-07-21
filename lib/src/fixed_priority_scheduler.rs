@@ -270,10 +270,13 @@ mod tests {
 
         assert_eq!(yaml_doc["node_logs"][0]["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(yaml_doc["node_logs"][0]["node_id"].as_i64().unwrap(), 0);
-        assert_eq!(yaml_doc["node_logs"][0]["core_id"].as_i64().unwrap(), 0);
-        assert_eq!(yaml_doc["node_logs"][0]["start_time"].as_i64().unwrap(), 0);
+        assert_eq!(yaml_doc["node_logs"][0]["core_id"][0].as_i64().unwrap(), 0);
         assert_eq!(
-            yaml_doc["node_logs"][0]["finish_time"].as_i64().unwrap(),
+            yaml_doc["node_logs"][0]["start_time"][0].as_i64().unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["node_logs"][0]["finish_time"][0].as_i64().unwrap(),
             52
         );
 

@@ -396,7 +396,7 @@ mod tests {
         let yaml_docs = load_yaml(&file_path);
         let yaml_doc = &yaml_docs[0];
 
-        /*  assert_eq!(
+        assert_eq!(
             yaml_doc["dag_set_info"]["total_utilization"]
                 .as_f64()
                 .unwrap(),
@@ -467,7 +467,9 @@ mod tests {
         );
 
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["core_id"].as_i64().unwrap(),
+            yaml_doc["node_set_logs"][1][3]["core_id"][0]
+                .as_i64()
+                .unwrap(),
             1
         );
         assert_eq!(
@@ -479,13 +481,13 @@ mod tests {
             3
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["start_time"]
+            yaml_doc["node_set_logs"][1][3]["start_time"][0]
                 .as_i64()
                 .unwrap(),
             11
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["finish_time"]
+            yaml_doc["node_set_logs"][1][3]["finish_time"][0]
                 .as_i64()
                 .unwrap(),
             22
@@ -495,13 +497,13 @@ mod tests {
             yaml_doc["processor_log"]["average_utilization"]
                 .as_f64()
                 .unwrap(),
-            0.08933333
+            0.22133335
         );
         assert_eq!(
             yaml_doc["processor_log"]["variance_utilization"]
                 .as_f64()
                 .unwrap(),
-            0.0017751111
+            0.033460446
         );
 
         assert_eq!(
@@ -514,14 +516,14 @@ mod tests {
             yaml_doc["processor_log"]["core_logs"][0]["total_proc_time"]
                 .as_i64()
                 .unwrap(),
-            40
+            156
         );
         assert_eq!(
             yaml_doc["processor_log"]["core_logs"][0]["utilization"]
                 .as_f64()
                 .unwrap(),
-            0.13333334
-        );*/
+            0.52
+        );
 
         println!("yaml_doc: {:#?}", yaml_doc);
 
