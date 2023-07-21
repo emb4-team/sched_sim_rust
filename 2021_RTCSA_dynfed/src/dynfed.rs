@@ -5,7 +5,6 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
-use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use lib::core::ProcessResult;
@@ -18,12 +17,14 @@ use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
 
 #[derive(Clone, Debug)]
-pub struct DAGStateManager {
+struct DAGStateManager {
     is_started: bool,
     num_using_cores: i32,
     num_allocated_cores: i32,
     minimum_cores: i32,
     execution_order: VecDeque<NodeIndex>,
+    initial_execution_order: VecDeque<NodeIndex>,
+    release_count: i32,
 }
 
 impl DAGStateManager {
@@ -34,7 +35,17 @@ impl DAGStateManager {
             num_allocated_cores: 0,
             minimum_cores: 0,
             execution_order: VecDeque::new(),
+            initial_execution_order: VecDeque::new(),
+            release_count: 0,
         }
+    }
+
+    fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    fn increment_release_count(&mut self) {
+        self.release_count += 1;
     }
 
     fn get_is_started(&self) -> bool {
@@ -50,9 +61,9 @@ impl DAGStateManager {
         self.minimum_cores <= total_processor_cores - total_allocated_cores
     }
 
-    fn reset_state(&mut self, execution_order: VecDeque<NodeIndex>) {
+    fn reset_state(&mut self) {
         self.is_started = false;
-        self.set_execution_order(execution_order.clone());
+        self.set_execution_order(self.initial_execution_order.clone());
         self.free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
     }
 
@@ -78,6 +89,7 @@ impl DAGStateManager {
 
     fn set_execution_order(&mut self, execution_order: VecDeque<NodeIndex>) {
         self.execution_order = execution_order;
+        self.initial_execution_order = self.execution_order.clone();
     }
 
     fn allocate_head(&mut self) -> NodeIndex {
@@ -89,24 +101,12 @@ impl DAGStateManager {
     }
 }
 
-fn get_total_allocated_cores(dyn_feds: &[DAGStateManager]) -> i32 {
+fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 {
     let mut total_allocated_cores = 0;
-    for dyn_fed in dyn_feds {
-        total_allocated_cores += dyn_fed.num_allocated_cores;
+    for manager in dag_state_managers {
+        total_allocated_cores += manager.num_allocated_cores;
     }
     total_allocated_cores
-}
-
-fn release_dag(
-    dag: &Graph<NodeData, i32>,
-    current_time: i32,
-    ready_dag_queue: &mut VecDeque<Graph<NodeData, i32>>,
-    release_count: &mut [i32],
-    log: &mut DAGSetSchedulerLog,
-) {
-    ready_dag_queue.push_back(dag.clone());
-    release_count[dag.get_dag_id()] += 1;
-    log.write_dag_release_time(dag.get_dag_id(), current_time);
 }
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
@@ -184,60 +184,27 @@ where
         let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut log = self.get_log();
 
-        let mut execution_order: Vec<VecDeque<NodeIndex>> = vec![VecDeque::new(); dag_set_length];
-        let mut minimum_cores: Vec<usize> = vec![0; dag_set_length];
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
-            (minimum_cores[dag_id], execution_order[dag_id]) =
+            let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            dag_state_managers[dag_id].set_minimum_cores(minimum_cores[dag_id] as i32);
-            dag_state_managers[dag_id].set_execution_order(execution_order[dag_id].clone());
+            dag_state_managers[dag_id].set_minimum_cores(minimum_cores as i32);
+            dag_state_managers[dag_id].set_execution_order(execution_order);
         }
-
-        let mut head_offsets: Vec<i32> = self
-            .dag_set
-            .iter()
-            .map(|dag| dag.get_head_offset())
-            .collect::<HashSet<i32>>()
-            .into_iter()
-            .collect::<Vec<i32>>();
-        head_offsets.sort();
-        let mut head_offsets: VecDeque<i32> = head_offsets.into_iter().collect();
-        let mut release_count = vec![0; dag_set_length];
 
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
-            //1st dag release
-            if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
-                self.dag_set
-                    .iter_mut()
-                    .filter(|dag| current_time == dag.get_head_offset())
-                    .for_each(|dag| {
-                        release_dag(
-                            dag,
-                            current_time,
-                            &mut ready_dag_queue,
-                            &mut release_count,
-                            &mut log,
-                        );
-                    });
-                head_offsets.pop_front();
-            }
-
             //Second and subsequent DAG releases
             for dag in self.dag_set.iter_mut() {
                 let dag_id = dag.get_dag_id();
                 if current_time
                     == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * release_count[dag_id]
+                        + dag.get_head_period().unwrap()
+                            * dag_state_managers[dag_id].get_release_count()
                 {
-                    release_dag(
-                        dag,
-                        current_time,
-                        &mut ready_dag_queue,
-                        &mut release_count,
-                        &mut log,
-                    );
+                    ready_dag_queue.push_back(dag.clone());
+                    dag_state_managers[dag_id].increment_release_count();
+                    log.write_dag_release_time(dag_id, current_time);
                 }
             }
 
@@ -316,7 +283,7 @@ where
                     for node_i in dag.node_indices() {
                         dag.update_param(node_i, "pre_done_count", 0);
                     }
-                    dag_state_managers[dag_id].reset_state(execution_order[dag_id].clone());
+                    dag_state_managers[dag_id].reset_state();
                 }
 
                 for suc_node in suc_nodes {
