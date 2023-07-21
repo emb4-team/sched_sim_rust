@@ -417,7 +417,8 @@ mod tests {
 
         let result = dynfed.schedule();
 
-        println!("result: {:#?}", result);
+        assert_eq!(result[0][0], 50);
+        assert_eq!(result[1][0], 53);
 
         let file_path = dynfed.dump_log("../lib/tests", "test");
         let yaml_docs = load_yaml(&file_path);
