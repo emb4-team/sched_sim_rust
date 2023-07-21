@@ -50,6 +50,12 @@ impl DAGStateManager {
         self.minimum_cores <= total_processor_cores - total_allocated_cores
     }
 
+    fn reset_state(&mut self, execution_order: VecDeque<NodeIndex>) {
+        self.is_started = false;
+        self.set_execution_order(execution_order.clone());
+        self.free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
+    }
+
     fn decrement_num_using_cores(&mut self) {
         self.num_using_cores -= 1;
     }
@@ -168,7 +174,6 @@ where
 
         let mut execution_order: Vec<VecDeque<NodeIndex>> = vec![VecDeque::new(); dag_set_length];
         let mut minimum_cores: Vec<usize> = vec![0; dag_set_length];
-
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
             (minimum_cores[dag_id], execution_order[dag_id]) =
@@ -184,14 +189,13 @@ where
             .collect::<HashSet<i32>>()
             .into_iter()
             .collect::<Vec<i32>>();
-
         head_offsets.sort();
         let mut head_offsets: VecDeque<i32> = head_offsets.into_iter().collect();
-        let hyper_period = get_hyper_period(&self.dag_set);
-
         let mut release_count = vec![0; dag_set_length];
 
+        let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
+            //1st dag release
             if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
                 self.dag_set
                     .iter_mut()
@@ -204,7 +208,7 @@ where
                 head_offsets.pop_front();
             }
 
-            //release dag
+            //Second and subsequent DAG releases
             for dag in self.dag_set.iter_mut() {
                 let dag_id = dag.get_dag_id();
                 if current_time
@@ -282,19 +286,17 @@ where
                 dag_state_managers[dag_id].decrement_num_using_cores();
 
                 let dag = &mut self.dag_set[dag_id];
-
                 let suc_nodes = dag
                     .get_suc_nodes(NodeIndex::new(finish_node_data.id as usize))
                     .unwrap_or_default();
 
                 if suc_nodes.is_empty() {
                     log.write_dag_finish_time(dag_id, current_time);
+                    //Reset the state of the DAG
                     for node_i in dag.node_indices() {
                         dag.update_param(node_i, "pre_done_count", 0);
                     }
-                    dag_state_managers[dag_id].is_started = false;
-                    dag_state_managers[dag_id].set_execution_order(execution_order[dag_id].clone());
-                    dag_state_managers[dag_id].free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
+                    dag_state_managers[dag_id].reset_state(execution_order[dag_id].clone());
                 }
 
                 for suc_node in suc_nodes {
@@ -304,8 +306,8 @@ where
         }
 
         log.calculate_utilization(current_time);
-
         self.set_log(log);
+
         current_time
     }
 
