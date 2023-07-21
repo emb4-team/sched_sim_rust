@@ -547,8 +547,6 @@ mod tests {
             0.52
         );
 
-        println!("yaml_doc: {:#?}", yaml_doc);
-
         remove_file(file_path).unwrap();
     }
 }
