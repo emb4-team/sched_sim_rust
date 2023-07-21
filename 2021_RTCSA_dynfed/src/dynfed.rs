@@ -191,7 +191,7 @@ where
 
         let mut release_count = vec![0; dag_set_length];
 
-        while current_time < hyper_period * 5 {
+        while current_time < hyper_period {
             if !head_offsets.is_empty() && *head_offsets.front().unwrap() == current_time {
                 self.dag_set
                     .iter_mut()
@@ -222,10 +222,6 @@ where
                 let dag_id = dag.get_dag_id();
                 let num_processor_cores = self.processor.get_number_of_cores() as i32;
                 let total_allocated_cores = get_total_allocated_cores(&dag_state_managers);
-                println!(
-                    "dag_id: {}, num_processor_cores: {}, total_allocated_cores: {}",
-                    dag_id, num_processor_cores, total_allocated_cores
-                );
                 if dag_state_managers[dag_id].can_start(num_processor_cores, total_allocated_cores)
                 {
                     ready_dag_queue.pop_front();
@@ -389,12 +385,12 @@ mod tests {
     fn test_dynfed_normal() {
         let dag = create_sample_dag();
         let dag2 = create_sample_dag2();
-        //let dag_set = vec![dag, dag2];
-        let dag_set = vec![dag];
+        let dag_set = vec![dag, dag2];
+
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
         let time = dynfed.schedule();
-        assert_eq!(time, 750);
+        assert_eq!(time, 300);
 
         let file_path = dynfed.dump_log("../lib/tests", "test");
         let yaml_docs = load_yaml(&file_path);
