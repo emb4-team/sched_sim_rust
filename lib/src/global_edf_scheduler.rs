@@ -1,7 +1,8 @@
-use petgraph::Graph;
+use petgraph::graph::{Graph, NodeIndex};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::core::ProcessResult;
 use crate::{
     graph_extension::{GraphExtension, NodeData},
     homogeneous::HomogeneousProcessor,
@@ -152,6 +153,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         source_node.id,
                         source_node.params.clone(),
                     ));
+                    log.write_dag_start_time(dag_id, current_time);
                 };
             }
 
@@ -163,18 +165,64 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                 }
                 match self.processor.get_idle_core_index() {
                     Some(idle_core_index) => match ready_queue.pop_first() {
-                        Some(ready_node) => self
-                            .processor
-                            .allocate_specific_core(idle_core_index, &ready_node.get_node_data()),
+                        Some(ready_node) => {
+                            let ready_node_data = ready_node.get_node_data();
+                            self.processor
+                                .allocate_specific_core(idle_core_index, &ready_node_data);
+                            log.write_allocating_node(
+                                dag_id,
+                                ready_node_data.id.try_into().unwrap(),
+                                idle_core_index,
+                                current_time,
+                                *ready_node_data.params.get("execution_time").unwrap(),
+                            );
+                            self.processor
+                                .allocate_specific_core(idle_core_index, &ready_node_data);
+                        }
                         None => break,
                     },
                     None => break,
                 };
             }
 
+            // Process unit time
+            let process_result = self.processor.process();
             current_time += 1;
+
+            // Post-process on completion of node execution
+            for result in process_result {
+                if let ProcessResult::Done(node_data) = result {
+                    log.write_finishing_node(&node_data, current_time);
+                    let dag_id = node_data.params["dag_id"] as usize;
+
+                    // Increase pre_done_count of successor nodes
+                    let dag = &mut self.dag_set[dag_id];
+                    let suc_nodes = dag
+                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                        .unwrap_or_default();
+                    if suc_nodes.is_empty() {
+                        log.write_dag_finish_time(dag_id, current_time);
+                        // Reset the state of the DAG
+                        for node_i in dag.node_indices() {
+                            dag.update_param(node_i, "pre_done_count", 0);
+                        }
+                        dag_state_managers[dag_id].reset_state();
+                    } else {
+                        for suc_node in suc_nodes {
+                            dag.increment_pre_done_count(suc_node);
+                        }
+                    }
+                }
+            }
+
+            // Add the node to the ready queue when all preceding nodes have finished
+            todo!()
         }
-        todo!()
+
+        log.calculate_utilization(current_time);
+        self.set_log(log);
+
+        current_time
     }
 
     fn get_log(&self) -> DAGSetSchedulerLog {
@@ -188,6 +236,8 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 
 #[cfg(test)]
 mod tests {
+    use crate::util::load_yaml;
+
     use super::*;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -252,6 +302,12 @@ mod tests {
         let processor = HomogeneousProcessor::new(3);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let result = global_edf_scheduler.schedule();
+        let time = global_edf_scheduler.schedule();
+
+        assert_eq!(time, 300);
+
+        let file_path = global_edf_scheduler.dump_log("../lib/tests", "test");
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
     }
 }
