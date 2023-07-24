@@ -53,10 +53,10 @@ impl HomogeneousProcessor {
 mod tests {
     use super::*;
     use crate::{core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }

@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeSet, HashMap, VecDeque},
-    hash::Hash,
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 use petgraph::Graph;
 
@@ -11,7 +8,39 @@ use crate::{
     log::DAGSetSchedulerLog,
     processor::ProcessorBase,
     scheduler::DAGSetSchedulerBase,
+    util::get_hyper_period,
 };
+
+#[derive(Clone, Debug)]
+struct DAGStateManager {
+    is_started: bool,
+    release_count: i32,
+}
+
+impl DAGStateManager {
+    fn new() -> Self {
+        Self {
+            is_started: false,
+            release_count: 0,
+        }
+    }
+
+    fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    fn increment_release_count(&mut self) {
+        self.release_count += 1;
+    }
+
+    fn get_is_started(&self) -> bool {
+        self.is_started
+    }
+
+    fn reset_state(&mut self) {
+        self.is_started = false;
+    }
+}
 
 pub struct GlobalEDFScheduler {
     dag_set: Vec<Graph<NodeData, i32>>,
@@ -29,22 +58,40 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     }
 
     fn schedule(&mut self) -> i32 {
-        let mut current_time = 0;
-        let dag_set_length = self.dag_set.len();
-        let mut ready_queue: BTreeSet<NodeData> = BTreeSet::new();
+        // Initialize DAGStateManagers
+        let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
 
         let mut node_data_vec: Vec<NodeData> = Vec::new();
-
-        //Convert DAG to NodeData
+        // Convert DAG to NodeData
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
-            let mut params = HashMap::new();
+            let mut params = BTreeMap::new();
             params.insert("execution_time".to_string(), dag.get_volume());
             params.insert("offset".to_string(), dag.get_head_offset());
             params.insert("period".to_string(), dag.get_head_period().unwrap());
             node_data_vec.push(NodeData::new(dag_id as i32, params));
         }
 
-        println!("node_data_vec: {:?}", node_data_vec);
+        // Start scheduling
+        let mut current_time = 0;
+        let mut ready_queue: BTreeSet<NodeData> = BTreeSet::new();
+        let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
+        let hyper_period = get_hyper_period(&self.dag_set);
+        while current_time < hyper_period {
+            // release DAGs
+            for dag in self.dag_set.iter_mut() {
+                let dag_id = dag.get_dag_id();
+                if current_time
+                    == dag.get_head_offset()
+                        + dag.get_head_period().unwrap()
+                            * dag_state_managers[dag_id].get_release_count()
+                {
+                    ready_queue.insert(node_data_vec[dag_id].clone());
+                    dag_state_managers[dag_id].increment_release_count();
+                    log.write_dag_release_time(dag_id, current_time);
+                }
+            }
+            current_time += 1;
+        }
         todo!()
     }
 
@@ -62,7 +109,7 @@ mod tests {
     use super::*;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }

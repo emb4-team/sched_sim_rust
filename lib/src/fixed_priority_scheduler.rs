@@ -68,8 +68,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::fs::remove_file;
+    use std::{collections::BTreeMap, fs::remove_file};
 
     use super::*;
     use crate::graph_extension::GraphExtension;
@@ -79,7 +78,7 @@ mod tests {
     use petgraph::graph::{Graph, NodeIndex};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }

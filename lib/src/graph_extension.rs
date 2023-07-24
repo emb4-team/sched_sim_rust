@@ -3,21 +3,22 @@ use petgraph::algo::toposort;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction::{Incoming, Outgoing};
-use std::collections::HashMap;
+use std::cmp::Ord;
 use std::collections::VecDeque;
+use std::collections::{BTreeMap, HashMap};
 
 const DUMMY_SOURCE_NODE_FLAG: i32 = -1;
 const DUMMY_SINK_NODE_FLAG: i32 = -2;
 
 /// custom node data structure for dag nodes (petgraph)
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NodeData {
     pub id: i32,
-    pub params: HashMap<String, i32>,
+    pub params: BTreeMap<String, i32>,
 }
 
 impl NodeData {
-    pub fn new(id: i32, params: HashMap<String, i32>) -> NodeData {
+    pub fn new(id: i32, params: BTreeMap<String, i32>) -> NodeData {
         NodeData { id, params }
     }
 }
@@ -90,7 +91,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let source_nodes = self.get_source_nodes();
         let dummy_source_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            HashMap::from([
+            BTreeMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SOURCE_NODE_FLAG),
             ]),
@@ -116,7 +117,7 @@ impl GraphExtension for Graph<NodeData, i32> {
         let sink_nodes = self.get_sink_nodes();
         let dummy_sink_i = self.add_node(NodeData::new(
             self.node_count() as i32,
-            HashMap::from([
+            BTreeMap::from([
                 ("execution_time".to_string(), 0),
                 ("dummy".to_string(), DUMMY_SINK_NODE_FLAG),
             ]),
@@ -571,7 +572,7 @@ mod tests {
     use super::*;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }
@@ -961,7 +962,7 @@ mod tests {
         let n1 = dag.add_node(NodeData {
             id: 1,
             params: {
-                let mut params = HashMap::new();
+                let mut params = BTreeMap::new();
                 params.insert("execution_time".to_string(), 11);
                 params.insert("end_to_end_deadline".to_string(), 25);
                 params
