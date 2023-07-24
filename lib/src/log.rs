@@ -100,9 +100,9 @@ impl ProcessorInfo {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGLog {
     dag_id: usize,
-    release_time: i32,
-    start_time: i32,
-    finish_time: i32,
+    release_time: Vec<i32>,
+    start_time: Vec<i32>,
+    finish_time: Vec<i32>,
 }
 
 impl DAGLog {
@@ -118,11 +118,11 @@ impl DAGLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct NodeLog {
-    core_id: usize,
+    core_id: Vec<usize>,
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
-    start_time: i32,
-    finish_time: i32,
+    start_time: Vec<i32>,
+    finish_time: Vec<i32>,
 }
 
 impl NodeLog {
@@ -234,14 +234,16 @@ impl DAGSchedulerLog {
         current_time: i32,
     ) {
         let node_id = node_data.id as usize;
-        self.node_logs[node_id].core_id = core_id;
-        self.node_logs[node_id].start_time = current_time;
+        self.node_logs[node_id].core_id.push(core_id);
+        self.node_logs[node_id].start_time.push(current_time);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.params.get("execution_time").unwrap_or(&0);
     }
 
     pub fn write_finishing_node(&mut self, node_data: &NodeData, current_time: i32) {
-        self.node_logs[node_data.id as usize].finish_time = current_time;
+        self.node_logs[node_data.id as usize]
+            .finish_time
+            .push(current_time);
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
@@ -288,15 +290,15 @@ impl DAGSetSchedulerLog {
     }
 
     pub fn write_dag_release_time(&mut self, dag_id: usize, release_time: i32) {
-        self.dag_set_log[dag_id].release_time = release_time;
+        self.dag_set_log[dag_id].release_time.push(release_time);
     }
 
     pub fn write_dag_start_time(&mut self, dag_id: usize, start_time: i32) {
-        self.dag_set_log[dag_id].start_time = start_time;
+        self.dag_set_log[dag_id].start_time.push(start_time);
     }
 
     pub fn write_dag_finish_time(&mut self, dag_id: usize, finish_time: i32) {
-        self.dag_set_log[dag_id].finish_time = finish_time;
+        self.dag_set_log[dag_id].finish_time.push(finish_time);
     }
 
     pub fn write_allocating_node(
@@ -307,14 +309,17 @@ impl DAGSetSchedulerLog {
         current_time: i32,
         proc_time: i32,
     ) {
-        self.node_set_logs[dag_id][node_id].core_id = core_id;
-        self.node_set_logs[dag_id][node_id].start_time = current_time;
+        self.node_set_logs[dag_id][node_id].core_id.push(core_id);
+        self.node_set_logs[dag_id][node_id]
+            .start_time
+            .push(current_time);
         self.processor_log.core_logs[core_id].total_proc_time += proc_time;
     }
 
     pub fn write_finishing_node(&mut self, node_data: &NodeData, finish_time: i32) {
         self.node_set_logs[node_data.params["dag_id"] as usize][node_data.id as usize]
-            .finish_time = finish_time;
+            .finish_time
+            .push(finish_time);
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
