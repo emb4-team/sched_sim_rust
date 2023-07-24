@@ -163,7 +163,8 @@ impl GraphExtension for Graph<NodeData, i32> {
     fn calculate_earliest_start_times(&mut self) {
         let mut earliest_start_times = vec![0; self.node_count()];
 
-        for node_i in self.node_indices() {
+        let sorted_nodes = toposort(&*self, None).unwrap();
+        for node_i in sorted_nodes {
             let max_earliest_start_time = self
                 .edges_directed(node_i, Incoming)
                 .map(|edge| {
@@ -619,16 +620,16 @@ mod tests {
         let n3 = dag.add_node(create_node(3, "execution_time", 36));
         let n4 = dag.add_node(create_node(4, "execution_time", 54));
         dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
+        dag.add_edge(n0, n4, 1);
         dag.add_edge(n1, n3, 1);
-        dag.add_edge(n2, n4, 1);
+        dag.add_edge(n4, n2, 1);
 
         dag.calculate_earliest_start_times();
         assert_eq!(dag[n0].params["earliest_start_time"], 0);
         assert_eq!(dag[n1].params["earliest_start_time"], 4);
-        assert_eq!(dag[n2].params["earliest_start_time"], 4);
+        assert_eq!(dag[n2].params["earliest_start_time"], 58);
         assert_eq!(dag[n3].params["earliest_start_time"], 11);
-        assert_eq!(dag[n4].params["earliest_start_time"], 59);
+        assert_eq!(dag[n4].params["earliest_start_time"], 4);
     }
 
     #[test]
