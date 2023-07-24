@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet};
-
 use petgraph::Graph;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
     graph_extension::{GraphExtension, NodeData},
@@ -11,8 +11,48 @@ use crate::{
     util::get_hyper_period,
 };
 
+// Define a new wrapper type
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeDataWrapper(NodeData);
+
+impl NodeDataWrapper {
+    fn new(id: i32, params: BTreeMap<String, i32>) -> Self {
+        Self(NodeData::new(id, params))
+    }
+
+    fn get_node_data(&self) -> NodeData {
+        self.0.clone()
+    }
+}
+
+impl PartialOrd for NodeDataWrapper {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // Define the key to compare
+        let key = "period";
+        match (self.0.params.get(key), other.0.params.get(key)) {
+            (Some(self_val), Some(other_val)) => match self_val.cmp(other_val) {
+                // If the keys are equal, compare by id
+                Ordering::Equal => self.0.id.partial_cmp(&other.0.id),
+                other => Some(other),
+            },
+            // If neither of the keys exists, compare by id
+            (None, None) => self.0.id.partial_cmp(&other.0.id),
+            // If only one of the keys exists, the one with the key is greater
+            (Some(_), None) => Some(Ordering::Greater),
+            (None, Some(_)) => Some(Ordering::Less),
+        }
+    }
+}
+
+impl Ord for NodeDataWrapper {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct DAGStateManager {
+    is_released: bool,
     is_started: bool,
     release_count: i32,
 }
@@ -20,17 +60,22 @@ struct DAGStateManager {
 impl DAGStateManager {
     fn new() -> Self {
         Self {
+            is_released: false,
             is_started: false,
             release_count: 0,
         }
     }
 
-    fn get_release_count(&self) -> i32 {
-        self.release_count
+    fn release(&mut self) {
+        self.is_released = true;
     }
 
-    fn increment_release_count(&mut self) {
-        self.release_count += 1;
+    fn get_is_released(&self) -> bool {
+        self.is_released
+    }
+
+    fn start(&mut self) {
+        self.is_started = true;
     }
 
     fn get_is_started(&self) -> bool {
@@ -39,6 +84,14 @@ impl DAGStateManager {
 
     fn reset_state(&mut self) {
         self.is_started = false;
+    }
+
+    fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    fn increment_release_count(&mut self) {
+        self.release_count += 1;
     }
 }
 
@@ -61,19 +114,14 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         // Initialize DAGStateManagers
         let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
 
-        let mut node_data_vec: Vec<NodeData> = Vec::new();
-        // Convert DAG to NodeData
+        // Initialize DAG id
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
-            let mut params = BTreeMap::new();
-            params.insert("execution_time".to_string(), dag.get_volume());
-            params.insert("offset".to_string(), dag.get_head_offset());
-            params.insert("period".to_string(), dag.get_head_period().unwrap());
-            node_data_vec.push(NodeData::new(dag_id as i32, params));
+            dag.set_dag_id(dag_id);
         }
 
         // Start scheduling
         let mut current_time = 0;
-        let mut ready_queue: BTreeSet<NodeData> = BTreeSet::new();
+        let mut ready_queue: BTreeSet<NodeDataWrapper> = BTreeSet::new();
         let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
@@ -85,11 +133,45 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         + dag.get_head_period().unwrap()
                             * dag_state_managers[dag_id].get_release_count()
                 {
-                    ready_queue.insert(node_data_vec[dag_id].clone());
+                    dag_state_managers[dag_id].release();
                     dag_state_managers[dag_id].increment_release_count();
                     log.write_dag_release_time(dag_id, current_time);
                 }
             }
+
+            // Start DAGs if there are free cores
+            let mut idle_core_num = self.processor.get_idle_core_num();
+            for (dag_id, manager) in dag_state_managers.iter_mut().enumerate() {
+                if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
+                    manager.start();
+                    idle_core_num -= 1;
+                    // Add the source node to the ready queue
+                    let dag = &self.dag_set[dag_id];
+                    let source_node = &dag[dag.get_source_nodes()[0]];
+                    ready_queue.insert(NodeDataWrapper::new(
+                        source_node.id,
+                        source_node.params.clone(),
+                    ));
+                };
+            }
+
+            // Allocate the nodes of each DAG
+            for dag in self.dag_set.iter_mut() {
+                let dag_id = dag.get_dag_id();
+                if !dag_state_managers[dag_id].get_is_started() {
+                    continue;
+                }
+                match self.processor.get_idle_core_index() {
+                    Some(idle_core_index) => match ready_queue.pop_first() {
+                        Some(ready_node) => self
+                            .processor
+                            .allocate_specific_core(idle_core_index, &ready_node.get_node_data()),
+                        None => break,
+                    },
+                    None => break,
+                };
+            }
+
             current_time += 1;
         }
         todo!()
