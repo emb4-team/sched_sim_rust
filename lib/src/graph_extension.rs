@@ -163,7 +163,8 @@ impl GraphExtension for Graph<NodeData, i32> {
     fn calculate_earliest_start_times(&mut self) {
         let mut earliest_start_times = vec![0; self.node_count()];
 
-        for node_i in self.node_indices() {
+        let sorted_nodes = toposort(&*self, None).unwrap();
+        for node_i in sorted_nodes {
             let max_earliest_start_time = self
                 .edges_directed(node_i, Incoming)
                 .map(|edge| {
