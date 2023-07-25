@@ -143,6 +143,10 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
             // TODO : Establish indicators of priority
+            let period = dag.get_head_period().unwrap();
+            for node in dag.node_indices() {
+                dag.add_param(node, "period", period);
+            }
         }
 
         // Start scheduling
@@ -252,7 +256,24 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             }
 
             // Preemptive processing
-            //while let Some(ready_node_data) = ready_queue.first() {}
+            if !self.processor.are_all_cores_idle() {
+                while let Some(ready_node_data_wrapper) = ready_queue.first() {
+                    let ready_node_data = ready_node_data_wrapper.get_node_data();
+                    let deadline = ready_node_data.get_params_value("period");
+                    let max_node_data = self.processor.get_max_node_data_by_key("period").unwrap();
+                    if max_node_data.get_params_value("period") > deadline {
+                        let core_id = max_node_data.get_params_value("core_id") as usize;
+                        let suspend_node_data = self.processor.suspend_execution(core_id).unwrap();
+                        ready_queue.insert(NodeDataWrapper(suspend_node_data));
+                        self.processor
+                            .allocate_specific_core(core_id, &ready_node_data);
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                continue;
+            }
         }
 
         log.calculate_utilization(current_time);
