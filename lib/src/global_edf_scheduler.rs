@@ -283,21 +283,21 @@ mod tests {
 
     fn create_sample_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
+        // cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 10));
         let c1 = dag.add_node(create_node(1, "execution_time", 20));
         let c2 = dag.add_node(create_node(2, "execution_time", 20));
         dag.add_param(c0, "period", 150);
         dag.add_param(c2, "end_to_end_deadline", 50);
-        //nY_X is the Yth suc node of cX.
+        // nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
         let n1_0 = dag.add_node(create_node(4, "execution_time", 10));
 
-        //create critical path edges
+        // Create critical path edges
         dag.add_edge(c0, c1, 1);
         dag.add_edge(c1, c2, 1);
 
-        //create non-critical path edges
+        // Create non-critical path edges
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(c0, n1_0, 1);
         dag.add_edge(n0_0, c2, 1);
@@ -308,20 +308,20 @@ mod tests {
 
     fn create_sample_dag2() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
+        // cX is the Xth critical node.
         let c0 = dag.add_node(create_node(0, "execution_time", 10));
         let c1 = dag.add_node(create_node(1, "execution_time", 20));
         let c2 = dag.add_node(create_node(2, "execution_time", 20));
         dag.add_param(c0, "period", 100);
         dag.add_param(c2, "end_to_end_deadline", 60);
-        //nY_X is the Yth suc node of cX.
+        // nY_X is the Yth suc node of cX.
         let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
 
-        //create critical path edges
+        // Create critical path edges
         dag.add_edge(c0, c1, 1);
         dag.add_edge(c1, c2, 1);
 
-        //create non-critical path edges
+        // Create non-critical path edges
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(n0_0, c2, 1);
 
