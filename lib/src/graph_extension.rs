@@ -266,12 +266,13 @@ impl GraphExtension for Graph<NodeData, i32> {
     ///
     /// ```
     /// use petgraph::Graph;
+    /// use std::collections::BTreeMap;
     /// use std::collections::HashMap;
     /// use lib::graph_extension::NodeData;
     /// use lib::graph_extension::GraphExtension;
     ///
     /// let mut dag = Graph::<NodeData, i32>::new();
-    /// let mut params = HashMap::new();
+    /// let mut params = BTreeMap::new();
     /// params.insert("execution_time".to_string(), 1);
     /// let n0 = dag.add_node(NodeData { id: 0, params: params.clone() });
     /// let n1 = dag.add_node(NodeData { id: 1, params: params });

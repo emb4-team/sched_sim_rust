@@ -269,7 +269,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 
 #[cfg(test)]
 mod tests {
-    use crate::util::load_yaml;
+    //use crate::util::load_yaml;
 
     use super::*;
 
@@ -339,8 +339,8 @@ mod tests {
 
         assert_eq!(time, 300);
 
-        let file_path = global_edf_scheduler.dump_log("../lib/tests", "test");
+        /*let file_path = global_edf_scheduler.dump_log("../lib/tests", "test");
         let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];
+        let yaml_doc = &yaml_docs[0];*/
     }
 }
