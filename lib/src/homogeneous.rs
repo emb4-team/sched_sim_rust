@@ -26,12 +26,12 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     fn get_idle_core_num(&self) -> usize {
-        self.cores.iter().filter(|core| core.is_idle).count()
+        self.cores.iter().filter(|core| core.get_is_idle()).count()
     }
 
     fn get_idle_core_index(&self) -> Option<usize> {
         for (index, core) in self.cores.iter().enumerate() {
-            if core.is_idle {
+            if core.get_is_idle() {
                 return Some(index);
             }
         }
