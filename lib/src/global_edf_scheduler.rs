@@ -85,6 +85,7 @@ impl DAGStateManager {
 
     fn reset_state(&mut self) {
         self.is_started = false;
+        self.is_released = false;
     }
 
     fn get_release_count(&self) -> i32 {
@@ -118,11 +119,13 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         // Initialize DAG id
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
+            // TODO : Establish indicators of priority
         }
 
         // Start scheduling
         let mut current_time = 0;
-        let mut ready_queue: BTreeSet<NodeDataWrapper> = BTreeSet::new();
+        let mut ready_queue: Vec<BTreeSet<NodeDataWrapper>> =
+            vec![BTreeSet::new(); self.dag_set.len()];
         let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
@@ -149,7 +152,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     // Add the source node to the ready queue
                     let dag = &self.dag_set[dag_id];
                     let source_node = &dag[dag.get_source_nodes()[0]];
-                    ready_queue.insert(NodeDataWrapper::new(
+                    ready_queue[dag_id].insert(NodeDataWrapper::new(
                         source_node.id,
                         source_node.params.clone(),
                     ));
@@ -164,7 +167,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     continue;
                 }
                 match self.processor.get_idle_core_index() {
-                    Some(idle_core_index) => match ready_queue.pop_first() {
+                    Some(idle_core_index) => match ready_queue[dag_id].pop_first() {
                         Some(ready_node) => {
                             let ready_node_data = ready_node.get_node_data();
                             self.processor
@@ -190,10 +193,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             current_time += 1;
 
             // Post-process on completion of node execution
-            for result in process_result {
+            for result in process_result.clone() {
                 if let ProcessResult::Done(node_data) = result {
                     log.write_finishing_node(&node_data, current_time);
                     let dag_id = node_data.params["dag_id"] as usize;
+                    println!();
 
                     // Increase pre_done_count of successor nodes
                     let dag = &mut self.dag_set[dag_id];
@@ -216,7 +220,24 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             }
 
             // Add the node to the ready queue when all preceding nodes have finished
-            todo!()
+            for result in process_result {
+                if let ProcessResult::Done(node_data) = result {
+                    let dag_id = node_data.params["dag_id"] as usize;
+                    let dag = &mut self.dag_set[dag_id];
+                    let suc_nodes = dag
+                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                        .unwrap_or_default();
+
+                    // If all preceding nodes have finished, add the node to the ready queue
+                    for suc_node in suc_nodes {
+                        if dag.is_node_ready(suc_node) {
+                            ready_queue[dag_id].insert(NodeDataWrapper(dag[suc_node].clone()));
+                        }
+                    }
+                }
+            }
+
+            println!("ready_queue: {:#?}", ready_queue);
         }
 
         log.calculate_utilization(current_time);
