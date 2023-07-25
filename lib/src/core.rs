@@ -29,6 +29,10 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
+    pub fn get_processing_node(&self) -> Option<NodeData> {
+        self.processing_node.clone()
+    }
+
     pub fn allocate(&mut self, node_data: &NodeData) -> bool {
         if !self.is_idle {
             warn!("Core is already allocated to a node");

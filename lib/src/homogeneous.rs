@@ -38,6 +38,29 @@ impl ProcessorBase for HomogeneousProcessor {
         None
     }
 
+    fn get_node_data(&self, core_id: usize) -> Option<NodeData> {
+        self.cores[core_id].get_processing_node()
+    }
+
+    // Returns data for the core with the smaller id if there are equal values
+    fn get_max_node_data_by_key(&self, key: &str) -> Option<NodeData> {
+        let mut max_node_data: Option<NodeData> = None;
+        for core in &self.cores {
+            if let Some(node_data) = core.get_processing_node() {
+                let value = node_data.get_params_value(key);
+                if let Some(max_value) = max_node_data.as_ref().map(|n| n.get_params_value(key)) {
+                    if value > max_value {
+                        max_node_data = Some(node_data);
+                    }
+                } else {
+                    max_node_data = Some(node_data);
+                }
+            }
+        }
+
+        max_node_data
+    }
+
     fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
         self.cores[core_id].suspend_execution()
     }
@@ -202,6 +225,44 @@ mod tests {
         homogeneous_processor.allocate_specific_core(1, &n1);
 
         assert_eq!(homogeneous_processor.get_idle_core_num(), 0);
+    }
+
+    #[test]
+    fn test_get_max_node_data_by_key_normal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(4);
+        let n0 = create_node(0, "execution_time", 2);
+        let n1 = create_node(1, "execution_time", 3);
+        let n2 = create_node(2, "execution_time", 5);
+        let n3 = create_node(3, "execution_time", 1);
+
+        homogeneous_processor.allocate_specific_core(0, &n0);
+        homogeneous_processor.allocate_specific_core(1, &n1);
+        homogeneous_processor.allocate_specific_core(2, &n2);
+        homogeneous_processor.allocate_specific_core(3, &n3);
+
+        assert_eq!(
+            homogeneous_processor.get_max_node_data_by_key("execution_time"),
+            Some(n2.clone())
+        );
+    }
+
+    #[test]
+    fn test_get_max_node_data_by_key_equal() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(4);
+        let n0 = create_node(0, "execution_time", 2);
+        let n1 = create_node(1, "execution_time", 3);
+        let n2 = create_node(2, "execution_time", 3);
+        let n3 = create_node(3, "execution_time", 1);
+
+        homogeneous_processor.allocate_specific_core(0, &n0);
+        homogeneous_processor.allocate_specific_core(1, &n1);
+        homogeneous_processor.allocate_specific_core(2, &n2);
+        homogeneous_processor.allocate_specific_core(3, &n3);
+
+        assert_eq!(
+            homogeneous_processor.get_max_node_data_by_key("execution_time"),
+            Some(n1.clone())
+        );
     }
 
     #[test]
