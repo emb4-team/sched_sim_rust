@@ -28,16 +28,39 @@ impl NodeDataWrapper {
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Define the key to compare
-        let key = "period";
-        match (self.0.params.get(key), other.0.params.get(key)) {
+        // Define the keys to compare
+        let key1 = "period";
+        let key2 = "dag_id";
+        match (self.0.params.get(key1), other.0.params.get(key1)) {
             (Some(self_val), Some(other_val)) => match self_val.cmp(other_val) {
                 // If the keys are equal, compare by id
-                Ordering::Equal => self.0.id.partial_cmp(&other.0.id),
+                Ordering::Equal => match self.0.id.partial_cmp(&other.0.id) {
+                    // If the ids are also equal, compare by dag_id
+                    Some(Ordering::Equal) => {
+                        match (self.0.params.get(key2), other.0.params.get(key2)) {
+                            (Some(self_dag), Some(other_dag)) => Some(self_dag.cmp(other_dag)),
+                            (None, None) => Some(Ordering::Equal),
+                            (Some(_), None) => Some(Ordering::Greater),
+                            (None, Some(_)) => Some(Ordering::Less),
+                        }
+                    }
+                    other => other,
+                },
                 other => Some(other),
             },
             // If neither of the keys exists, compare by id
-            (None, None) => self.0.id.partial_cmp(&other.0.id),
+            (None, None) => match self.0.id.partial_cmp(&other.0.id) {
+                // If the ids are equal, compare by dag_id
+                Some(Ordering::Equal) => {
+                    match (self.0.params.get(key2), other.0.params.get(key2)) {
+                        (Some(self_dag), Some(other_dag)) => Some(self_dag.cmp(other_dag)),
+                        (None, None) => Some(Ordering::Equal),
+                        (Some(_), None) => Some(Ordering::Greater),
+                        (None, Some(_)) => Some(Ordering::Less),
+                    }
+                }
+                other => other,
+            },
             // If only one of the keys exists, the one with the key is greater
             (Some(_), None) => Some(Ordering::Greater),
             (None, Some(_)) => Some(Ordering::Less),
@@ -124,8 +147,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 
         // Start scheduling
         let mut current_time = 0;
-        let mut ready_queue: Vec<BTreeSet<NodeDataWrapper>> =
-            vec![BTreeSet::new(); self.dag_set.len()];
+        let mut ready_queue: BTreeSet<NodeDataWrapper> = BTreeSet::new();
         let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
@@ -152,7 +174,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     // Add the source node to the ready queue
                     let dag = &self.dag_set[dag_id];
                     let source_node = &dag[dag.get_source_nodes()[0]];
-                    ready_queue[dag_id].insert(NodeDataWrapper::new(
+                    ready_queue.insert(NodeDataWrapper::new(
                         source_node.id,
                         source_node.params.clone(),
                     ));
@@ -160,30 +182,23 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                 };
             }
 
-            // Allocate the nodes of each DAG
-            for dag in self.dag_set.iter_mut() {
-                let dag_id = dag.get_dag_id();
-                if !dag_state_managers[dag_id].get_is_started() {
-                    continue;
-                }
+            // Allocate the nodes of ready_queue to idle cores
+            while !ready_queue.is_empty() {
                 match self.processor.get_idle_core_index() {
-                    Some(idle_core_index) => match ready_queue[dag_id].pop_first() {
-                        Some(ready_node) => {
-                            let ready_node_data = ready_node.get_node_data();
-                            self.processor
-                                .allocate_specific_core(idle_core_index, &ready_node_data);
-                            log.write_allocating_node(
-                                dag_id,
-                                ready_node_data.id.try_into().unwrap(),
-                                idle_core_index,
-                                current_time,
-                                *ready_node_data.params.get("execution_time").unwrap(),
-                            );
-                            self.processor
-                                .allocate_specific_core(idle_core_index, &ready_node_data);
-                        }
-                        None => break,
-                    },
+                    Some(idle_core_index) => {
+                        let ready_node_data = ready_queue.pop_first().unwrap().get_node_data();
+                        self.processor
+                            .allocate_specific_core(idle_core_index, &ready_node_data);
+                        log.write_allocating_node(
+                            *ready_node_data.params.get("dag_id").unwrap() as usize,
+                            ready_node_data.id.try_into().unwrap(),
+                            idle_core_index,
+                            current_time,
+                            *ready_node_data.params.get("execution_time").unwrap(),
+                        );
+                        self.processor
+                            .allocate_specific_core(idle_core_index, &ready_node_data);
+                    }
                     None => break,
                 };
             }
@@ -197,7 +212,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                 if let ProcessResult::Done(node_data) = result {
                     log.write_finishing_node(&node_data, current_time);
                     let dag_id = node_data.params["dag_id"] as usize;
-                    println!();
 
                     // Increase pre_done_count of successor nodes
                     let dag = &mut self.dag_set[dag_id];
@@ -231,13 +245,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     // If all preceding nodes have finished, add the node to the ready queue
                     for suc_node in suc_nodes {
                         if dag.is_node_ready(suc_node) {
-                            ready_queue[dag_id].insert(NodeDataWrapper(dag[suc_node].clone()));
+                            ready_queue.insert(NodeDataWrapper(dag[suc_node].clone()));
                         }
                     }
                 }
             }
-
-            println!("ready_queue: {:#?}", ready_queue);
         }
 
         log.calculate_utilization(current_time);
@@ -320,7 +332,7 @@ mod tests {
         let dag2 = create_sample_dag2();
         let dag_set = vec![dag, dag2];
 
-        let processor = HomogeneousProcessor::new(3);
+        let processor = HomogeneousProcessor::new(10);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
         let time = global_edf_scheduler.schedule();
