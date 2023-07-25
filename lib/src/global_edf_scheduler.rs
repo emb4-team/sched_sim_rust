@@ -190,11 +190,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         self.processor
                             .allocate_specific_core(idle_core_index, &ready_node_data);
                         log.write_allocating_node(
-                            *ready_node_data.params.get("dag_id").unwrap() as usize,
+                            ready_node_data.get_params_value("dag_id") as usize,
                             ready_node_data.id.try_into().unwrap(),
                             idle_core_index,
                             current_time,
-                            *ready_node_data.params.get("execution_time").unwrap(),
+                            ready_node_data.get_params_value("execution_time"),
                         );
                         self.processor
                             .allocate_specific_core(idle_core_index, &ready_node_data);
@@ -211,7 +211,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             for result in process_result.clone() {
                 if let ProcessResult::Done(node_data) = result {
                     log.write_finishing_node(&node_data, current_time);
-                    let dag_id = node_data.params["dag_id"] as usize;
+                    let dag_id = node_data.get_params_value("dag_id") as usize;
 
                     // Increase pre_done_count of successor nodes
                     let dag = &mut self.dag_set[dag_id];
@@ -236,7 +236,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             // Add the node to the ready queue when all preceding nodes have finished
             for result in process_result {
                 if let ProcessResult::Done(node_data) = result {
-                    let dag_id = node_data.params["dag_id"] as usize;
+                    let dag_id = node_data.get_params_value("dag_id") as usize;
                     let dag = &mut self.dag_set[dag_id];
                     let suc_nodes = dag
                         .get_suc_nodes(NodeIndex::new(node_data.id as usize))
@@ -250,6 +250,9 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     }
                 }
             }
+
+            // Preemptive processing
+            //while let Some(ready_node_data) = ready_queue.first() {}
         }
 
         log.calculate_utilization(current_time);

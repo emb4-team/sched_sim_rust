@@ -21,6 +21,13 @@ impl NodeData {
     pub fn new(id: i32, params: BTreeMap<String, i32>) -> NodeData {
         NodeData { id, params }
     }
+
+    pub fn get_params_value(&self, key: &str) -> i32 {
+        *self
+            .params
+            .get(key)
+            .unwrap_or_else(|| panic!("The key does not exist. key: {}", key))
+    }
 }
 
 pub trait GraphExtension {
