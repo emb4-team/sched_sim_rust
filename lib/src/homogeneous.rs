@@ -13,6 +13,10 @@ impl ProcessorBase for HomogeneousProcessor {
         }
     }
 
+    fn are_all_cores_idle(&self) -> bool {
+        self.cores.iter().all(|core| core.get_is_idle())
+    }
+
     fn allocate_specific_core(&mut self, core_id: usize, node_data: &NodeData) -> bool {
         self.cores[core_id].allocate(node_data)
     }
