@@ -47,22 +47,25 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     // Returns data for the core with the smaller id if there are equal values
-    fn get_max_node_data_by_key(&self, key: &str) -> Option<NodeData> {
+    fn get_max_node_data_by_key(&self, key: &str) -> (Option<usize>, Option<NodeData>) {
         let mut max_node_data: Option<NodeData> = None;
-        for core in &self.cores {
+        let mut max_core_id: Option<usize> = None;
+        for (id, core) in self.cores.iter().enumerate() {
             if let Some(node_data) = core.get_processing_node() {
                 let value = node_data.get_params_value(key);
                 if let Some(max_value) = max_node_data.as_ref().map(|n| n.get_params_value(key)) {
                     if value > max_value {
                         max_node_data = Some(node_data);
+                        max_core_id = Some(id);
                     }
                 } else {
                     max_node_data = Some(node_data);
+                    max_core_id = Some(id);
                 }
             }
         }
 
-        max_node_data
+        (max_core_id, max_node_data)
     }
 
     fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
@@ -246,7 +249,7 @@ mod tests {
 
         assert_eq!(
             homogeneous_processor.get_max_node_data_by_key("execution_time"),
-            Some(n2.clone())
+            (Some(2), Some(n2.clone()))
         );
     }
 
@@ -265,7 +268,7 @@ mod tests {
 
         assert_eq!(
             homogeneous_processor.get_max_node_data_by_key("execution_time"),
-            Some(n1.clone())
+            (Some(1), Some(n1.clone()))
         );
     }
 
