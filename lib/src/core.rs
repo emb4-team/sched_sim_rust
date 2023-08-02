@@ -29,10 +29,6 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
-    pub fn get_processing_node(&self) -> Option<NodeData> {
-        self.processing_node.clone()
-    }
-
     pub fn get_is_idle(&self) -> bool {
         self.is_idle
     }
