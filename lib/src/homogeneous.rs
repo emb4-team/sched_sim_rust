@@ -38,10 +38,6 @@ impl ProcessorBase for HomogeneousProcessor {
         None
     }
 
-    fn get_node_data(&self, core_id: usize) -> Option<NodeData> {
-        self.cores[core_id].get_processing_node()
-    }
-
     fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
         self.cores[core_id].suspend_execution()
     }
