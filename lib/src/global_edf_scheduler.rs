@@ -254,26 +254,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     }
                 }
             }
-
-            // Preemptive processing
-            if !self.processor.are_all_cores_idle() {
-                while let Some(ready_node_data_wrapper) = ready_queue.first() {
-                    let ready_node_data = ready_node_data_wrapper.get_node_data();
-                    let deadline = ready_node_data.get_params_value("period");
-                    let (core_id, max_node_data) =
-                        self.processor.get_max_node_data_by_key("period");
-                    let core_id = core_id.unwrap();
-                    let max_node_data = max_node_data.unwrap();
-                    if max_node_data.get_params_value("period") > deadline {
-                        let suspend_node_data = self.processor.suspend_execution(core_id).unwrap();
-                        ready_queue.insert(NodeDataWrapper(suspend_node_data));
-                        self.processor
-                            .allocate_specific_core(core_id, &ready_node_data);
-                    } else {
-                        break;
-                    }
-                }
-            }
         }
 
         log.calculate_utilization(current_time);
@@ -348,31 +328,6 @@ mod tests {
         // Create non-critical path edges
         dag.add_edge(c0, n0_0, 1);
         dag.add_edge(n0_0, c2, 1);
-
-        dag
-    }
-
-    fn create_sample_dag3() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        // cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 20));
-        let c1 = dag.add_node(create_node(1, "execution_time", 40));
-        let c2 = dag.add_node(create_node(2, "execution_time", 40));
-        dag.add_param(c0, "period", 100);
-        dag.add_param(c2, "end_to_end_deadline", 50);
-        // nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(3, "execution_time", 20));
-        let n1_0 = dag.add_node(create_node(4, "execution_time", 20));
-
-        // Create critical path edges
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-
-        // Create non-critical path edges
-        dag.add_edge(c0, n0_0, 1);
-        dag.add_edge(c0, n1_0, 1);
-        dag.add_edge(n0_0, c2, 1);
-        dag.add_edge(n1_0, c2, 1);
 
         dag
     }
@@ -463,23 +418,5 @@ mod tests {
         assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.6666667);
 
         remove_file(file_path).unwrap();
-    }
-
-    #[test]
-    fn test_global_edf_preemptive() {
-        let dag = create_sample_dag();
-        let dag3 = create_sample_dag3();
-        let dag_set = vec![dag, dag3];
-
-        let processor = HomogeneousProcessor::new(4);
-
-        let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let time = global_edf_scheduler.schedule();
-
-        assert_eq!(time, 300);
-
-        /*let file_path = global_edf_scheduler.dump_log("../lib/tests", "test");
-        let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];*/
     }
 }
