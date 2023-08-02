@@ -21,7 +21,7 @@ impl NodeDataWrapper {
         Self(NodeData::new(id, params))
     }
 
-    fn get_node_data(&self) -> NodeData {
+    fn convert_node_data(&self) -> NodeData {
         self.0.clone()
     }
 }
@@ -190,7 +190,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             while !ready_queue.is_empty() {
                 match self.processor.get_idle_core_index() {
                     Some(idle_core_index) => {
-                        let ready_node_data = ready_queue.pop_first().unwrap().get_node_data();
+                        let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
                         self.processor
                             .allocate_specific_core(idle_core_index, &ready_node_data);
                         log.write_allocating_node(
