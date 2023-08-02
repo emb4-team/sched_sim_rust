@@ -142,11 +142,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         // Initialize DAG id
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
-            // TODO : Establish indicators of priority
-            let period = dag.get_head_period().unwrap();
-            for node in dag.node_indices() {
-                dag.add_param(node, "period", period);
-            }
+            dag.set_dag_period(dag.get_head_period().unwrap());
         }
 
         // Start scheduling
@@ -178,10 +174,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     // Add the source node to the ready queue
                     let dag = &self.dag_set[dag_id];
                     let source_node = &dag[dag.get_source_nodes()[0]];
-                    ready_queue.insert(NodeDataWrapper::new(
-                        source_node.id,
-                        source_node.params.clone(),
-                    ));
+                    ready_queue.insert(NodeDataWrapper(source_node.clone()));
                     log.write_dag_start_time(dag_id, current_time);
                 };
             }
@@ -195,13 +188,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                             .allocate_specific_core(idle_core_index, &ready_node_data);
                         log.write_allocating_node(
                             ready_node_data.get_params_value("dag_id") as usize,
-                            ready_node_data.id.try_into().unwrap(),
+                            ready_node_data.get_id() as usize,
                             idle_core_index,
                             current_time,
                             ready_node_data.get_params_value("execution_time"),
                         );
-                        self.processor
-                            .allocate_specific_core(idle_core_index, &ready_node_data);
                     }
                     None => break,
                 };
@@ -215,19 +206,17 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             for result in process_result.clone() {
                 if let ProcessResult::Done(node_data) = result {
                     log.write_finishing_node(&node_data, current_time);
-                    let dag_id = node_data.get_params_value("dag_id") as usize;
 
                     // Increase pre_done_count of successor nodes
+                    let dag_id = node_data.get_params_value("dag_id") as usize;
                     let dag = &mut self.dag_set[dag_id];
                     let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
                         .unwrap_or_default();
                     if suc_nodes.is_empty() {
                         log.write_dag_finish_time(dag_id, current_time);
                         // Reset the state of the DAG
-                        for node_i in dag.node_indices() {
-                            dag.update_param(node_i, "pre_done_count", 0);
-                        }
+                        dag.reset_pre_done_count();
                         dag_state_managers[dag_id].reset_state();
                     } else {
                         for suc_node in suc_nodes {
@@ -243,7 +232,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     let dag_id = node_data.get_params_value("dag_id") as usize;
                     let dag = &mut self.dag_set[dag_id];
                     let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
                         .unwrap_or_default();
 
                     // If all preceding nodes have finished, add the node to the ready queue

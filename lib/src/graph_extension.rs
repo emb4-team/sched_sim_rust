@@ -22,6 +22,10 @@ impl NodeData {
         NodeData { id, params }
     }
 
+    pub fn get_id(&self) -> i32 {
+        self.id
+    }
+
     pub fn get_params_value(&self, key: &str) -> i32 {
         *self
             .params
@@ -59,9 +63,11 @@ pub trait GraphExtension {
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_dag_id(&self) -> usize;
     fn set_dag_id(&mut self, dag_id: usize);
+    fn set_dag_period(&mut self, period: i32);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
     fn is_node_ready(&self, node_i: NodeIndex) -> bool;
     fn increment_pre_done_count(&mut self, node_i: NodeIndex);
+    fn reset_pre_done_count(&mut self);
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
@@ -549,6 +555,15 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
+    fn set_dag_period(&mut self, period: i32) {
+        if self.node_indices().count() == 0 {
+            panic!("No node found.");
+        }
+        for node_i in self.node_indices() {
+            self.add_param(node_i, "period", period);
+        }
+    }
+
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex {
         let node_index = self.add_node(node);
 
@@ -572,6 +587,12 @@ impl GraphExtension for Graph<NodeData, i32> {
             .params
             .entry("pre_done_count".to_owned())
             .or_insert(0) += 1;
+    }
+
+    fn reset_pre_done_count(&mut self) {
+        for node_i in self.node_indices() {
+            self.update_param(node_i, "pre_done_count", 0);
+        }
     }
 }
 
