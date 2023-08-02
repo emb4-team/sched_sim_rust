@@ -1,6 +1,6 @@
 use petgraph::graph::{Graph, NodeIndex};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::core::ProcessResult;
 use crate::{
@@ -17,10 +17,6 @@ use crate::{
 pub struct NodeDataWrapper(NodeData);
 
 impl NodeDataWrapper {
-    fn new(id: i32, params: BTreeMap<String, i32>) -> Self {
-        Self(NodeData::new(id, params))
-    }
-
     fn convert_node_data(&self) -> NodeData {
         self.0.clone()
     }
@@ -262,11 +258,9 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::remove_file;
-
-    use crate::util::load_yaml;
-
     use super::*;
+    use crate::util::load_yaml;
+    use std::{collections::BTreeMap, fs::remove_file};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = BTreeMap::new();
