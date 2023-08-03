@@ -38,9 +38,9 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     }
 
     // Sort because offsets need to be calculated in the order of execution.
-    let mut topo = Topo::new(&*dag);
+    let mut topological_order = Topo::new(&*dag);
     let mut sorted_nodes: Vec<_> = Vec::new();
-    while let Some(node_i) = topo.next(&*dag) {
+    while let Some(node_i) = topological_order.next(&*dag) {
         sorted_nodes.push(node_i);
     }
 
@@ -51,17 +51,14 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
             None => dag.add_param(node_i, "integer_scaled_offset", 0),
             // offset = maximum of offset + deadline of predecessor node
             Some(nodes) => {
-                let mut max_offset = 0;
-                for pre_node_i in nodes {
-                    let pre_node = dag.node_weight(pre_node_i).unwrap();
-                    let pre_node_offset = pre_node.params.get("integer_scaled_offset").unwrap();
-                    let pre_node_deadline = pre_node.params.get("integer_scaled_deadline").unwrap();
-                    let offset = pre_node_offset + pre_node_deadline;
-
-                    if max_offset < offset {
-                        max_offset = offset;
-                    }
-                }
+                let max_offset = nodes
+                    .iter()
+                    .map(|&pre_node_i| {
+                        dag[pre_node_i].params["integer_scaled_offset"]
+                            + dag[pre_node_i].params["integer_scaled_deadline"]
+                    })
+                    .max()
+                    .unwrap();
                 dag.add_param(node_i, "integer_scaled_offset", max_offset);
             }
         }
