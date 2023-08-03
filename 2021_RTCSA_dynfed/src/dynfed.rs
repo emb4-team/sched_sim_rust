@@ -147,6 +147,8 @@ where
     let (mut schedule_length, mut execution_order) = scheduler.schedule();
 
     while schedule_length > end_to_end_deadline {
+        println!("schedule_length: {}", schedule_length);
+        println!("end_to_end_deadline: {}", end_to_end_deadline);
         minimum_cores += 1;
         scheduler.set_processor(&T::new(minimum_cores));
         (schedule_length, execution_order) = scheduler.schedule();

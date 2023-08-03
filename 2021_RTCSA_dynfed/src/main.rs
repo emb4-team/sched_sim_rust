@@ -8,7 +8,7 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::log::dump_dag_set_scheduler_result_to_yaml;
 use lib::processor::ProcessorBase;
 use lib::scheduler::DAGSetSchedulerBase;
-use lib::util::{adjust_to_implicit_deadline, get_hyper_period};
+use lib::util::{adjust_to_implicit_deadline, get_hyper_period, load_yaml};
 
 #[derive(Parser)]
 #[clap(
@@ -42,9 +42,27 @@ fn main() {
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
-    let schedule_length = dynfed_scheduler.schedule();
+    dynfed_scheduler.schedule();
 
     let file_path = dynfed_scheduler.dump_log(&arg.output_dir_path, "FixedPriority");
 
-    dump_dag_set_scheduler_result_to_yaml(&file_path, schedule_length < get_hyper_period(&dag_set));
+    let yaml_docs = load_yaml(&file_path);
+    let yaml_doc = &yaml_docs[0];
+
+    let mut result = true;
+    let hyper_period = get_hyper_period(&dag_set);
+
+    for dag_id in 0..dag_set.len() {
+        let dag_period = &yaml_doc["dag_set_info"]["each_dag_info"][dag_id]["period"]
+            .as_i64()
+            .unwrap();
+        for release_count in 0..(hyper_period / *dag_period as i32) as usize {
+            let dag_finish_time = &yaml_doc["dag_set_log"][dag_id]["finish_time"][release_count]
+                .as_i64()
+                .unwrap();
+            result = result && *dag_finish_time <= dag_period * (release_count + 1) as i64;
+        }
+    }
+
+    dump_dag_set_scheduler_result_to_yaml(&file_path, result);
 }
