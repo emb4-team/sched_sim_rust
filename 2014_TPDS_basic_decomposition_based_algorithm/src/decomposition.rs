@@ -39,15 +39,8 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
 
     // Sort because offsets need to be calculated in the order of execution.
     let mut topological_order = Topo::new(&*dag);
-    let mut sorted_nodes: Vec<_> = Vec::new();
     while let Some(node_i) = topological_order.next(&*dag) {
-        sorted_nodes.push(node_i);
-    }
-
-    // Add offset to nodes.
-    for node_i in sorted_nodes {
-        let pre_nodes = dag.get_pre_nodes(node_i);
-        match pre_nodes {
+        match dag.get_pre_nodes(node_i) {
             None => dag.add_param(node_i, "integer_scaled_offset", 0),
             // offset = maximum of offset + deadline of predecessor node
             Some(nodes) => {
