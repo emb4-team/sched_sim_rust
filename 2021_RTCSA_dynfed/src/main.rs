@@ -49,20 +49,14 @@ fn main() {
     // Check the result
     let yaml_doc = &load_yaml(&file_path)[0];
     let dag_set_log = &yaml_doc["dag_set_log"];
-    let hyper_period = get_hyper_period(&dag_set);
     let mut result = true;
-    'outer: for dag_id in 0..dag_set.len() {
-        let dag_period = dag_set[dag_id].get_head_period().unwrap();
-        let dag_log = &dag_set_log[dag_id]["response_time"];
-        for release_count in 0..(hyper_period / dag_period) {
-            result = result
-                && dag_log[release_count as usize].as_i64().unwrap()
-                    <= (dag_period * (release_count + 1)) as i64;
-            // If result is false, break the outer loop early using the 'outer label
-            if !result {
-                break 'outer;
-            }
+    for dag_id in 0..dag_set.len() {
+        if !result {
+            break; // If result is already false, no need to check further.
         }
+        result = result
+            && dag_set_log[dag_id]["worst_response_time"].as_i64().unwrap()
+                <= dag_set[dag_id].get_head_period().unwrap() as i64;
     }
 
     dump_dag_set_scheduler_result_to_yaml(&file_path, result);
