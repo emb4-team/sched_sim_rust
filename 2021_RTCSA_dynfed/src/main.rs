@@ -53,12 +53,11 @@ fn main() {
     let mut result = true;
     'outer: for dag_id in 0..dag_set.len() {
         let dag_period = dag_set[dag_id].get_head_period().unwrap();
-        let dag_log = &dag_set_log[dag_id]["finish_time"];
+        let dag_log = &dag_set_log[dag_id]["response_time"];
         for release_count in 0..(hyper_period / dag_period) {
-            let dag_finish_time = dag_log[dag_id]["finish_time"][release_count as usize]
-                .as_i64()
-                .unwrap();
-            result = result && dag_finish_time <= (dag_period * (release_count + 1)) as i64;
+            result = result
+                && dag_log[release_count as usize].as_i64().unwrap()
+                    <= (dag_period * (release_count + 1)) as i64;
             // If result is false, break the outer loop early using the 'outer label
             if !result {
                 break 'outer;
