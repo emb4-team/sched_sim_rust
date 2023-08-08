@@ -346,6 +346,14 @@ impl DAGSetSchedulerLog {
             .push(finish_time);
     }
 
+    pub fn calculate_response_time(&mut self) {
+        for dag_log in self.dag_set_log.iter_mut() {
+            dag_log.calculate_response_time();
+            dag_log.calculate_average_response_time();
+            dag_log.calculate_worst_response_time();
+        }
+    }
+
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
         self.processor_log
             .calculate_cores_utilization(schedule_length);
