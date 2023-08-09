@@ -125,6 +125,34 @@ where
         }
     }
 
+    fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        for dag in self.dag_set.iter() {
+            let dag_id = dag.get_dag_id();
+            if !self.managers[dag_id].get_is_started() {
+                continue;
+            }
+
+            while let Some(node_i) = self.managers[dag_id].get_execution_order_head() {
+                if dag.is_node_ready(*node_i) && self.managers[dag_id].get_unused_cores() > 0 {
+                    let core_id = self.processor.get_idle_core_index().unwrap();
+                    log.write_allocating_node(
+                        dag_id,
+                        node_i.index(),
+                        core_id,
+                        current_time,
+                        *dag[*node_i].params.get("execution_time").unwrap(),
+                    );
+                    self.processor.allocate_specific_core(
+                        core_id,
+                        &dag[self.managers[dag_id].allocate_head()],
+                    );
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         //let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -141,32 +169,7 @@ where
             // Start DAG if there are enough free core
             self.start_dag(current_time, &mut log);
             // Allocate the nodes of each DAG
-            for dag in self.dag_set.iter() {
-                let dag_id = dag.get_dag_id();
-                if !self.managers[dag_id].get_is_started() {
-                    continue;
-                }
-
-                while let Some(node_i) = self.managers[dag_id].get_execution_order_head() {
-                    if dag.is_node_ready(*node_i) && self.managers[dag_id].get_unused_cores() > 0 {
-                        let core_id = self.processor.get_idle_core_index().unwrap();
-                        log.write_allocating_node(
-                            dag_id,
-                            node_i.index(),
-                            core_id,
-                            current_time,
-                            *dag[*node_i].params.get("execution_time").unwrap(),
-                        );
-                        self.processor.allocate_specific_core(
-                            core_id,
-                            &dag[self.managers[dag_id].allocate_head()],
-                        );
-                    } else {
-                        break;
-                    }
-                }
-            }
-
+            self.allocate_node(current_time, &mut log);
             // Process unit time
             let process_result = self.processor.process();
             current_time += 1;
