@@ -158,6 +158,37 @@ where
         self.processor.process()
     }
 
+    fn handling_nodes_finished(
+        &mut self,
+        current_time: i32,
+        log: &mut DAGSetSchedulerLog,
+        process_result: &[ProcessResult],
+    ) {
+        for result in process_result {
+            if let ProcessResult::Done(node_data) = result {
+                log.write_finishing_node(node_data, current_time);
+                let dag_id = node_data.params["dag_id"] as usize;
+                self.managers[dag_id].decrement_num_using_cores();
+
+                // Increase pre_done_count of successor nodes
+                let dag = &mut self.dag_set[dag_id];
+                let suc_nodes = dag
+                    .get_suc_nodes(NodeIndex::new(node_data.id as usize))
+                    .unwrap_or_default();
+                if suc_nodes.is_empty() {
+                    log.write_dag_finish_time(dag_id, current_time);
+                    // Reset the state of the DAG
+                    dag.reset_pre_done_count();
+                    self.managers[dag_id].reset_state();
+                } else {
+                    for suc_node in suc_nodes {
+                        dag.increment_pre_done_count(suc_node);
+                    }
+                }
+            }
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         //let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -177,33 +208,8 @@ where
             self.allocate_node(current_time, &mut log);
             // Process unit time
             let process_result = self.process_unit_time(&mut current_time);
-
             // Post-process on completion of node execution
-            for result in process_result {
-                if let ProcessResult::Done(node_data) = result {
-                    log.write_finishing_node(&node_data, current_time);
-                    let dag_id = node_data.params["dag_id"] as usize;
-                    self.managers[dag_id].decrement_num_using_cores();
-
-                    // Increase pre_done_count of successor nodes
-                    let dag = &mut self.dag_set[dag_id];
-                    let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.id as usize))
-                        .unwrap_or_default();
-                    if suc_nodes.is_empty() {
-                        log.write_dag_finish_time(dag_id, current_time);
-                        // Reset the state of the DAG
-                        for node_i in dag.node_indices() {
-                            dag.update_param(node_i, "pre_done_count", 0);
-                        }
-                        self.managers[dag_id].reset_state();
-                    } else {
-                        for suc_node in suc_nodes {
-                            dag.increment_pre_done_count(suc_node);
-                        }
-                    }
-                }
-            }
+            self.handling_nodes_finished(current_time, &mut log, &process_result);
         }
 
         log.calculate_utilization(current_time);
