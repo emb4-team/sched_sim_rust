@@ -213,7 +213,6 @@ impl DAGStateManager {
         self.is_started = false;
         if self.is_released.is_some() {
             self.is_released = Some(false);
-            println!("reset is_released");
         };
         if self.execution_order.is_some()
             && self.initial_execution_order.is_some()

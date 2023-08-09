@@ -100,13 +100,7 @@ where
         // Initialize DAGStateManagers
         //let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
 
-        for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
-            dag.set_dag_id(dag_id);
-            let (minimum_cores, execution_order) =
-                calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            self.managers[dag_id].set_minimum_cores(minimum_cores as i32);
-            self.managers[dag_id].set_execution_order(Some(execution_order));
-        }
+        self.initialize();
 
         // Start scheduling
         let mut current_time = 0;

@@ -100,11 +100,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         // Initialize DAGStateManagers
         // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
 
-        // Initialize DAG id
-        for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
-            dag.set_dag_id(dag_id);
-            dag.set_dag_period(dag.get_head_period().unwrap());
-        }
+        self.initialize();
 
         // Start scheduling
         let mut current_time = 0;
@@ -112,8 +108,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
-            println!("current_time: {}", current_time);
-
             // release DAGs
             for dag in self.dag_set.iter_mut() {
                 let dag_id = dag.get_dag_id();
@@ -180,10 +174,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         // Reset the state of the DAG
                         dag.reset_pre_done_count();
                         self.managers[dag_id].reset_state();
-                        println!(
-                            "manager_get_is_released 3: {:?}",
-                            self.managers[0].get_is_released()
-                        );
                     } else {
                         for suc_node in suc_nodes {
                             dag.increment_pre_done_count(suc_node);
