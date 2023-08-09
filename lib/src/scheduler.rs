@@ -151,7 +151,7 @@ where
 pub struct DAGStateManager {
     release_count: i32,
     is_started: bool,
-    is_released: Option<bool>,
+    is_released: bool,
     num_using_cores: Option<i32>,
     num_allocated_cores: Option<i32>,
     minimum_cores: Option<i32>,
@@ -164,7 +164,7 @@ impl DAGStateManager {
         Self {
             release_count: 0,
             is_started: false,
-            is_released: Some(false),
+            is_released: false,
             num_using_cores: None,
             num_allocated_cores: None,
             minimum_cores: None,
@@ -177,7 +177,7 @@ impl DAGStateManager {
         Self {
             release_count: 0,
             is_started: false,
-            is_released: None,
+            is_released: false,
             num_using_cores: Some(0),
             num_allocated_cores: Some(0),
             minimum_cores: Some(0),
@@ -205,15 +205,13 @@ impl DAGStateManager {
         self.is_started
     }
 
-    pub fn can_start(&self, total_processor_cores: i32, total_allocated_cores: i32) -> bool {
-        self.minimum_cores <= Some(total_processor_cores - total_allocated_cores)
+    pub fn can_start(&self, unused_cores: i32) -> bool {
+        self.minimum_cores <= Some(unused_cores)
     }
 
     pub fn reset_state(&mut self) {
         self.is_started = false;
-        if self.is_released.is_some() {
-            self.is_released = Some(false);
-        };
+        self.is_released = false;
         if self.execution_order.is_some()
             && self.initial_execution_order.is_some()
             && self.num_allocated_cores.is_some()
@@ -224,11 +222,11 @@ impl DAGStateManager {
     }
 
     pub fn release(&mut self) {
-        self.is_released = Some(true);
+        self.is_released = true;
     }
 
     pub fn get_is_released(&self) -> bool {
-        self.is_released.expect("is_released is None!")
+        self.is_released
     }
 
     pub fn decrement_num_using_cores(&mut self) {
@@ -244,6 +242,10 @@ impl DAGStateManager {
             .expect("num_allocated_cores is None!");
         let using_cores = self.num_using_cores.expect("num_using_cores is None!");
         allocated_cores - using_cores
+    }
+
+    pub fn get_minimum_cores(&self) -> i32 {
+        self.minimum_cores.expect("minimum_cores is None!")
     }
 
     pub fn free_allocated_cores(&mut self) {
@@ -297,6 +299,8 @@ pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn initialize(&mut self);
+    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
+    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
     fn schedule(&mut self) -> i32 {
         self.initialize();
         todo!("Implement this method in the child class");

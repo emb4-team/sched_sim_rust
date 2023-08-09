@@ -96,6 +96,35 @@ where
         }
     }
 
+    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        for dag in self.dag_set.iter_mut() {
+            let dag_id = dag.get_dag_id();
+            if current_time
+                == dag.get_head_offset()
+                    + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
+            {
+                self.managers[dag_id].release();
+                self.managers[dag_id].increment_release_count();
+                log.write_dag_release_time(dag_id, current_time);
+            }
+        }
+    }
+
+    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        let mut unused_processor_cores =
+            self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers);
+        for (dag_id, manager) in self.managers.iter_mut().enumerate() {
+            if !manager.get_is_started()
+                && manager.get_is_released()
+                && manager.can_start(unused_processor_cores)
+            {
+                manager.start();
+                unused_processor_cores -= manager.get_minimum_cores();
+                log.write_dag_start_time(dag_id, current_time);
+            }
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         //let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -104,38 +133,13 @@ where
 
         // Start scheduling
         let mut current_time = 0;
-        let mut ready_dag_queue: VecDeque<Graph<NodeData, i32>> = VecDeque::new();
         let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
             // Release DAGs
-            for dag in self.dag_set.iter_mut() {
-                let dag_id = dag.get_dag_id();
-                if current_time
-                    == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
-                {
-                    ready_dag_queue.push_back(dag.clone());
-                    self.managers[dag_id].increment_release_count();
-                    log.write_dag_release_time(dag_id, current_time);
-                }
-            }
-
+            self.release_dag(current_time, &mut log);
             // Start DAG if there are enough free core
-            while let Some(dag) = ready_dag_queue.front() {
-                let dag_id = dag.get_dag_id();
-                if self.managers[dag_id].can_start(
-                    self.processor.get_number_of_cores() as i32,
-                    get_total_allocated_cores(&self.managers),
-                ) {
-                    ready_dag_queue.pop_front();
-                    self.managers[dag_id].start();
-                    log.write_dag_start_time(dag_id, current_time);
-                } else {
-                    break;
-                }
-            }
-
+            self.start_dag(current_time, &mut log);
             // Allocate the nodes of each DAG
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();

@@ -76,6 +76,7 @@ pub struct GlobalEDFScheduler {
     processor: HomogeneousProcessor,
     log: DAGSetSchedulerLog,
     managers: Vec<DAGStateManager>,
+    ready_queue: BTreeSet<NodeDataWrapper>,
 }
 
 impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
@@ -85,6 +86,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             processor: processor.clone(),
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             managers: vec![DAGStateManager::new_basic(); dag_set.len()],
+            ready_queue: BTreeSet::new(),
         }
     }
 
@@ -96,6 +98,36 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
+    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        for dag in self.dag_set.iter_mut() {
+            let dag_id = dag.get_dag_id();
+            if current_time
+                == dag.get_head_offset()
+                    + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
+            {
+                self.managers[dag_id].release();
+                self.managers[dag_id].increment_release_count();
+                log.write_dag_release_time(dag_id, current_time);
+            }
+        }
+    }
+
+    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        let mut idle_core_num = self.processor.get_idle_core_num();
+        for (dag_id, manager) in self.managers.iter_mut().enumerate() {
+            if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
+                manager.start();
+                idle_core_num -= 1;
+                // Add the source node to the ready queue
+                let dag = &self.dag_set[dag_id];
+                let source_node = &dag[dag.get_source_nodes()[0]];
+                self.ready_queue
+                    .insert(NodeDataWrapper(source_node.clone()));
+                log.write_dag_start_time(dag_id, current_time);
+            };
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -104,42 +136,19 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 
         // Start scheduling
         let mut current_time = 0;
-        let mut ready_queue: BTreeSet<NodeDataWrapper> = BTreeSet::new();
-        let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
+        let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
             // release DAGs
-            for dag in self.dag_set.iter_mut() {
-                let dag_id = dag.get_dag_id();
-                if current_time
-                    == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
-                {
-                    self.managers[dag_id].release();
-                    self.managers[dag_id].increment_release_count();
-                    log.write_dag_release_time(dag_id, current_time);
-                }
-            }
-
+            self.release_dag(current_time, &mut log);
             // Start DAGs if there are free cores
-            let mut idle_core_num = self.processor.get_idle_core_num();
-            for (dag_id, manager) in self.managers.iter_mut().enumerate() {
-                if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
-                    manager.start();
-                    idle_core_num -= 1;
-                    // Add the source node to the ready queue
-                    let dag = &self.dag_set[dag_id];
-                    let source_node = &dag[dag.get_source_nodes()[0]];
-                    ready_queue.insert(NodeDataWrapper(source_node.clone()));
-                    log.write_dag_start_time(dag_id, current_time);
-                };
-            }
-
+            self.start_dag(current_time, &mut log);
             // Allocate the nodes of ready_queue to idle cores
-            while !ready_queue.is_empty() {
+            while !self.ready_queue.is_empty() {
                 match self.processor.get_idle_core_index() {
                     Some(idle_core_index) => {
-                        let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
+                        let ready_node_data =
+                            self.ready_queue.pop_first().unwrap().convert_node_data();
                         self.processor
                             .allocate_specific_core(idle_core_index, &ready_node_data);
                         log.write_allocating_node(
@@ -194,7 +203,8 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     // If all preceding nodes have finished, add the node to the ready queue
                     for suc_node in suc_nodes {
                         if dag.is_node_ready(suc_node) {
-                            ready_queue.insert(NodeDataWrapper(dag[suc_node].clone()));
+                            self.ready_queue
+                                .insert(NodeDataWrapper(dag[suc_node].clone()));
                         }
                     }
                 }
