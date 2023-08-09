@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 use crate::core::ProcessResult;
-use crate::scheduler::DAGStateManager;
+use crate::scheduler::{DAGStateManager, NodeDataWrapper};
 use crate::{
     graph_extension::{GraphExtension, NodeData},
     homogeneous::HomogeneousProcessor,
@@ -11,16 +11,6 @@ use crate::{
     processor::ProcessorBase,
     scheduler::DAGSetSchedulerBase,
 };
-
-// Define a new wrapper type
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NodeDataWrapper(NodeData);
-
-impl NodeDataWrapper {
-    fn convert_node_data(&self) -> NodeData {
-        self.0.clone()
-    }
-}
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -107,12 +97,28 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         self.log.clone()
     }
 
+    fn get_ready_queue(&self) -> BTreeSet<NodeDataWrapper> {
+        self.ready_queue.clone()
+    }
+
+    fn get_processor(&self) -> HomogeneousProcessor {
+        self.processor.clone()
+    }
+
     fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
         self.managers = managers;
     }
 
     fn set_log(&mut self, log: DAGSetSchedulerLog) {
         self.log = log;
+    }
+
+    fn set_ready_queue(&mut self, ready_queue: BTreeSet<NodeDataWrapper>) {
+        self.ready_queue = ready_queue;
+    }
+
+    fn set_current_time(&mut self, current_time: i32) {
+        self.current_time = current_time;
     }
 
     fn initialize(&mut self) {
@@ -122,20 +128,15 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
-    fn start_dag(&mut self) {
-        let mut idle_core_num = self.processor.get_idle_core_num();
-        for (dag_id, manager) in self.managers.iter_mut().enumerate() {
-            if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
-                manager.start();
-                idle_core_num -= 1;
-                // Add the source node to the ready queue
-                let dag = &self.dag_set[dag_id];
-                let source_node = &dag[dag.get_source_nodes()[0]];
-                self.ready_queue
-                    .insert(NodeDataWrapper(source_node.clone()));
-                self.log.write_dag_start_time(dag_id, self.current_time);
-            };
-        }
+    fn calculate_idle_core_mun(&self) -> i32 {
+        self.processor.get_idle_core_num() as i32
+    }
+
+    fn insert_source_node(&mut self, dag_id: usize) {
+        let dag = &self.dag_set[dag_id];
+        let source_node = &dag[dag.get_source_nodes()[0]];
+        self.ready_queue
+            .insert(NodeDataWrapper(source_node.clone()));
     }
 
     fn allocate_node(&mut self) {

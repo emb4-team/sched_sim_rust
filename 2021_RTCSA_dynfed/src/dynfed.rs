@@ -5,7 +5,7 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
@@ -103,12 +103,26 @@ where
         self.log.clone()
     }
 
+    fn get_ready_queue(&self) -> BTreeSet<NodeDataWrapper> {
+        BTreeSet::new()
+    }
+
+    fn get_processor(&self) -> HomogeneousProcessor {
+        self.processor.clone()
+    }
+
     fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
         self.managers = managers;
     }
 
     fn set_log(&mut self, log: DAGSetSchedulerLog) {
         self.log = log;
+    }
+
+    fn set_ready_queue(&mut self, _: BTreeSet<NodeDataWrapper>) {}
+
+    fn set_current_time(&mut self, current_time: i32) {
+        self.current_time = current_time;
     }
 
     fn initialize(&mut self) {
@@ -121,20 +135,11 @@ where
         }
     }
 
-    fn start_dag(&mut self) {
-        let mut unused_processor_cores =
-            self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers);
-        for (dag_id, manager) in self.managers.iter_mut().enumerate() {
-            if !manager.get_is_started()
-                && manager.get_is_released()
-                && manager.can_start(unused_processor_cores)
-            {
-                manager.start();
-                unused_processor_cores -= manager.get_minimum_cores();
-                self.log.write_dag_start_time(dag_id, self.current_time);
-            }
-        }
+    fn calculate_idle_core_mun(&self) -> i32 {
+        self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers)
     }
+
+    fn insert_source_node(&mut self, _: usize) {}
 
     fn allocate_node(&mut self) {
         for dag in self.dag_set.iter() {

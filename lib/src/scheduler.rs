@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 
 use crate::{
     core::ProcessResult,
@@ -205,8 +205,14 @@ impl DAGStateManager {
         self.is_started
     }
 
-    pub fn can_start(&self, unused_cores: i32) -> bool {
-        self.minimum_cores <= Some(unused_cores)
+    pub fn can_start(&self, idle_core_num: i32) -> bool {
+        if self.minimum_cores.is_none() {
+            !self.get_is_started() && self.get_is_released() && idle_core_num > 0
+        } else {
+            !self.get_is_started()
+                && self.get_is_released()
+                && Some(idle_core_num) >= self.minimum_cores
+        }
     }
 
     pub fn reset_state(&mut self) {
@@ -245,7 +251,11 @@ impl DAGStateManager {
     }
 
     pub fn get_minimum_cores(&self) -> i32 {
-        self.minimum_cores.expect("minimum_cores is None!")
+        self.minimum_cores.unwrap_or(1)
+    }
+
+    pub fn set_minimum_cores(&mut self, minimum_cores: i32) {
+        self.minimum_cores = Some(minimum_cores);
     }
 
     pub fn free_allocated_cores(&mut self) {
@@ -253,10 +263,6 @@ impl DAGStateManager {
             Some(cores) => *cores = 0,
             None => panic!("num_allocated_cores is None!"),
         }
-    }
-
-    pub fn set_minimum_cores(&mut self, minimum_cores: i32) {
-        self.minimum_cores = Some(minimum_cores);
     }
 
     pub fn get_execution_order_head(&self) -> Option<&NodeIndex> {
@@ -296,14 +302,29 @@ pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 
     total_allocated_cores
 }
 
+// Define a new wrapper type
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NodeDataWrapper(pub NodeData);
+
+impl NodeDataWrapper {
+    pub fn convert_node_data(&self) -> NodeData {
+        self.0.clone()
+    }
+}
+
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
+    fn get_processor(&self) -> T;
     fn get_current_time(&self) -> i32;
     fn get_managers(&self) -> Vec<DAGStateManager>;
     fn get_log(&self) -> DAGSetSchedulerLog;
+    fn get_ready_queue(&self) -> BTreeSet<NodeDataWrapper>;
     fn set_managers(&mut self, managers: Vec<DAGStateManager>);
     fn set_log(&mut self, log: DAGSetSchedulerLog);
+    fn set_ready_queue(&mut self, ready_queue: BTreeSet<NodeDataWrapper>);
+    fn set_current_time(&mut self, current_time: i32);
+
     fn initialize(&mut self);
     fn release_dag(&mut self) {
         let mut managers = self.get_managers();
@@ -322,9 +343,33 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.set_managers(managers);
         self.set_log(log);
     }
-    fn start_dag(&mut self);
+
+    fn calculate_idle_core_mun(&self) -> i32;
+    fn insert_source_node(&mut self, dag_id: usize);
+    fn start_dag(&mut self) {
+        let mut managers = self.get_managers();
+        let mut log = self.get_log();
+        let mut idle_core_num = self.calculate_idle_core_mun();
+        for (dag_id, manager) in managers.iter_mut().enumerate() {
+            if manager.can_start(idle_core_num) {
+                manager.start();
+                idle_core_num -= manager.get_minimum_cores();
+                self.insert_source_node(dag_id);
+                log.write_dag_start_time(dag_id, self.get_current_time());
+            }
+        }
+        self.set_managers(managers);
+        self.set_log(log);
+    }
+
     fn allocate_node(&mut self);
-    fn process_unit_time(&mut self) -> Vec<ProcessResult>;
+
+    fn process_unit_time(&mut self) -> Vec<ProcessResult> {
+        let mut current_time = self.get_current_time();
+        current_time += 1;
+        self.set_current_time(current_time);
+        self.get_processor().process()
+    }
     fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]);
     fn insert_ready_node(&mut self, process_result: &[ProcessResult]);
     fn calculate_log(&mut self);
