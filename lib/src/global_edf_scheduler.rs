@@ -128,6 +128,26 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
+    fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+        while !self.ready_queue.is_empty() {
+            match self.processor.get_idle_core_index() {
+                Some(idle_core_index) => {
+                    let ready_node_data = self.ready_queue.pop_first().unwrap().convert_node_data();
+                    self.processor
+                        .allocate_specific_core(idle_core_index, &ready_node_data);
+                    log.write_allocating_node(
+                        ready_node_data.get_params_value("dag_id") as usize,
+                        ready_node_data.get_id() as usize,
+                        idle_core_index,
+                        current_time,
+                        ready_node_data.get_params_value("execution_time"),
+                    );
+                }
+                None => break,
+            };
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -144,25 +164,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             // Start DAGs if there are free cores
             self.start_dag(current_time, &mut log);
             // Allocate the nodes of ready_queue to idle cores
-            while !self.ready_queue.is_empty() {
-                match self.processor.get_idle_core_index() {
-                    Some(idle_core_index) => {
-                        let ready_node_data =
-                            self.ready_queue.pop_first().unwrap().convert_node_data();
-                        self.processor
-                            .allocate_specific_core(idle_core_index, &ready_node_data);
-                        log.write_allocating_node(
-                            ready_node_data.get_params_value("dag_id") as usize,
-                            ready_node_data.get_id() as usize,
-                            idle_core_index,
-                            current_time,
-                            ready_node_data.get_params_value("execution_time"),
-                        );
-                    }
-                    None => break,
-                };
-            }
-
+            self.allocate_node(current_time, &mut log);
             // Process unit time
             let process_result = self.processor.process();
             current_time += 1;
