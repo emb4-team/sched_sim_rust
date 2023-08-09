@@ -147,9 +147,161 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct DAGStateManager {
+    release_count: i32,
+    is_started: bool,
+    is_released: Option<bool>,
+    num_using_cores: Option<i32>,
+    num_allocated_cores: Option<i32>,
+    minimum_cores: Option<i32>,
+    execution_order: Option<VecDeque<NodeIndex>>,
+    initial_execution_order: Option<VecDeque<NodeIndex>>,
+}
+
+impl DAGStateManager {
+    pub fn new_basic() -> Self {
+        Self {
+            release_count: 0,
+            is_started: false,
+            is_released: Some(false),
+            num_using_cores: None,
+            num_allocated_cores: None,
+            minimum_cores: None,
+            execution_order: None,
+            initial_execution_order: None,
+        }
+    }
+
+    pub fn new_expended() -> Self {
+        Self {
+            release_count: 0,
+            is_started: false,
+            is_released: None,
+            num_using_cores: Some(0),
+            num_allocated_cores: Some(0),
+            minimum_cores: Some(0),
+            execution_order: Some(VecDeque::new()),
+            initial_execution_order: Some(VecDeque::new()),
+        }
+    }
+
+    pub fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    pub fn increment_release_count(&mut self) {
+        self.release_count += 1;
+    }
+
+    pub fn start(&mut self) {
+        self.is_started = true;
+        if self.num_allocated_cores.is_some() {
+            self.num_allocated_cores = self.minimum_cores;
+        }
+    }
+
+    pub fn get_is_started(&self) -> bool {
+        self.is_started
+    }
+
+    pub fn can_start(&self, total_processor_cores: i32, total_allocated_cores: i32) -> bool {
+        self.minimum_cores <= Some(total_processor_cores - total_allocated_cores)
+    }
+
+    pub fn reset_state(&mut self) {
+        self.is_started = false;
+        if self.is_released.is_some() {
+            self.is_released = Some(false);
+            println!("reset is_released");
+        };
+        if self.execution_order.is_some()
+            && self.initial_execution_order.is_some()
+            && self.num_allocated_cores.is_some()
+        {
+            self.set_execution_order(self.initial_execution_order.clone());
+            self.free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
+        }
+    }
+
+    pub fn release(&mut self) {
+        self.is_released = Some(true);
+    }
+
+    pub fn get_is_released(&self) -> bool {
+        self.is_released.expect("is_released is None!")
+    }
+
+    pub fn decrement_num_using_cores(&mut self) {
+        match &mut self.num_using_cores {
+            Some(cores) => *cores -= 1,
+            None => panic!("num_using_cores is None!"),
+        }
+    }
+
+    pub fn get_unused_cores(&self) -> i32 {
+        let allocated_cores = self
+            .num_allocated_cores
+            .expect("num_allocated_cores is None!");
+        let using_cores = self.num_using_cores.expect("num_using_cores is None!");
+        allocated_cores - using_cores
+    }
+
+    pub fn free_allocated_cores(&mut self) {
+        match &mut self.num_allocated_cores {
+            Some(cores) => *cores = 0,
+            None => panic!("num_allocated_cores is None!"),
+        }
+    }
+
+    pub fn set_minimum_cores(&mut self, minimum_cores: i32) {
+        self.minimum_cores = Some(minimum_cores);
+    }
+
+    pub fn get_execution_order_head(&self) -> Option<&NodeIndex> {
+        if let Some(execution_order) = &self.execution_order {
+            execution_order.front()
+        } else {
+            panic!("execution_order is None!");
+        }
+    }
+
+    pub fn set_execution_order(&mut self, initial_execution_order: Option<VecDeque<NodeIndex>>) {
+        self.initial_execution_order = initial_execution_order.clone();
+        self.execution_order = initial_execution_order;
+    }
+
+    pub fn allocate_head(&mut self) -> NodeIndex {
+        if let Some(execution_order) = &mut self.execution_order {
+            if let Some(cores) = self.num_using_cores.as_mut() {
+                *cores += 1;
+            } else {
+                panic!("num_using_cores is not set!");
+            }
+            execution_order.pop_front().unwrap()
+        } else {
+            panic!("execution_order is None!");
+        }
+    }
+}
+
+pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 {
+    let mut total_allocated_cores = 0;
+    for manager in dag_state_managers {
+        if let Some(cores) = manager.num_allocated_cores {
+            total_allocated_cores += cores;
+        }
+    }
+    total_allocated_cores
+}
+
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
-    fn schedule(&mut self) -> i32;
+    fn initialize(&mut self);
+    fn schedule(&mut self) -> i32 {
+        self.initialize();
+        todo!("Implement this method in the child class");
+    }
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {

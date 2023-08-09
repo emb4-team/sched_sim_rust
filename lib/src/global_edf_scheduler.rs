@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 use crate::core::ProcessResult;
+use crate::scheduler::DAGStateManager;
 use crate::{
     graph_extension::{GraphExtension, NodeData},
     homogeneous::HomogeneousProcessor,
@@ -70,56 +71,11 @@ impl Ord for NodeDataWrapper {
     }
 }
 
-#[derive(Clone, Debug)]
-struct DAGStateManager {
-    is_released: bool,
-    is_started: bool,
-    release_count: i32,
-}
-
-impl DAGStateManager {
-    fn new() -> Self {
-        Self {
-            is_released: false,
-            is_started: false,
-            release_count: 0,
-        }
-    }
-
-    fn release(&mut self) {
-        self.is_released = true;
-    }
-
-    fn get_is_released(&self) -> bool {
-        self.is_released
-    }
-
-    fn start(&mut self) {
-        self.is_started = true;
-    }
-
-    fn get_is_started(&self) -> bool {
-        self.is_started
-    }
-
-    fn reset_state(&mut self) {
-        self.is_started = false;
-        self.is_released = false;
-    }
-
-    fn get_release_count(&self) -> i32 {
-        self.release_count
-    }
-
-    fn increment_release_count(&mut self) {
-        self.release_count += 1;
-    }
-}
-
 pub struct GlobalEDFScheduler {
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     log: DAGSetSchedulerLog,
+    managers: Vec<DAGStateManager>,
 }
 
 impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
@@ -128,12 +84,21 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
+            managers: vec![DAGStateManager::new_basic(); dag_set.len()],
+        }
+    }
+
+    fn initialize(&mut self) {
+        // Initialize DAG
+        for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
+            dag.set_dag_id(dag_id);
+            dag.set_dag_period(dag.get_head_period().unwrap());
         }
     }
 
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
-        let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];
+        // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
 
         // Initialize DAG id
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
@@ -147,23 +112,24 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         let mut log = DAGSetSchedulerLog::new(&self.dag_set, self.processor.get_number_of_cores());
         let hyper_period = get_hyper_period(&self.dag_set);
         while current_time < hyper_period {
+            println!("current_time: {}", current_time);
+
             // release DAGs
             for dag in self.dag_set.iter_mut() {
                 let dag_id = dag.get_dag_id();
                 if current_time
                     == dag.get_head_offset()
-                        + dag.get_head_period().unwrap()
-                            * dag_state_managers[dag_id].get_release_count()
+                        + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
                 {
-                    dag_state_managers[dag_id].release();
-                    dag_state_managers[dag_id].increment_release_count();
+                    self.managers[dag_id].release();
+                    self.managers[dag_id].increment_release_count();
                     log.write_dag_release_time(dag_id, current_time);
                 }
             }
 
             // Start DAGs if there are free cores
             let mut idle_core_num = self.processor.get_idle_core_num();
-            for (dag_id, manager) in dag_state_managers.iter_mut().enumerate() {
+            for (dag_id, manager) in self.managers.iter_mut().enumerate() {
                 if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
                     manager.start();
                     idle_core_num -= 1;
@@ -213,7 +179,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         log.write_dag_finish_time(dag_id, current_time);
                         // Reset the state of the DAG
                         dag.reset_pre_done_count();
-                        dag_state_managers[dag_id].reset_state();
+                        self.managers[dag_id].reset_state();
+                        println!(
+                            "manager_get_is_released 3: {:?}",
+                            self.managers[0].get_is_released()
+                        );
                     } else {
                         for suc_node in suc_nodes {
                             dag.increment_pre_done_count(suc_node);
