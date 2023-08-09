@@ -302,6 +302,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
     fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
     fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
+    fn process_unit_time(&mut self, current_time: &mut i32) -> Vec<ProcessResult>;
     fn schedule(&mut self) -> i32 {
         self.initialize();
         todo!("Implement this method in the child class");

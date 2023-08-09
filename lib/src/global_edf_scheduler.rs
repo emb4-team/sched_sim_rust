@@ -148,6 +148,11 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
+    fn process_unit_time(&mut self, current_time: &mut i32) -> Vec<ProcessResult> {
+        *current_time += 1;
+        self.processor.process()
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -166,8 +171,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             // Allocate the nodes of ready_queue to idle cores
             self.allocate_node(current_time, &mut log);
             // Process unit time
-            let process_result = self.processor.process();
-            current_time += 1;
+            let process_result = self.process_unit_time(&mut current_time);
 
             // Post-process on completion of node execution
             for result in process_result.clone() {
