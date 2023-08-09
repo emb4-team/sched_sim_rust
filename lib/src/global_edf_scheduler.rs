@@ -10,7 +10,6 @@ use crate::{
     log::DAGSetSchedulerLog,
     processor::ProcessorBase,
     scheduler::DAGSetSchedulerBase,
-    util::get_hyper_period,
 };
 
 // Define a new wrapper type
@@ -90,6 +89,13 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             managers: vec![DAGStateManager::new_basic(); dag_set.len()],
             ready_queue: BTreeSet::new(),
         }
+    }
+
+    fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>> {
+        self.dag_set.clone()
+    }
+    fn get_current_time(&self) -> i32 {
+        self.current_time
     }
 
     fn initialize(&mut self) {
@@ -205,21 +211,21 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         self.log.calculate_response_time();
     }
 
-    fn schedule(&mut self) -> i32 {
+    /*fn schedule(&mut self) -> i32 {
         // Initialize DAGSet and DAGStateManagers
         self.initialize();
 
         // Start scheduling
         let hyper_period = get_hyper_period(&self.dag_set);
         while self.current_time < hyper_period {
-            // release DAGs
+            // Release DAGs
             self.release_dag();
             // Start DAGs if there are free cores
             self.start_dag();
             // Allocate the nodes of ready_queue to idle cores
             self.allocate_node();
             // Process unit time
-            let process_result: Vec<ProcessResult> = self.process_unit_time();
+            let process_result = self.process_unit_time();
             // Post-process on completion of node execution
             self.handling_nodes_finished(&process_result);
             // Add the node to the ready queue when all preceding nodes have finished
@@ -229,7 +235,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         self.calculate_log();
 
         self.current_time
-    }
+    }*/
 
     fn get_log(&self) -> DAGSetSchedulerLog {
         self.log.clone()

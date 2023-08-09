@@ -5,7 +5,7 @@ use crate::{
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
-    util::create_yaml,
+    util::{create_yaml, get_hyper_period},
 };
 use chrono::{DateTime, Utc};
 use petgraph::graph::{Graph, NodeIndex};
@@ -298,6 +298,8 @@ pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
+    fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
+    fn get_current_time(&self) -> i32;
     fn initialize(&mut self);
     fn release_dag(&mut self);
     fn start_dag(&mut self);
@@ -308,8 +310,29 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn calculate_log(&mut self);
 
     fn schedule(&mut self) -> i32 {
+        // Initialize DAGSet and DAGStateManagers
         self.initialize();
-        todo!("Implement this method in the child class");
+
+        // Start scheduling
+        let hyper_period = get_hyper_period(&self.get_dag_set());
+        while self.get_current_time() < hyper_period {
+            // Release DAGs
+            self.release_dag();
+            // Start DAGs if there are free cores
+            self.start_dag();
+            // Allocate the nodes of ready_queue to idle cores
+            self.allocate_node();
+            // Process unit time
+            let process_result = self.process_unit_time();
+            // Post-process on completion of node execution
+            self.handling_nodes_finished(&process_result);
+            // Add the node to the ready queue when all preceding nodes have finished
+            self.insert_ready_node(&process_result);
+        }
+
+        self.calculate_log();
+
+        self.get_current_time()
     }
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {

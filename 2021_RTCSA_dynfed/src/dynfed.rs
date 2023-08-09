@@ -13,7 +13,6 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::*;
-use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
@@ -86,6 +85,13 @@ where
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             managers: vec![DAGStateManager::new_expended(); dag_set.len()],
         }
+    }
+
+    fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>> {
+        self.dag_set.clone()
+    }
+    fn get_current_time(&self) -> i32 {
+        self.current_time
     }
 
     fn initialize(&mut self) {
@@ -186,16 +192,14 @@ where
         }
     }
 
-    fn insert_ready_node(&mut self, _process_result: &[ProcessResult]) {
-        todo!("insert_ready_node")
-    }
+    fn insert_ready_node(&mut self, _: &[ProcessResult]) {}
 
     fn calculate_log(&mut self) {
         self.log.calculate_utilization(self.current_time);
         self.log.calculate_response_time();
     }
 
-    fn schedule(&mut self) -> i32 {
+    /*fn schedule(&mut self) -> i32 {
         // Initialize DAGSet and DAGStateManagers
         self.initialize();
 
@@ -217,7 +221,7 @@ where
         self.calculate_log();
 
         self.current_time
-    }
+    }*/
 
     fn get_log(&self) -> DAGSetSchedulerLog {
         self.log.clone()
