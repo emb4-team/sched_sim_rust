@@ -300,8 +300,28 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
     fn get_current_time(&self) -> i32;
+    fn get_managers(&self) -> Vec<DAGStateManager>;
+    fn get_log(&self) -> DAGSetSchedulerLog;
+    fn set_managers(&mut self, managers: Vec<DAGStateManager>);
+    fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn initialize(&mut self);
-    fn release_dag(&mut self);
+    fn release_dag(&mut self) {
+        let mut managers = self.get_managers();
+        let mut log = self.get_log();
+        for dag in self.get_dag_set().iter_mut() {
+            let dag_id = dag.get_dag_id();
+            if self.get_current_time()
+                == dag.get_head_offset()
+                    + dag.get_head_period().unwrap() * managers[dag_id].get_release_count()
+            {
+                managers[dag_id].release();
+                managers[dag_id].increment_release_count();
+                log.write_dag_release_time(dag_id, self.get_current_time());
+            }
+        }
+        self.set_managers(managers);
+        self.set_log(log);
+    }
     fn start_dag(&mut self);
     fn allocate_node(&mut self);
     fn process_unit_time(&mut self) -> Vec<ProcessResult>;
@@ -334,7 +354,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
         self.get_current_time()
     }
-    fn get_log(&self) -> DAGSetSchedulerLog;
+
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
         let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);

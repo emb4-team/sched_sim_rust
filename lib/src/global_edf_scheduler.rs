@@ -94,29 +94,31 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>> {
         self.dag_set.clone()
     }
+
     fn get_current_time(&self) -> i32 {
         self.current_time
     }
 
+    fn get_managers(&self) -> Vec<DAGStateManager> {
+        self.managers.clone()
+    }
+
+    fn get_log(&self) -> DAGSetSchedulerLog {
+        self.log.clone()
+    }
+
+    fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
+        self.managers = managers;
+    }
+
+    fn set_log(&mut self, log: DAGSetSchedulerLog) {
+        self.log = log;
+    }
+
     fn initialize(&mut self) {
-        // Initialize DAG
         for (dag_id, dag) in self.dag_set.iter_mut().enumerate() {
             dag.set_dag_id(dag_id);
             dag.set_dag_period(dag.get_head_period().unwrap());
-        }
-    }
-
-    fn release_dag(&mut self) {
-        for dag in self.dag_set.iter_mut() {
-            let dag_id = dag.get_dag_id();
-            if self.current_time
-                == dag.get_head_offset()
-                    + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
-            {
-                self.managers[dag_id].release();
-                self.managers[dag_id].increment_release_count();
-                self.log.write_dag_release_time(dag_id, self.current_time);
-            }
         }
     }
 
@@ -209,36 +211,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn calculate_log(&mut self) {
         self.log.calculate_utilization(self.current_time);
         self.log.calculate_response_time();
-    }
-
-    /*fn schedule(&mut self) -> i32 {
-        // Initialize DAGSet and DAGStateManagers
-        self.initialize();
-
-        // Start scheduling
-        let hyper_period = get_hyper_period(&self.dag_set);
-        while self.current_time < hyper_period {
-            // Release DAGs
-            self.release_dag();
-            // Start DAGs if there are free cores
-            self.start_dag();
-            // Allocate the nodes of ready_queue to idle cores
-            self.allocate_node();
-            // Process unit time
-            let process_result = self.process_unit_time();
-            // Post-process on completion of node execution
-            self.handling_nodes_finished(&process_result);
-            // Add the node to the ready queue when all preceding nodes have finished
-            self.insert_ready_node(&process_result);
-        }
-
-        self.calculate_log();
-
-        self.current_time
-    }*/
-
-    fn get_log(&self) -> DAGSetSchedulerLog {
-        self.log.clone()
     }
 }
 
