@@ -287,6 +287,8 @@ where
         }
 
         log.calculate_utilization(current_time);
+        log.calculate_response_time();
+
         self.set_log(log);
 
         current_time
@@ -444,6 +446,24 @@ mod tests {
         );
         assert_eq!(
             yaml_doc["dag_set_log"][1]["finish_time"][0]
+                .as_i64()
+                .unwrap(),
+            53
+        );
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["response_time"][0]
+                .as_i64()
+                .unwrap(),
+            53
+        );
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["average_response_time"]
+                .as_f64()
+                .unwrap(),
+            53.0
+        );
+        assert_eq!(
+            yaml_doc["dag_set_log"][1]["worst_response_time"]
                 .as_i64()
                 .unwrap(),
             53
