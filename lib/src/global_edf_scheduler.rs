@@ -74,6 +74,7 @@ impl Ord for NodeDataWrapper {
 pub struct GlobalEDFScheduler {
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
+    current_time: i32,
     log: DAGSetSchedulerLog,
     managers: Vec<DAGStateManager>,
     ready_queue: BTreeSet<NodeDataWrapper>,
@@ -84,6 +85,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         Self {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
+            current_time: 0,
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             managers: vec![DAGStateManager::new_basic(); dag_set.len()],
             ready_queue: BTreeSet::new(),
@@ -98,21 +100,21 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
-    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn release_dag(&mut self, log: &mut DAGSetSchedulerLog) {
         for dag in self.dag_set.iter_mut() {
             let dag_id = dag.get_dag_id();
-            if current_time
+            if self.current_time
                 == dag.get_head_offset()
                     + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
             {
                 self.managers[dag_id].release();
                 self.managers[dag_id].increment_release_count();
-                log.write_dag_release_time(dag_id, current_time);
+                log.write_dag_release_time(dag_id, self.current_time);
             }
         }
     }
 
-    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn start_dag(&mut self, log: &mut DAGSetSchedulerLog) {
         let mut idle_core_num = self.processor.get_idle_core_num();
         for (dag_id, manager) in self.managers.iter_mut().enumerate() {
             if idle_core_num > 0 && !manager.get_is_started() && manager.get_is_released() {
@@ -123,12 +125,12 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                 let source_node = &dag[dag.get_source_nodes()[0]];
                 self.ready_queue
                     .insert(NodeDataWrapper(source_node.clone()));
-                log.write_dag_start_time(dag_id, current_time);
+                log.write_dag_start_time(dag_id, self.current_time);
             };
         }
     }
 
-    fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn allocate_node(&mut self, log: &mut DAGSetSchedulerLog) {
         while !self.ready_queue.is_empty() {
             match self.processor.get_idle_core_index() {
                 Some(idle_core_index) => {
@@ -139,7 +141,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                         ready_node_data.get_params_value("dag_id") as usize,
                         ready_node_data.get_id() as usize,
                         idle_core_index,
-                        current_time,
+                        self.current_time,
                         ready_node_data.get_params_value("execution_time"),
                     );
                 }
@@ -148,20 +150,19 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
-    fn process_unit_time(&mut self, current_time: &mut i32) -> Vec<ProcessResult> {
-        *current_time += 1;
+    fn process_unit_time(&mut self) -> Vec<ProcessResult> {
+        self.current_time += 1;
         self.processor.process()
     }
 
     fn handling_nodes_finished(
         &mut self,
-        current_time: i32,
         log: &mut DAGSetSchedulerLog,
         process_result: &[ProcessResult],
     ) {
         for result in process_result.clone() {
             if let ProcessResult::Done(node_data) = result {
-                log.write_finishing_node(node_data, current_time);
+                log.write_finishing_node(node_data, self.current_time);
 
                 // Increase pre_done_count of successor nodes
                 let dag_id = node_data.get_params_value("dag_id") as usize;
@@ -170,7 +171,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
                     .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
                     .unwrap_or_default();
                 if suc_nodes.is_empty() {
-                    log.write_dag_finish_time(dag_id, current_time);
+                    log.write_dag_finish_time(dag_id, self.current_time);
                     // Reset the state of the DAG
                     dag.reset_pre_done_count();
                     self.managers[dag_id].reset_state();
@@ -210,28 +211,27 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         self.initialize();
 
         // Start scheduling
-        let mut current_time = 0;
         let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
-        while current_time < hyper_period {
+        while self.current_time < hyper_period {
             // release DAGs
-            self.release_dag(current_time, &mut log);
+            self.release_dag(&mut log);
             // Start DAGs if there are free cores
-            self.start_dag(current_time, &mut log);
+            self.start_dag(&mut log);
             // Allocate the nodes of ready_queue to idle cores
-            self.allocate_node(current_time, &mut log);
+            self.allocate_node(&mut log);
             // Process unit time
-            let process_result: Vec<ProcessResult> = self.process_unit_time(&mut current_time);
+            let process_result: Vec<ProcessResult> = self.process_unit_time();
             // Post-process on completion of node execution
-            self.handling_nodes_finished(current_time, &mut log, &process_result);
+            self.handling_nodes_finished(&mut log, &process_result);
             // Add the node to the ready queue when all preceding nodes have finished
             self.insert_ready_node(&process_result);
         }
 
-        log.calculate_utilization(current_time);
+        log.calculate_utilization(self.current_time);
         self.set_log(log);
 
-        current_time
+        self.current_time
     }
 
     fn get_log(&self) -> DAGSetSchedulerLog {

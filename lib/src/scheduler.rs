@@ -299,13 +299,12 @@ pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn initialize(&mut self);
-    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
-    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
-    fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog);
-    fn process_unit_time(&mut self, current_time: &mut i32) -> Vec<ProcessResult>;
+    fn release_dag(&mut self, log: &mut DAGSetSchedulerLog);
+    fn start_dag(&mut self, log: &mut DAGSetSchedulerLog);
+    fn allocate_node(&mut self, log: &mut DAGSetSchedulerLog);
+    fn process_unit_time(&mut self) -> Vec<ProcessResult>;
     fn handling_nodes_finished(
         &mut self,
-        current_time: i32,
         log: &mut DAGSetSchedulerLog,
         process_result: &[ProcessResult],
     );

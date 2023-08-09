@@ -68,6 +68,7 @@ where
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     scheduler: T,
+    current_time: i32,
     log: DAGSetSchedulerLog,
     managers: Vec<DAGStateManager>,
 }
@@ -81,6 +82,7 @@ where
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
             scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
+            current_time: 0,
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             managers: vec![DAGStateManager::new_expended(); dag_set.len()],
         }
@@ -96,21 +98,21 @@ where
         }
     }
 
-    fn release_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn release_dag(&mut self, log: &mut DAGSetSchedulerLog) {
         for dag in self.dag_set.iter_mut() {
             let dag_id = dag.get_dag_id();
-            if current_time
+            if self.current_time
                 == dag.get_head_offset()
                     + dag.get_head_period().unwrap() * self.managers[dag_id].get_release_count()
             {
                 self.managers[dag_id].release();
                 self.managers[dag_id].increment_release_count();
-                log.write_dag_release_time(dag_id, current_time);
+                log.write_dag_release_time(dag_id, self.current_time);
             }
         }
     }
 
-    fn start_dag(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn start_dag(&mut self, log: &mut DAGSetSchedulerLog) {
         let mut unused_processor_cores =
             self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers);
         for (dag_id, manager) in self.managers.iter_mut().enumerate() {
@@ -120,12 +122,12 @@ where
             {
                 manager.start();
                 unused_processor_cores -= manager.get_minimum_cores();
-                log.write_dag_start_time(dag_id, current_time);
+                log.write_dag_start_time(dag_id, self.current_time);
             }
         }
     }
 
-    fn allocate_node(&mut self, current_time: i32, log: &mut DAGSetSchedulerLog) {
+    fn allocate_node(&mut self, log: &mut DAGSetSchedulerLog) {
         for dag in self.dag_set.iter() {
             let dag_id = dag.get_dag_id();
             if !self.managers[dag_id].get_is_started() {
@@ -139,7 +141,7 @@ where
                         dag_id,
                         node_i.index(),
                         core_id,
-                        current_time,
+                        self.current_time,
                         *dag[*node_i].params.get("execution_time").unwrap(),
                     );
                     self.processor.allocate_specific_core(
@@ -153,20 +155,19 @@ where
         }
     }
 
-    fn process_unit_time(&mut self, current_time: &mut i32) -> Vec<ProcessResult> {
-        *current_time += 1;
+    fn process_unit_time(&mut self) -> Vec<ProcessResult> {
+        self.current_time += 1;
         self.processor.process()
     }
 
     fn handling_nodes_finished(
         &mut self,
-        current_time: i32,
         log: &mut DAGSetSchedulerLog,
         process_result: &[ProcessResult],
     ) {
         for result in process_result {
             if let ProcessResult::Done(node_data) = result {
-                log.write_finishing_node(node_data, current_time);
+                log.write_finishing_node(node_data, self.current_time);
                 let dag_id = node_data.params["dag_id"] as usize;
                 self.managers[dag_id].decrement_num_using_cores();
 
@@ -176,7 +177,7 @@ where
                     .get_suc_nodes(NodeIndex::new(node_data.id as usize))
                     .unwrap_or_default();
                 if suc_nodes.is_empty() {
-                    log.write_dag_finish_time(dag_id, current_time);
+                    log.write_dag_finish_time(dag_id, self.current_time);
                     // Reset the state of the DAG
                     dag.reset_pre_done_count();
                     self.managers[dag_id].reset_state();
@@ -200,28 +201,27 @@ where
         self.initialize();
 
         // Start scheduling
-        let mut current_time = 0;
         let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
-        while current_time < hyper_period {
+        while self.current_time < hyper_period {
             // Release DAGs
-            self.release_dag(current_time, &mut log);
+            self.release_dag(&mut log);
             // Start DAG if there are enough free core
-            self.start_dag(current_time, &mut log);
+            self.start_dag(&mut log);
             // Allocate the nodes of each DAG
-            self.allocate_node(current_time, &mut log);
+            self.allocate_node(&mut log);
             // Process unit time
-            let process_result = self.process_unit_time(&mut current_time);
+            let process_result = self.process_unit_time();
             // Post-process on completion of node execution
-            self.handling_nodes_finished(current_time, &mut log, &process_result);
+            self.handling_nodes_finished(&mut log, &process_result);
         }
 
-        log.calculate_utilization(current_time);
+        log.calculate_utilization(self.current_time);
         log.calculate_response_time();
 
         self.set_log(log);
 
-        current_time
+        self.current_time
     }
 
     fn get_log(&self) -> DAGSetSchedulerLog {
