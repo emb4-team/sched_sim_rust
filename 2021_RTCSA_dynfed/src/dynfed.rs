@@ -98,7 +98,7 @@ where
         }
     }
 
-    fn release_dag(&mut self, log: &mut DAGSetSchedulerLog) {
+    fn release_dag(&mut self) {
         for dag in self.dag_set.iter_mut() {
             let dag_id = dag.get_dag_id();
             if self.current_time
@@ -107,12 +107,12 @@ where
             {
                 self.managers[dag_id].release();
                 self.managers[dag_id].increment_release_count();
-                log.write_dag_release_time(dag_id, self.current_time);
+                self.log.write_dag_release_time(dag_id, self.current_time);
             }
         }
     }
 
-    fn start_dag(&mut self, log: &mut DAGSetSchedulerLog) {
+    fn start_dag(&mut self) {
         let mut unused_processor_cores =
             self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers);
         for (dag_id, manager) in self.managers.iter_mut().enumerate() {
@@ -122,12 +122,12 @@ where
             {
                 manager.start();
                 unused_processor_cores -= manager.get_minimum_cores();
-                log.write_dag_start_time(dag_id, self.current_time);
+                self.log.write_dag_start_time(dag_id, self.current_time);
             }
         }
     }
 
-    fn allocate_node(&mut self, log: &mut DAGSetSchedulerLog) {
+    fn allocate_node(&mut self) {
         for dag in self.dag_set.iter() {
             let dag_id = dag.get_dag_id();
             if !self.managers[dag_id].get_is_started() {
@@ -137,7 +137,7 @@ where
             while let Some(node_i) = self.managers[dag_id].get_execution_order_head() {
                 if dag.is_node_ready(*node_i) && self.managers[dag_id].get_unused_cores() > 0 {
                     let core_id = self.processor.get_idle_core_index().unwrap();
-                    log.write_allocating_node(
+                    self.log.write_allocating_node(
                         dag_id,
                         node_i.index(),
                         core_id,
@@ -160,14 +160,10 @@ where
         self.processor.process()
     }
 
-    fn handling_nodes_finished(
-        &mut self,
-        log: &mut DAGSetSchedulerLog,
-        process_result: &[ProcessResult],
-    ) {
+    fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]) {
         for result in process_result {
             if let ProcessResult::Done(node_data) = result {
-                log.write_finishing_node(node_data, self.current_time);
+                self.log.write_finishing_node(node_data, self.current_time);
                 let dag_id = node_data.params["dag_id"] as usize;
                 self.managers[dag_id].decrement_num_using_cores();
 
@@ -177,7 +173,7 @@ where
                     .get_suc_nodes(NodeIndex::new(node_data.id as usize))
                     .unwrap_or_default();
                 if suc_nodes.is_empty() {
-                    log.write_dag_finish_time(dag_id, self.current_time);
+                    self.log.write_dag_finish_time(dag_id, self.current_time);
                     // Reset the state of the DAG
                     dag.reset_pre_done_count();
                     self.managers[dag_id].reset_state();
@@ -201,35 +197,28 @@ where
         self.initialize();
 
         // Start scheduling
-        let mut log = self.get_log();
         let hyper_period = get_hyper_period(&self.dag_set);
         while self.current_time < hyper_period {
             // Release DAGs
-            self.release_dag(&mut log);
+            self.release_dag();
             // Start DAG if there are enough free core
-            self.start_dag(&mut log);
+            self.start_dag();
             // Allocate the nodes of each DAG
-            self.allocate_node(&mut log);
+            self.allocate_node();
             // Process unit time
             let process_result = self.process_unit_time();
             // Post-process on completion of node execution
-            self.handling_nodes_finished(&mut log, &process_result);
+            self.handling_nodes_finished(&process_result);
         }
 
-        log.calculate_utilization(self.current_time);
-        log.calculate_response_time();
-
-        self.set_log(log);
+        self.log.calculate_utilization(self.current_time);
+        self.log.calculate_response_time();
 
         self.current_time
     }
 
     fn get_log(&self) -> DAGSetSchedulerLog {
         self.log.clone()
-    }
-
-    fn set_log(&mut self, log: DAGSetSchedulerLog) {
-        self.log = log;
     }
 }
 

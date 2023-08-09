@@ -299,15 +299,11 @@ pub fn get_total_allocated_cores(dag_state_managers: &[DAGStateManager]) -> i32 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn initialize(&mut self);
-    fn release_dag(&mut self, log: &mut DAGSetSchedulerLog);
-    fn start_dag(&mut self, log: &mut DAGSetSchedulerLog);
-    fn allocate_node(&mut self, log: &mut DAGSetSchedulerLog);
+    fn release_dag(&mut self);
+    fn start_dag(&mut self);
+    fn allocate_node(&mut self);
     fn process_unit_time(&mut self) -> Vec<ProcessResult>;
-    fn handling_nodes_finished(
-        &mut self,
-        log: &mut DAGSetSchedulerLog,
-        process_result: &[ProcessResult],
-    );
+    fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]);
     fn insert_ready_node(&mut self, process_result: &[ProcessResult]);
 
     fn schedule(&mut self) -> i32 {
@@ -315,7 +311,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         todo!("Implement this method in the child class");
     }
     fn get_log(&self) -> DAGSetSchedulerLog;
-    fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
         let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);
