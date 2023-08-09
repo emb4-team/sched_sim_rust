@@ -309,6 +309,8 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log: &mut DAGSetSchedulerLog,
         process_result: &[ProcessResult],
     );
+    fn insert_ready_node(&mut self, process_result: &[ProcessResult]);
+
     fn schedule(&mut self) -> i32 {
         self.initialize();
         todo!("Implement this method in the child class");

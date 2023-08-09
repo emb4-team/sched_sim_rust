@@ -189,6 +189,10 @@ where
         }
     }
 
+    fn insert_ready_node(&mut self, _process_result: &[ProcessResult]) {
+        todo!("insert_ready_node")
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         //let mut dag_state_managers = vec![DAGStateManager::new(); self.dag_set.len()];

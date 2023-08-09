@@ -183,6 +183,26 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
+    fn insert_ready_node(&mut self, process_result: &[ProcessResult]) {
+        for result in process_result {
+            if let ProcessResult::Done(node_data) = result {
+                let dag_id = node_data.get_params_value("dag_id") as usize;
+                let dag = &mut self.dag_set[dag_id];
+                let suc_nodes = dag
+                    .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
+                    .unwrap_or_default();
+
+                // If all preceding nodes have finished, add the node to the ready queue
+                for suc_node in suc_nodes {
+                    if dag.is_node_ready(suc_node) {
+                        self.ready_queue
+                            .insert(NodeDataWrapper(dag[suc_node].clone()));
+                    }
+                }
+            }
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
         // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
@@ -205,23 +225,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             // Post-process on completion of node execution
             self.handling_nodes_finished(current_time, &mut log, &process_result);
             // Add the node to the ready queue when all preceding nodes have finished
-            for result in process_result {
-                if let ProcessResult::Done(node_data) = result {
-                    let dag_id = node_data.get_params_value("dag_id") as usize;
-                    let dag = &mut self.dag_set[dag_id];
-                    let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
-                        .unwrap_or_default();
-
-                    // If all preceding nodes have finished, add the node to the ready queue
-                    for suc_node in suc_nodes {
-                        if dag.is_node_ready(suc_node) {
-                            self.ready_queue
-                                .insert(NodeDataWrapper(dag[suc_node].clone()));
-                        }
-                    }
-                }
-            }
+            self.insert_ready_node(&process_result);
         }
 
         log.calculate_utilization(current_time);
