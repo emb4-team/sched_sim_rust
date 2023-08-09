@@ -103,6 +103,9 @@ pub struct DAGLog {
     release_time: Vec<i32>,
     start_time: Vec<i32>,
     finish_time: Vec<i32>,
+    response_time: Vec<i32>,
+    average_response_time: f32,
+    worst_response_time: i32,
 }
 
 impl DAGLog {
@@ -112,7 +115,28 @@ impl DAGLog {
             release_time: Default::default(),
             start_time: Default::default(),
             finish_time: Default::default(),
+            response_time: Default::default(),
+            average_response_time: Default::default(),
+            worst_response_time: Default::default(),
         }
+    }
+
+    pub fn calculate_response_time(&mut self) {
+        self.response_time = self
+            .release_time
+            .iter()
+            .zip(self.finish_time.iter())
+            .map(|(release_time, finish_time)| *finish_time - *release_time)
+            .collect();
+    }
+
+    pub fn calculate_average_response_time(&mut self) {
+        self.average_response_time =
+            self.response_time.iter().sum::<i32>() as f32 / self.response_time.len() as f32;
+    }
+
+    pub fn calculate_worst_response_time(&mut self) {
+        self.worst_response_time = *self.response_time.iter().max().unwrap();
     }
 }
 
@@ -320,6 +344,14 @@ impl DAGSetSchedulerLog {
         self.node_set_logs[node_data.params["dag_id"] as usize][node_data.id as usize]
             .finish_time
             .push(finish_time);
+    }
+
+    pub fn calculate_response_time(&mut self) {
+        for dag_log in self.dag_set_log.iter_mut() {
+            dag_log.calculate_response_time();
+            dag_log.calculate_average_response_time();
+            dag_log.calculate_worst_response_time();
+        }
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
