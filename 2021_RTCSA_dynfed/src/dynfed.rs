@@ -111,6 +111,10 @@ where
         self.processor.clone()
     }
 
+    fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>) {
+        self.dag_set = dag_set;
+    }
+
     fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
         self.managers = managers;
     }
@@ -123,6 +127,10 @@ where
 
     fn set_current_time(&mut self, current_time: i32) {
         self.current_time = current_time;
+    }
+
+    fn set_processor(&mut self, processor: HomogeneousProcessor) {
+        self.processor = processor;
     }
 
     fn initialize(&mut self) {
@@ -169,43 +177,7 @@ where
         }
     }
 
-    fn process_unit_time(&mut self) -> Vec<ProcessResult> {
-        self.current_time += 1;
-        self.processor.process()
-    }
-
-    fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]) {
-        for result in process_result {
-            if let ProcessResult::Done(node_data) = result {
-                self.log.write_finishing_node(node_data, self.current_time);
-                let dag_id = node_data.params["dag_id"] as usize;
-                self.managers[dag_id].decrement_num_using_cores();
-
-                // Increase pre_done_count of successor nodes
-                let dag = &mut self.dag_set[dag_id];
-                let suc_nodes = dag
-                    .get_suc_nodes(NodeIndex::new(node_data.id as usize))
-                    .unwrap_or_default();
-                if suc_nodes.is_empty() {
-                    self.log.write_dag_finish_time(dag_id, self.current_time);
-                    // Reset the state of the DAG
-                    dag.reset_pre_done_count();
-                    self.managers[dag_id].reset_state();
-                } else {
-                    for suc_node in suc_nodes {
-                        dag.increment_pre_done_count(suc_node);
-                    }
-                }
-            }
-        }
-    }
-
     fn insert_ready_node(&mut self, _: &[ProcessResult]) {}
-
-    fn calculate_log(&mut self) {
-        self.log.calculate_utilization(self.current_time);
-        self.log.calculate_response_time();
-    }
 }
 
 #[cfg(test)]

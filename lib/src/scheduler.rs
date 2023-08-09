@@ -238,7 +238,7 @@ impl DAGStateManager {
     pub fn decrement_num_using_cores(&mut self) {
         match &mut self.num_using_cores {
             Some(cores) => *cores -= 1,
-            None => panic!("num_using_cores is None!"),
+            None => (),
         }
     }
 
@@ -320,10 +320,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn get_managers(&self) -> Vec<DAGStateManager>;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn get_ready_queue(&self) -> BTreeSet<NodeDataWrapper>;
+    fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>);
     fn set_managers(&mut self, managers: Vec<DAGStateManager>);
     fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn set_ready_queue(&mut self, ready_queue: BTreeSet<NodeDataWrapper>);
     fn set_current_time(&mut self, current_time: i32);
+    fn set_processor(&mut self, processor: T);
 
     fn initialize(&mut self);
     fn release_dag(&mut self) {
@@ -368,11 +370,53 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let mut current_time = self.get_current_time();
         current_time += 1;
         self.set_current_time(current_time);
-        self.get_processor().process()
+        let mut processor = self.get_processor();
+        let process_result = processor.process();
+        self.set_processor(processor);
+        process_result
     }
-    fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]);
+
+    fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]) {
+        let mut dag_set = self.get_dag_set();
+        let mut managers = self.get_managers();
+        let mut log = self.get_log();
+        let current_time = self.get_current_time();
+        for result in process_result.clone() {
+            if let ProcessResult::Done(node_data) = result {
+                log.write_finishing_node(node_data, current_time);
+                let dag_id = node_data.get_params_value("dag_id") as usize;
+                managers[dag_id].decrement_num_using_cores();
+
+                // Increase pre_done_count of successor nodes
+                let dag = &mut dag_set[dag_id];
+                let suc_nodes = dag
+                    .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
+                    .unwrap_or_default();
+                if suc_nodes.is_empty() {
+                    log.write_dag_finish_time(dag_id, current_time);
+                    // Reset the state of the DAG
+                    dag.reset_pre_done_count();
+                    managers[dag_id].reset_state();
+                } else {
+                    for suc_node in suc_nodes {
+                        dag.increment_pre_done_count(suc_node);
+                    }
+                }
+            }
+        }
+
+        self.set_dag_set(dag_set);
+        self.set_managers(managers);
+        self.set_log(log);
+    }
     fn insert_ready_node(&mut self, process_result: &[ProcessResult]);
-    fn calculate_log(&mut self);
+    fn calculate_log(&mut self) {
+        let mut log = self.get_log();
+        let current_time = self.get_current_time();
+        log.calculate_utilization(current_time);
+        log.calculate_response_time();
+        self.set_log(log);
+    }
 
     fn schedule(&mut self) -> i32 {
         // Initialize DAGSet and DAGStateManagers
