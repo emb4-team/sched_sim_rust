@@ -200,10 +200,13 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
         }
     }
 
-    fn schedule(&mut self) -> i32 {
-        // Initialize DAGStateManagers
-        // let mut managers = vec![DAGStateManager::new(); self.dag_set.len()];
+    fn calculate_log(&mut self) {
+        self.log.calculate_utilization(self.current_time);
+        self.log.calculate_response_time();
+    }
 
+    fn schedule(&mut self) -> i32 {
+        // Initialize DAGSet and DAGStateManagers
         self.initialize();
 
         // Start scheduling
@@ -223,8 +226,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             self.insert_ready_node(&process_result);
         }
 
-        self.log.calculate_utilization(self.current_time);
-        self.log.calculate_response_time();
+        self.calculate_log();
 
         self.current_time
     }

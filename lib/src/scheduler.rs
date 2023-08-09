@@ -305,6 +305,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn process_unit_time(&mut self) -> Vec<ProcessResult>;
     fn handling_nodes_finished(&mut self, process_result: &[ProcessResult]);
     fn insert_ready_node(&mut self, process_result: &[ProcessResult]);
+    fn calculate_log(&mut self);
 
     fn schedule(&mut self) -> i32 {
         self.initialize();
