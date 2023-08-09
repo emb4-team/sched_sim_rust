@@ -286,7 +286,7 @@ mod tests {
         let time = dynfed.schedule();
         assert_eq!(time, 300);
 
-        let file_path = dynfed.dump_log("../lib/tests", "test");
+        let file_path = dynfed.dump_log("../lib/tests", "dyn_test");
         let yaml_docs = load_yaml(&file_path);
         let yaml_doc = &yaml_docs[0];
 

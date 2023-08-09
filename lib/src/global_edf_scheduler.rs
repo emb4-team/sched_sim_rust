@@ -288,7 +288,7 @@ mod tests {
 
         assert_eq!(time, 300);
 
-        let file_path = global_edf_scheduler.dump_log("../lib/tests", "test");
+        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_test");
         let yaml_docs = load_yaml(&file_path);
         let yaml_doc = &yaml_docs[0];
 
