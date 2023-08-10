@@ -1,3 +1,4 @@
+#![feature(trait_upcasting)]
 mod dynfed;
 
 use clap::Parser;

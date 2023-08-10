@@ -5,7 +5,8 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
-use std::collections::{BTreeSet, VecDeque};
+
+use std::collections::VecDeque;
 
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
@@ -13,6 +14,7 @@ use lib::homogeneous::HomogeneousProcessor;
 use lib::log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::*;
+use lib::util::get_hyper_period;
 use petgraph::{graph::NodeIndex, Graph};
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
@@ -60,6 +62,196 @@ where
     (minimum_cores, execution_order)
 }
 
+#[derive(Clone)]
+pub struct DAGSetStateManager {
+    managers: Vec<DAGStateManager>,
+}
+
+impl DAGSetStateManagerBase for DAGSetStateManager {
+    fn new(dag_set_len: usize) -> Self {
+        let managers = vec![DAGStateManager::new(); dag_set_len];
+        Self { managers }
+    }
+    fn get_release_count(&self, index: usize) -> i32 {
+        self.managers[index].get_release_count()
+    }
+
+    fn set_release_count(&mut self, index: usize, release_count: i32) {
+        self.managers[index].set_release_count(release_count);
+    }
+
+    fn start(&mut self, index: usize) {
+        self.managers[index].start();
+    }
+
+    fn get_is_started(&self, index: usize) -> bool {
+        self.managers[index].get_is_started()
+    }
+
+    fn can_start(&self, index: usize, idle_core_num: i32) -> bool {
+        self.managers[index].can_start(idle_core_num)
+    }
+
+    fn get_is_released(&self, index: usize) -> bool {
+        self.managers[index].get_is_released()
+    }
+
+    fn set_is_released(&mut self, index: usize, is_released: bool) {
+        self.managers[index].set_is_released(is_released);
+    }
+
+    fn increment_release_count(&mut self, index: usize) {
+        self.managers[index].increment_release_count();
+    }
+
+    fn reset_state(&mut self, index: usize) {
+        self.managers[index].reset_state();
+    }
+
+    fn release(&mut self, index: usize) {
+        self.managers[index].release();
+    }
+}
+
+impl DAGSetStateManager {
+    fn set_minimum_cores(&mut self, index: usize, minimum_cores: i32) {
+        self.managers[index].set_minimum_cores(minimum_cores);
+    }
+
+    fn set_execution_order(&mut self, index: usize, execution_order: VecDeque<NodeIndex>) {
+        self.managers[index].set_execution_order(execution_order);
+    }
+
+    fn get_total_allocated_cores(&self) -> i32 {
+        let mut total_allocated_cores = 0;
+        for manager in self.managers.iter() {
+            total_allocated_cores += manager.num_allocated_cores;
+        }
+        total_allocated_cores
+    }
+
+    fn get_execution_order_head(&self, index: usize) -> Option<&NodeIndex> {
+        self.managers[index].get_execution_order_head()
+    }
+
+    fn get_unused_cores(&self, index: usize) -> i32 {
+        self.managers[index].get_unused_cores()
+    }
+
+    fn allocate_head(&mut self, index: usize) -> NodeIndex {
+        self.managers[index].allocate_head()
+    }
+
+    fn decrement_num_using_cores(&mut self, index: usize) {
+        self.managers[index].decrement_num_using_cores();
+    }
+}
+
+#[derive(Clone)]
+struct DAGStateManager {
+    release_count: i32,
+    is_started: bool,
+    is_released: bool,
+    num_using_cores: i32,
+    num_allocated_cores: i32,
+    minimum_cores: i32,
+    execution_order: VecDeque<NodeIndex>,
+    initial_execution_order: VecDeque<NodeIndex>,
+}
+
+impl DAGStateManager {
+    fn new() -> Self {
+        Self {
+            release_count: 0,
+            is_started: false,
+            is_released: false,
+            num_using_cores: 0,
+            num_allocated_cores: 0,
+            minimum_cores: 0,
+            execution_order: VecDeque::new(),
+            initial_execution_order: VecDeque::new(),
+        }
+    }
+
+    fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    fn set_release_count(&mut self, release_count: i32) {
+        self.release_count = release_count;
+    }
+
+    fn get_is_started(&self) -> bool {
+        self.is_started
+    }
+
+    fn start(&mut self) {
+        self.is_started = true;
+        self.num_allocated_cores = self.minimum_cores;
+    }
+
+    fn can_start(&self, idle_core_num: i32) -> bool {
+        !self.is_started && self.is_released && (idle_core_num >= self.minimum_cores)
+    }
+
+    fn get_is_released(&self) -> bool {
+        self.is_released
+    }
+
+    fn set_is_released(&mut self, is_released: bool) {
+        self.is_released = is_released;
+    }
+
+    fn increment_release_count(&mut self) {
+        self.release_count += 1;
+    }
+
+    fn reset_state(&mut self) {
+        self.is_started = false;
+        self.is_released = false;
+        self.set_execution_order(self.initial_execution_order.clone());
+        self.free_allocated_cores(); //When the last node is finished, the core allocated to dag is released.
+    }
+
+    fn set_execution_order(&mut self, initial_execution_order: VecDeque<NodeIndex>) {
+        self.initial_execution_order = initial_execution_order.clone();
+        self.execution_order = initial_execution_order;
+    }
+
+    fn release(&mut self) {
+        self.is_released = true;
+    }
+
+    fn free_allocated_cores(&mut self) {
+        self.num_allocated_cores = 0;
+    }
+
+    fn get_minimum_cores(&self) -> i32 {
+        self.minimum_cores
+    }
+
+    fn set_minimum_cores(&mut self, minimum_cores: i32) {
+        self.minimum_cores = minimum_cores;
+    }
+
+    fn get_execution_order_head(&self) -> Option<&NodeIndex> {
+        self.execution_order.front()
+    }
+
+    fn get_unused_cores(&self) -> i32 {
+        self.num_allocated_cores - self.num_using_cores
+    }
+
+    fn allocate_head(&mut self) -> NodeIndex {
+        self.num_using_cores += 1;
+        self.execution_order.pop_front().unwrap()
+    }
+
+    fn decrement_num_using_cores(&mut self) {
+        self.num_using_cores -= 1;
+    }
+}
+
 pub struct DynamicFederatedScheduler<T>
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
@@ -69,10 +261,11 @@ where
     scheduler: T,
     current_time: i32,
     log: DAGSetSchedulerLog,
-    managers: Vec<DAGStateManager>,
+    managers: DAGSetStateManager,
 }
 
-impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
+impl<T> DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager>
+    for DynamicFederatedScheduler<T>
 where
     T: DAGSchedulerBase<HomogeneousProcessor>,
 {
@@ -83,8 +276,12 @@ where
             scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
             current_time: 0,
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
-            managers: vec![DAGStateManager::new_expended(); dag_set.len()],
+            managers: DAGSetStateManager::new(dag_set.len()),
         }
+    }
+
+    fn get_log(&self) -> DAGSetSchedulerLog {
+        self.log.clone()
     }
 
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>> {
@@ -95,42 +292,32 @@ where
         self.current_time
     }
 
-    fn get_managers(&self) -> Vec<DAGStateManager> {
-        self.managers.clone()
-    }
-
-    fn get_log(&self) -> DAGSetSchedulerLog {
-        self.log.clone()
-    }
-
-    fn get_ready_queue(&self) -> BTreeSet<NodeDataWrapper> {
-        BTreeSet::new()
-    }
-
     fn get_processor(&self) -> HomogeneousProcessor {
         self.processor.clone()
     }
 
-    fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>) {
-        self.dag_set = dag_set;
-    }
-
-    fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
-        self.managers = managers;
+    fn get_managers(&self) -> DAGSetStateManager {
+        self.managers.clone()
     }
 
     fn set_log(&mut self, log: DAGSetSchedulerLog) {
         self.log = log;
     }
 
-    fn set_ready_queue(&mut self, _: BTreeSet<NodeDataWrapper>) {}
+    fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>) {
+        self.dag_set = dag_set;
+    }
 
-    fn set_current_time(&mut self, current_time: i32) {
-        self.current_time = current_time;
+    fn set_managers(&mut self, managers: DAGSetStateManager) {
+        self.managers = managers;
     }
 
     fn set_processor(&mut self, processor: HomogeneousProcessor) {
         self.processor = processor;
+    }
+
+    fn set_current_time(&mut self, current_time: i32) {
+        self.current_time = current_time;
     }
 
     fn initialize(&mut self) {
@@ -138,26 +325,26 @@ where
             dag.set_dag_id(dag_id);
             let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            self.managers[dag_id].set_minimum_cores(minimum_cores as i32);
-            self.managers[dag_id].set_execution_order(Some(execution_order));
+
+            self.managers
+                .set_minimum_cores(dag_id, minimum_cores as i32);
+            self.managers.set_execution_order(dag_id, execution_order);
         }
     }
 
     fn calculate_idle_core_mun(&self) -> i32 {
-        self.processor.get_number_of_cores() as i32 - get_total_allocated_cores(&self.managers)
+        self.processor.get_number_of_cores() as i32 - self.managers.get_total_allocated_cores()
     }
-
-    fn insert_source_node(&mut self, _: usize) {}
 
     fn allocate_node(&mut self) {
         for dag in self.dag_set.iter() {
             let dag_id = dag.get_dag_id();
-            if !self.managers[dag_id].get_is_started() {
+            if !self.managers.get_is_started(dag_id) {
                 continue;
             }
 
-            while let Some(node_i) = self.managers[dag_id].get_execution_order_head() {
-                if dag.is_node_ready(*node_i) && self.managers[dag_id].get_unused_cores() > 0 {
+            while let Some(node_i) = self.managers.get_execution_order_head(dag_id) {
+                if dag.is_node_ready(*node_i) && self.managers.get_unused_cores(dag_id) > 0 {
                     let core_id = self.processor.get_idle_core_index().unwrap();
                     self.log.write_allocating_node(
                         dag_id,
@@ -166,10 +353,8 @@ where
                         self.current_time,
                         *dag[*node_i].params.get("execution_time").unwrap(),
                     );
-                    self.processor.allocate_specific_core(
-                        core_id,
-                        &dag[self.managers[dag_id].allocate_head()],
-                    );
+                    self.processor
+                        .allocate_specific_core(core_id, &dag[self.managers.allocate_head(dag_id)]);
                 } else {
                     break;
                 }
@@ -177,7 +362,63 @@ where
         }
     }
 
-    fn insert_ready_node(&mut self, _: &[ProcessResult]) {}
+    fn schedule(&mut self) -> i32 {
+        // Initialize DAGSet and DAGStateManagers
+        self.initialize();
+
+        // Start scheduling
+        let hyper_period = get_hyper_period(&self.dag_set);
+
+        while self.current_time < hyper_period {
+            // Release DAGs
+            self.release_dag();
+            // Start DAGs if there are free cores
+            let mut idle_core_num = self.calculate_idle_core_mun();
+            for (dag_id, manager) in self.managers.managers.iter_mut().enumerate() {
+                if manager.can_start(idle_core_num) {
+                    manager.start();
+                    idle_core_num -= manager.get_minimum_cores();
+                    self.log.write_dag_start_time(dag_id, self.current_time);
+                }
+            }
+
+            // Allocate the nodes of ready_queue to idle cores
+            self.allocate_node();
+
+            // Process unit time
+            let process_result = self.process_unit_time();
+            // Post-process on completion of node execution
+
+            for result in process_result.clone() {
+                if let ProcessResult::Done(node_data) = result {
+                    self.log.write_finishing_node(&node_data, self.current_time);
+                    let dag_id = node_data.get_params_value("dag_id") as usize;
+                    self.managers.decrement_num_using_cores(dag_id);
+
+                    // Increase pre_done_count of successor nodes
+                    let dag = &mut self.dag_set[dag_id];
+                    let suc_nodes = dag
+                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
+                        .unwrap_or_default();
+                    if suc_nodes.is_empty() {
+                        self.log.write_dag_finish_time(dag_id, self.current_time);
+                        // Reset the state of the DAG
+                        dag.reset_pre_done_count();
+                        self.managers.reset_state(dag_id);
+                    } else {
+                        for suc_node in suc_nodes {
+                            dag.increment_pre_done_count(suc_node);
+                        }
+                    }
+                }
+            }
+        }
+        let current_time = self.current_time;
+        self.log.calculate_utilization(current_time);
+        self.log.calculate_response_time();
+
+        self.current_time
+    }
 }
 
 #[cfg(test)]

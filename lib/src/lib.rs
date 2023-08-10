@@ -1,3 +1,4 @@
+#![feature(trait_upcasting)]
 pub mod core;
 pub mod dag_creator;
 pub mod fixed_priority_scheduler;
