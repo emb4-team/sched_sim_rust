@@ -157,6 +157,64 @@ impl NodeDataWrapper {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct DAGStateManager {
+    pub release_count: i32,
+    pub is_started: bool,
+    pub is_released: bool,
+}
+
+impl DAGStateManager {
+    pub fn new() -> Self {
+        Self {
+            release_count: Default::default(),
+            is_started: Default::default(),
+            is_released: Default::default(),
+        }
+    }
+
+    pub fn get_release_count(&self) -> i32 {
+        self.release_count
+    }
+
+    pub fn set_release_count(&mut self, release_count: i32) {
+        self.release_count = release_count;
+    }
+
+    pub fn start(&mut self) {
+        self.is_started = true;
+    }
+
+    pub fn get_is_started(&self) -> bool {
+        self.is_started
+    }
+
+    pub fn can_start(&self) -> bool {
+        !self.is_started && self.is_released
+    }
+
+    pub fn get_is_released(&self) -> bool {
+        self.is_released
+    }
+
+    pub fn set_is_released(&mut self, is_released: bool) {
+        self.is_released = is_released;
+    }
+
+    pub fn increment_release_count(&mut self) {
+        self.release_count += 1;
+    }
+
+    pub fn reset_state(&mut self) {
+        self.is_started = false;
+        self.is_released = false;
+    }
+
+    pub fn release(&mut self) {
+        self.is_released = true;
+    }
+}
+
 pub trait DAGSetStateManagerBase {
     fn new(dag_set_len: usize) -> Self;
     fn get_release_count(&self, index: usize) -> i32;
@@ -171,18 +229,18 @@ pub trait DAGSetStateManagerBase {
     fn reset_state(&mut self, index: usize);
 }
 
-pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBase> {
+pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn get_log(&self) -> DAGSetSchedulerLog;
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
     fn get_current_time(&self) -> i32;
     fn get_processor(&self) -> T;
-    fn get_managers(&self) -> D;
+    fn get_managers(&self) -> Vec<DAGStateManager>;
     fn set_log(&mut self, log: DAGSetSchedulerLog);
     fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>);
     fn set_current_time(&mut self, current_time: i32);
     fn set_processor(&mut self, processors: T);
-    fn set_managers(&mut self, managers: D);
+    fn set_managers(&mut self, managers: Vec<DAGStateManager>);
     fn initialize(&mut self);
     fn start_dag(&mut self);
     fn release_dag(&mut self) {
@@ -194,10 +252,10 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBas
             let dag_id = dag.get_dag_id();
             if current_time
                 == dag.get_head_offset()
-                    + dag.get_head_period().unwrap() * managers.get_release_count(dag_id)
+                    + dag.get_head_period().unwrap() * managers[dag_id].get_release_count()
             {
-                managers.release(dag_id);
-                managers.increment_release_count(dag_id);
+                managers[dag_id].release();
+                managers[dag_id].increment_release_count();
                 log.write_dag_release_time(dag_id, current_time);
             }
         }
@@ -228,7 +286,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBas
             log.write_dag_finish_time(dag_id, self.get_current_time());
             // Reset the state of the DAG
             dag.reset_pre_done_count();
-            managers.reset_state(dag_id);
+            managers[dag_id].reset_state();
         } else {
             for suc_node in suc_nodes {
                 dag.increment_pre_done_count(suc_node);
@@ -238,6 +296,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBas
         self.set_log(log);
         self.set_managers(managers);
     }
+    fn reset_state(&mut self, dag_id: usize);
     fn calculate_log(&mut self) {
         let mut log = self.get_log();
         log.calculate_utilization(self.get_current_time());

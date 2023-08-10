@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 
 use crate::core::ProcessResult;
-use crate::scheduler::{DAGSetStateManagerBase, NodeDataWrapper};
+use crate::scheduler::{DAGStateManager, NodeDataWrapper};
 use crate::util::get_hyper_period;
 use crate::{
     graph_extension::{GraphExtension, NodeData},
@@ -62,133 +62,23 @@ impl Ord for NodeDataWrapper {
     }
 }
 
-#[derive(Clone)]
-pub struct DAGSetStateManager {
-    managers: Vec<DAGStateManager>,
-}
-
-impl DAGSetStateManagerBase for DAGSetStateManager {
-    fn new(dag_set_len: usize) -> Self {
-        let managers = vec![DAGStateManager::new(); dag_set_len];
-        Self { managers }
-    }
-
-    fn get_release_count(&self, index: usize) -> i32 {
-        self.managers[index].get_release_count()
-    }
-
-    fn set_release_count(&mut self, index: usize, release_count: i32) {
-        self.managers[index].set_release_count(release_count);
-    }
-
-    fn start(&mut self, index: usize) {
-        self.managers[index].start();
-    }
-
-    fn get_is_started(&self, index: usize) -> bool {
-        self.managers[index].get_is_started()
-    }
-
-    fn can_start(&self, index: usize, idle_core_num: i32) -> bool {
-        self.managers[index].can_start(idle_core_num)
-    }
-
-    fn get_is_released(&self, index: usize) -> bool {
-        self.managers[index].get_is_released()
-    }
-
-    fn set_is_released(&mut self, index: usize, is_released: bool) {
-        self.managers[index].set_is_released(is_released);
-    }
-
-    fn increment_release_count(&mut self, index: usize) {
-        self.managers[index].increment_release_count();
-    }
-
-    fn reset_state(&mut self, index: usize) {
-        self.managers[index].reset_state();
-    }
-
-    fn release(&mut self, index: usize) {
-        self.managers[index].release();
-    }
-}
-
-#[derive(Clone)]
-struct DAGStateManager {
-    release_count: i32,
-    is_started: bool,
-    is_released: bool,
-}
-
-impl DAGStateManager {
-    fn new() -> Self {
-        Self {
-            release_count: 0,
-            is_started: false,
-            is_released: false,
-        }
-    }
-
-    fn get_release_count(&self) -> i32 {
-        self.release_count
-    }
-
-    fn set_release_count(&mut self, release_count: i32) {
-        self.release_count = release_count;
-    }
-
-    fn start(&mut self) {
-        self.is_started = true;
-    }
-
-    fn get_is_started(&self) -> bool {
-        self.is_started
-    }
-
-    fn can_start(&self, idle_core_num: i32) -> bool {
-        !self.is_started && self.is_released && idle_core_num > 0
-    }
-
-    fn get_is_released(&self) -> bool {
-        self.is_released
-    }
-
-    fn set_is_released(&mut self, is_released: bool) {
-        self.is_released = is_released;
-    }
-
-    fn increment_release_count(&mut self) {
-        self.release_count += 1;
-    }
-
-    fn reset_state(&mut self) {
-        self.is_started = false;
-        self.is_released = false;
-    }
-
-    fn release(&mut self) {
-        self.is_released = true;
-    }
-}
-
 pub struct GlobalEDFScheduler {
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     current_time: i32,
     log: DAGSetSchedulerLog,
-    managers: DAGSetStateManager,
+    managers: Vec<DAGStateManager>,
     ready_queue: BTreeSet<NodeDataWrapper>,
 }
 
-impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDFScheduler {
+impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         Self {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
             current_time: 0,
             log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
-            managers: DAGSetStateManager::new(dag_set.len()),
+            managers: vec![DAGStateManager::new(); dag_set.len()],
             ready_queue: BTreeSet::new(),
         }
     }
@@ -209,7 +99,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
         self.processor.clone()
     }
 
-    fn get_managers(&self) -> DAGSetStateManager {
+    fn get_managers(&self) -> Vec<DAGStateManager> {
         self.managers.clone()
     }
 
@@ -221,7 +111,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
         self.dag_set = dag_set;
     }
 
-    fn set_managers(&mut self, managers: DAGSetStateManager) {
+    fn set_managers(&mut self, managers: Vec<DAGStateManager>) {
         self.managers = managers;
     }
 
@@ -242,8 +132,8 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
 
     fn start_dag(&mut self) {
         let mut idle_core_num = self.calculate_idle_core_mun();
-        for (dag_id, manager) in self.managers.managers.iter_mut().enumerate() {
-            if manager.can_start(idle_core_num) {
+        for (dag_id, manager) in self.managers.iter_mut().enumerate() {
+            if manager.can_start() && idle_core_num > 0 {
                 manager.start();
                 idle_core_num -= 1;
                 let dag = &self.dag_set[dag_id];
@@ -288,6 +178,10 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
                 self.handle_successor_nodes(dag_id, node_data);
             }
         }
+    }
+
+    fn reset_state(&mut self, dag_id: usize) {
+        self.managers[dag_id].reset_state();
     }
 
     fn schedule(&mut self) -> i32 {
