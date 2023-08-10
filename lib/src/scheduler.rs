@@ -184,6 +184,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBas
     fn set_processor(&mut self, processors: T);
     fn set_managers(&mut self, managers: D);
     fn initialize(&mut self);
+    fn start_dag(&mut self);
     fn release_dag(&mut self) {
         let mut dag_set = self.get_dag_set();
         let current_time = self.get_current_time();
@@ -213,6 +214,35 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone, D: DAGSetStateManagerBas
         let process_result = processor.process();
         self.set_processor(processor);
         process_result
+    }
+    fn handle_done_result(&mut self, process_result: &[ProcessResult]);
+    fn handle_successor_nodes(&mut self, dag_id: usize, node_data: &NodeData) {
+        let mut dag_set = self.get_dag_set();
+        let mut log = self.get_log();
+        let mut managers = self.get_managers();
+        let dag = &mut dag_set[dag_id];
+        let suc_nodes = dag
+            .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
+            .unwrap_or_default();
+        if suc_nodes.is_empty() {
+            log.write_dag_finish_time(dag_id, self.get_current_time());
+            // Reset the state of the DAG
+            dag.reset_pre_done_count();
+            managers.reset_state(dag_id);
+        } else {
+            for suc_node in suc_nodes {
+                dag.increment_pre_done_count(suc_node);
+            }
+        }
+        self.set_dag_set(dag_set);
+        self.set_log(log);
+        self.set_managers(managers);
+    }
+    fn calculate_log(&mut self) {
+        let mut log = self.get_log();
+        log.calculate_utilization(self.get_current_time());
+        log.calculate_response_time();
+        self.set_log(log);
     }
     fn schedule(&mut self) -> i32;
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {

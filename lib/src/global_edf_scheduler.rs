@@ -72,6 +72,7 @@ impl DAGSetStateManagerBase for DAGSetStateManager {
         let managers = vec![DAGStateManager::new(); dag_set_len];
         Self { managers }
     }
+
     fn get_release_count(&self, index: usize) -> i32 {
         self.managers[index].get_release_count()
     }
@@ -239,6 +240,21 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
         }
     }
 
+    fn start_dag(&mut self) {
+        let mut idle_core_num = self.calculate_idle_core_mun();
+        for (dag_id, manager) in self.managers.managers.iter_mut().enumerate() {
+            if manager.can_start(idle_core_num) {
+                manager.start();
+                idle_core_num -= 1;
+                let dag = &self.dag_set[dag_id];
+                let source_node = &dag[dag.get_source_nodes()[0]];
+                self.ready_queue
+                    .insert(NodeDataWrapper(source_node.clone()));
+                self.log.write_dag_start_time(dag_id, self.current_time);
+            }
+        }
+    }
+
     fn calculate_idle_core_mun(&self) -> i32 {
         self.processor.get_idle_core_num() as i32
     }
@@ -263,6 +279,17 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
         }
     }
 
+    fn handle_done_result(&mut self, process_result: &[ProcessResult]) {
+        for result in process_result.clone() {
+            if let ProcessResult::Done(node_data) = result {
+                self.log.write_finishing_node(node_data, self.current_time);
+                let dag_id = node_data.get_params_value("dag_id") as usize;
+                // Increase pre_done_count of successor nodes
+                self.handle_successor_nodes(dag_id, node_data);
+            }
+        }
+    }
+
     fn schedule(&mut self) -> i32 {
         // Initialize DAGSet and DAGStateManagers
         self.initialize();
@@ -275,52 +302,17 @@ impl DAGSetSchedulerBase<HomogeneousProcessor, DAGSetStateManager> for GlobalEDF
             self.release_dag();
 
             // Start DAGs if there are free cores
-            let mut idle_core_num = self.calculate_idle_core_mun();
-            for (dag_id, manager) in self.managers.managers.iter_mut().enumerate() {
-                if manager.can_start(idle_core_num) {
-                    manager.start();
-                    idle_core_num -= 1;
-                    let dag = &self.dag_set[dag_id];
-                    let source_node = &dag[dag.get_source_nodes()[0]];
-                    self.ready_queue
-                        .insert(NodeDataWrapper(source_node.clone()));
-                    self.log.write_dag_start_time(dag_id, self.current_time);
-                }
-            }
+            self.start_dag();
             // Allocate the nodes of ready_queue to idle cores
             self.allocate_node();
             // Process unit time
             let process_result = self.process_unit_time();
             // Post-process on completion of node execution
-
-            for result in process_result.clone() {
-                if let ProcessResult::Done(node_data) = result {
-                    self.log.write_finishing_node(&node_data, self.current_time);
-                    let dag_id = node_data.get_params_value("dag_id") as usize;
-
-                    // Increase pre_done_count of successor nodes
-                    let dag = &mut self.dag_set[dag_id];
-                    let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
-                        .unwrap_or_default();
-                    if suc_nodes.is_empty() {
-                        self.log.write_dag_finish_time(dag_id, self.current_time);
-                        // Reset the state of the DAG
-                        dag.reset_pre_done_count();
-                        self.managers.reset_state(dag_id);
-                    } else {
-                        for suc_node in suc_nodes {
-                            dag.increment_pre_done_count(suc_node);
-                        }
-                    }
-                }
-            }
+            self.handle_done_result(&process_result);
             // Add the node to the ready queue when all preceding nodes have finished
             self.insert_ready_node(&process_result);
         }
-        self.log.calculate_utilization(self.current_time);
-        self.log.calculate_response_time();
-
+        self.calculate_log();
         self.current_time
     }
 }
