@@ -271,7 +271,7 @@ where
                 self.log.write_finishing_node(node_data, self.current_time);
                 let dag_id = node_data.get_params_value("dag_id") as usize;
                 self.expansion_managers[dag_id].decrement_num_using_cores();
-
+                // Increase pre_done_count of successor nodes
                 self.handle_successor_nodes(dag_id, node_data);
             }
         }

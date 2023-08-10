@@ -215,20 +215,6 @@ impl DAGStateManager {
     }
 }
 
-pub trait DAGSetStateManagerBase {
-    fn new(dag_set_len: usize) -> Self;
-    fn get_release_count(&self, index: usize) -> i32;
-    fn get_is_released(&self, index: usize) -> bool;
-    fn get_is_started(&self, index: usize) -> bool;
-    fn set_release_count(&mut self, index: usize, release_count: i32);
-    fn set_is_released(&mut self, index: usize, is_released: bool);
-    fn increment_release_count(&mut self, index: usize);
-    fn start(&mut self, index: usize);
-    fn can_start(&self, index: usize, idle_core_num: i32) -> bool;
-    fn release(&mut self, index: usize);
-    fn reset_state(&mut self, index: usize);
-}
-
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
     fn get_log(&self) -> DAGSetSchedulerLog;
@@ -242,7 +228,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn set_processor(&mut self, processors: T);
     fn set_managers(&mut self, managers: Vec<DAGStateManager>);
     fn initialize(&mut self);
-    fn start_dag(&mut self);
     fn release_dag(&mut self) {
         let mut dag_set = self.get_dag_set();
         let current_time = self.get_current_time();
@@ -262,6 +247,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.set_log(log);
         self.set_managers(managers);
     }
+    fn start_dag(&mut self);
     fn calculate_idle_core_mun(&self) -> i32;
     fn allocate_node(&mut self);
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
@@ -277,7 +263,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn handle_successor_nodes(&mut self, dag_id: usize, node_data: &NodeData) {
         let mut dag_set = self.get_dag_set();
         let mut log = self.get_log();
-        let mut managers = self.get_managers();
         let dag = &mut dag_set[dag_id];
         let suc_nodes = dag
             .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
@@ -286,7 +271,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             log.write_dag_finish_time(dag_id, self.get_current_time());
             // Reset the state of the DAG
             dag.reset_pre_done_count();
-            managers[dag_id].reset_state();
+            self.reset_state(dag_id);
         } else {
             for suc_node in suc_nodes {
                 dag.increment_pre_done_count(suc_node);
@@ -294,7 +279,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         }
         self.set_dag_set(dag_set);
         self.set_log(log);
-        self.set_managers(managers);
     }
     fn reset_state(&mut self, dag_id: usize);
     fn calculate_log(&mut self) {
