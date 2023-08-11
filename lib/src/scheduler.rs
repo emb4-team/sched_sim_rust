@@ -291,6 +291,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
         let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);
+
         file_path
     }
 }

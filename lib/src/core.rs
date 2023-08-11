@@ -81,9 +81,8 @@ impl Core {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::*;
+    use std::collections::BTreeMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
         let mut params = BTreeMap::new();
