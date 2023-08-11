@@ -5,7 +5,6 @@
 //! Authors: Gaoyang Dai, Morteza Mohaqeqi, and Wang Yi
 //! Conference: RTCSA 2021
 //! -----------------
-
 use std::collections::VecDeque;
 
 use lib::core::ProcessResult;
