@@ -280,7 +280,6 @@ impl GraphExtension for Graph<NodeData, i32> {
     /// ```
     /// use petgraph::Graph;
     /// use std::collections::BTreeMap;
-    /// use std::collections::HashMap;
     /// use lib::graph_extension::NodeData;
     /// use lib::graph_extension::GraphExtension;
     ///
