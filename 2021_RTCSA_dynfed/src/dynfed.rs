@@ -310,11 +310,11 @@ mod tests {
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
     use lib::util::load_yaml;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
     use std::fs::remove_file;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }

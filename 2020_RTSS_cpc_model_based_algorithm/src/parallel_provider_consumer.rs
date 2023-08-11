@@ -5,7 +5,7 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 
 use lib::graph_extension::*;
 use petgraph::graph::{Graph, NodeIndex};
@@ -37,9 +37,9 @@ pub fn get_providers(
 pub fn get_f_consumers(
     dag: &mut Graph<NodeData, i32>,
     critical_path: &[NodeIndex],
-) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
+) -> BTreeMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let providers = get_providers(dag, critical_path);
-    let mut f_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
+    let mut f_consumers: BTreeMap<Vec<NodeIndex>, Vec<NodeIndex>> = BTreeMap::new();
     let mut non_critical_nodes: HashSet<_> = dag
         .get_non_critical_nodes(critical_path)
         .unwrap()
@@ -69,10 +69,10 @@ pub fn get_f_consumers(
 pub fn get_g_consumers(
     mut dag: Graph<NodeData, i32>,
     critical_path: Vec<NodeIndex>,
-) -> HashMap<Vec<NodeIndex>, Vec<NodeIndex>> {
+) -> BTreeMap<Vec<NodeIndex>, Vec<NodeIndex>> {
     let mut providers = get_providers(&dag, critical_path);
     let f_consumers = get_f_consumers(&mut dag, critical_path);
-    let mut g_consumers: HashMap<Vec<NodeIndex>, Vec<NodeIndex>> = HashMap::new();
+    let mut g_consumers: BTreeMap<Vec<NodeIndex>, Vec<NodeIndex>> = BTreeMap::new();
     let mut non_critical_nodes = dag.get_non_critical_nodes(critical_path).unwrap();
     while !providers.is_empty() {
         let provider = providers.remove(0);
@@ -110,10 +110,10 @@ pub fn get_g_consumers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }

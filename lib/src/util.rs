@@ -84,11 +84,11 @@ pub fn create_yaml(folder_path: &str, file_name: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use std::collections::BTreeMap;
 
     fn create_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         dag.add_node(NodeData { id: 0, params });
 
@@ -97,12 +97,12 @@ mod tests {
 
     fn create_dag_with_period(period: i32) -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         params.insert("period".to_owned(), period);
         let n0 = dag.add_node(NodeData { id: 0, params });
 
-        params = HashMap::new();
+        params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         let n1 = dag.add_node(NodeData { id: 1, params });
 
@@ -113,11 +113,11 @@ mod tests {
 
     fn create_dag_with_deadline(deadline: i32) -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         let n0 = dag.add_node(NodeData { id: 0, params });
 
-        params = HashMap::new();
+        params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         params.insert("end_to_end_deadline".to_owned(), deadline);
         let n1 = dag.add_node(NodeData { id: 1, params });
@@ -129,12 +129,12 @@ mod tests {
 
     fn create_dag_with_period_and_deadline(period: i32, deadline: i32) -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         params.insert("period".to_owned(), period);
         let n0 = dag.add_node(NodeData { id: 0, params });
 
-        params = HashMap::new();
+        params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 4);
         params.insert("end_to_end_deadline".to_owned(), deadline);
         let n1 = dag.add_node(NodeData { id: 1, params });

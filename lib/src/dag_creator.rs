@@ -3,7 +3,7 @@
 use log::warn;
 use petgraph::graph::Graph;
 use petgraph::prelude::*;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use yaml_rust::Yaml;
 
 use std::path::PathBuf;
@@ -86,10 +86,10 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
 
         // add nodes to dag
         for node in nodes {
-            let mut params = HashMap::new();
+            let mut params = BTreeMap::new();
             let id = node["id"].as_i64().unwrap() as i32;
 
-            // add node parameters to HashMap
+            // add node parameters to BTreeMap
             for (key, value) in node.as_hash().unwrap() {
                 let key_str = key.as_str().unwrap();
                 if key_str != "id" {

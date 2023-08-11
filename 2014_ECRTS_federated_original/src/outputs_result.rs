@@ -37,10 +37,10 @@ mod tests {
         util::{create_yaml, load_yaml},
     };
     use petgraph::Graph;
-    use std::{collections::HashMap, fs::remove_file};
+    use std::{collections::BTreeMap, fs::remove_file};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
     }
@@ -48,7 +48,7 @@ mod tests {
     fn create_high_utilization_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         let n0 = {
-            let mut params = HashMap::new();
+            let mut params = BTreeMap::new();
             params.insert("execution_time".to_owned(), 4);
             params.insert("period".to_owned(), 10);
             dag.add_node(NodeData { id: 3, params })
@@ -66,7 +66,7 @@ mod tests {
     fn create_low_utilization_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         let n0 = {
-            let mut params = HashMap::new();
+            let mut params = BTreeMap::new();
             params.insert("execution_time".to_owned(), 3);
             params.insert("period".to_owned(), 30);
             dag.add_node(NodeData { id: 2, params })
@@ -81,7 +81,7 @@ mod tests {
 
     fn create_period_exceeding_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = HashMap::new();
+        let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), 20);
         params.insert("period".to_owned(), 10);
         dag.add_node(NodeData { id: 0, params });
