@@ -1,4 +1,5 @@
 use std::collections::{BTreeSet, VecDeque};
+use std::default;
 
 use crate::util::get_hyper_period;
 use crate::{
@@ -158,14 +159,35 @@ impl NodeDataWrapper {
     }
 }
 
+#[derive(Clone, Default, PartialEq)]
+pub enum DAGState {
+    #[default]
+    Waiting,
+    Ready,
+    Running,
+}
+
 pub trait DAGStateManagerBase {
     // getter, setter
     fn get_release_count(&self) -> i32;
     fn set_release_count(&mut self, release_count: i32);
+    fn get_dag_state(&self) -> DAGState;
+    fn set_dag_state(&mut self, dag_state: DAGState);
+
+    // method definition
+    fn complete_execution(&mut self);
 
     // method implementation
-    fn increment_release_count(&mut self) {
+    fn release(&mut self) {
         self.set_release_count(self.get_release_count() + 1);
+        self.set_dag_state(DAGState::Ready);
+    }
+
+    fn can_release(&self, current_time: i32, dag: &Graph<NodeData, i32>) -> bool {
+        (self.get_dag_state() == DAGState::Waiting)
+            && (current_time
+                == dag.get_head_offset()
+                    + dag.get_head_period().unwrap() * self.get_release_count())
     }
 }
 
@@ -178,16 +200,27 @@ macro_rules! getset_dag_state_manager {
         fn set_release_count(&mut self, release_count: i32) {
             self.release_count = release_count;
         }
+        fn get_dag_state(&self) -> DAGState {
+            self.dag_state.clone()
+        }
+        fn set_dag_state(&mut self, dag_state: DAGState) {
+            self.dag_state = dag_state;
+        }
     };
 }
 
 #[derive(Clone, Default)]
-struct DAGStateManager {
+pub struct DAGStateManager {
+    dag_state: DAGState,
     release_count: i32,
 }
 
 impl DAGStateManagerBase for DAGStateManager {
     getset_dag_state_manager!();
+
+    fn complete_execution(&mut self) {
+        self.set_dag_state(DAGState::Waiting);
+    }
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
@@ -206,24 +239,20 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn schedule(&mut self) -> i32 {
         let mut dag_set = self.get_dag_set();
         let mut processor = self.get_processor();
+        let mut log = self.get_log();
         let mut current_time = 0;
         let mut managers = vec![DAGStateManager::default(); dag_set.len()];
-        let mut log = self.get_log();
         let mut ready_queue = BTreeSet::new();
 
         // Start scheduling
         let hyper_period = get_hyper_period(&dag_set);
         while current_time < hyper_period {
             // Release DAGs
-            for dag in dag_set.iter_mut() {
+            for dag in self.get_dag_set() {
                 let dag_id = dag.get_dag_id();
-                if current_time
-                    == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * managers[dag_id].get_release_count()
-                {
-                    let source_node = &dag[dag.get_source_nodes()[0]];
-                    ready_queue.insert(NodeDataWrapper(source_node.clone()));
-                    managers[dag_id].increment_release_count();
+                if managers[dag_id].can_release(current_time, &dag) {
+                    ready_queue.insert(NodeDataWrapper(dag[dag.get_source_nodes()[0]].clone()));
+                    managers[dag_id].release();
                     log.write_dag_release_time(dag_id, current_time);
                 }
             }
@@ -264,27 +293,13 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         log.write_dag_finish_time(dag_id, current_time);
                         // Reset the state of the DAG
                         dag.reset_pre_done_count();
+                        managers[dag_id].complete_execution();
                     } else {
                         for suc_node in suc_nodes {
                             dag.increment_pre_done_count(suc_node);
-                        }
-                    }
-                }
-            }
-
-            // Add the node to the ready queue when all preceding nodes have finished
-            for result in process_result {
-                if let ProcessResult::Done(node_data) = result {
-                    let dag_id = node_data.get_params_value("dag_id") as usize;
-                    let dag = &mut dag_set[dag_id];
-                    let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
-                        .unwrap_or_default();
-
-                    // If all preceding nodes have finished, add the node to the ready queue
-                    for suc_node in suc_nodes {
-                        if dag.is_node_ready(suc_node) {
-                            ready_queue.insert(NodeDataWrapper(dag[suc_node].clone()));
+                            if dag.is_node_ready(suc_node) {
+                                ready_queue.insert(NodeDataWrapper(dag[suc_node].clone()));
+                            }
                         }
                     }
                 }

@@ -63,52 +63,40 @@ where
 }
 
 #[derive(Clone, Default, CopyGetters, Setters)]
-struct DAGStateManager {
-    #[getset(get_copy = "pub with_prefix")]
-    is_started: bool,
+pub struct DynFedDAGStateManager {
     #[getset(get_copy = "pub with_prefix", set = "pub")]
     minimum_cores: i32,
-    is_released: bool,
     num_using_cores: i32,
     num_allocated_cores: i32,
     execution_order: VecDeque<NodeIndex>,
     initial_execution_order: VecDeque<NodeIndex>,
     release_count: i32,
+    dag_state: DAGState,
 }
 
-impl DAGStateManagerBase for DAGStateManager {
+impl DAGStateManagerBase for DynFedDAGStateManager {
     getset_dag_state_manager!();
+
+    fn complete_execution(&mut self) {
+        self.execution_order = self.initial_execution_order.clone();
+        self.num_allocated_cores = 0; // When the last node is finished, the core allocated to dag is freed.
+        self.set_dag_state(DAGState::Waiting);
+    }
 }
 
-impl DAGStateManager {
-    fn release(&mut self) {
-        self.is_released = true;
-        self.increment_release_count();
-    }
-
+impl DynFedDAGStateManager {
     fn start(&mut self) {
         self.num_allocated_cores = self.minimum_cores;
-        self.is_started = true;
+        self.set_dag_state(DAGState::Running);
     }
 
     fn can_start(&self, idle_core_num: i32) -> bool {
-        (!self.is_started && self.is_released) && (self.minimum_cores <= idle_core_num)
-    }
-
-    fn reset_state(&mut self) {
-        self.set_execution_order(self.initial_execution_order.clone());
-        self.free_allocated_cores(); // When the last node is finished, the core allocated to dag is freed.
-        self.is_started = false;
-        self.is_released = false;
+        (self.dag_state == DAGState::Ready) && (self.minimum_cores <= idle_core_num)
     }
 
     fn set_execution_order(&mut self, execution_order: VecDeque<NodeIndex>) {
         self.initial_execution_order = execution_order.clone();
         self.execution_order = execution_order;
-    }
-
-    fn free_allocated_cores(&mut self) {
-        self.num_allocated_cores = 0;
     }
 
     fn get_execution_order_head(&self) -> Option<&NodeIndex> {
@@ -129,7 +117,7 @@ impl DAGStateManager {
     }
 }
 
-fn get_total_allocated_cores(expansion_managers: &[DAGStateManager]) -> i32 {
+fn get_total_allocated_cores(expansion_managers: &[DynFedDAGStateManager]) -> i32 {
     let mut total_allocated_cores = 0;
     for expansion_manager in expansion_managers {
         total_allocated_cores += expansion_manager.num_allocated_cores;
@@ -169,7 +157,7 @@ where
 
     fn schedule(&mut self) -> i32 {
         // Initialize DAGStateManagers
-        let mut managers = vec![DAGStateManager::default(); self.dag_set.len()];
+        let mut managers = vec![DynFedDAGStateManager::default(); self.dag_set.len()];
         for dag in self.dag_set.iter() {
             let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
@@ -184,10 +172,7 @@ where
             // Release DAGs
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();
-                if current_time
-                    == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * managers[dag_id].get_release_count()
-                {
+                if managers[dag_id].can_release(current_time, dag) {
                     managers[dag_id].release();
                     self.log.write_dag_release_time(dag_id, current_time);
                 }
@@ -206,7 +191,7 @@ where
             // Allocate the nodes of ready_queue to idle cores
             for dag in self.dag_set.iter() {
                 let dag_id = dag.get_dag_id();
-                if !managers[dag_id].get_is_started() {
+                if managers[dag_id].get_dag_state() != DAGState::Running {
                     continue;
                 }
 
@@ -249,7 +234,7 @@ where
                         self.log.write_dag_finish_time(dag_id, current_time);
                         // Reset the state of the DAG
                         dag.reset_pre_done_count();
-                        managers[dag_id].reset_state();
+                        managers[dag_id].complete_execution();
                     } else {
                         for suc_node in suc_nodes {
                             dag.increment_pre_done_count(suc_node);
