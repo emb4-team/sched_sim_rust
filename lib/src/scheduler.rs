@@ -160,51 +160,18 @@ impl NodeDataWrapper {
 
 pub trait DAGStateManagerBase {
     // getter, setter
-    fn get_is_started(&self) -> bool;
-    fn set_is_started(&mut self, is_started: bool);
-    fn get_is_released(&self) -> bool;
-    fn set_is_released(&mut self, is_released: bool);
     fn get_release_count(&self) -> i32;
     fn set_release_count(&mut self, release_count: i32);
 
     // method implementation
-    fn start(&mut self) {
-        self.set_is_started(true);
-    }
-
-    fn can_start(&self) -> bool {
-        !self.get_is_started() && self.get_is_released()
-    }
-
     fn increment_release_count(&mut self) {
         self.set_release_count(self.get_release_count() + 1);
-    }
-
-    fn reset_state(&mut self) {
-        self.set_is_started(false);
-        self.set_is_released(false);
-    }
-
-    fn release(&mut self) {
-        self.set_is_released(true);
     }
 }
 
 #[macro_export]
 macro_rules! getset_dag_state_manager {
     () => {
-        fn get_is_started(&self) -> bool {
-            self.is_started
-        }
-        fn set_is_started(&mut self, is_started: bool) {
-            self.is_started = is_started;
-        }
-        fn get_is_released(&self) -> bool {
-            self.is_released
-        }
-        fn set_is_released(&mut self, is_released: bool) {
-            self.is_released = is_released;
-        }
         fn get_release_count(&self) -> i32 {
             self.release_count
         }
@@ -215,10 +182,8 @@ macro_rules! getset_dag_state_manager {
 }
 
 #[derive(Clone, Default)]
-pub struct DAGStateManager {
+struct DAGStateManager {
     release_count: i32,
-    is_started: bool,
-    is_released: bool,
 }
 
 impl DAGStateManagerBase for DAGStateManager {
@@ -260,24 +225,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 let dag_id = dag.get_dag_id();
                 if current_time
                     == dag.get_head_offset()
-                        + dag.get_head_period().unwrap() * managers[dag_id].release_count
+                        + dag.get_head_period().unwrap() * managers[dag_id].get_release_count()
                 {
-                    managers[dag_id].release();
-                    managers[dag_id].increment_release_count();
-                    log.write_dag_release_time(dag_id, current_time);
-                }
-            }
-
-            // Start DAGs if there are free cores
-            let mut idle_core_num = processor.get_idle_core_num();
-            for (dag_id, manager) in managers.iter_mut().enumerate() {
-                if manager.can_start() && idle_core_num > 0 {
-                    manager.start();
-                    idle_core_num -= 1;
-                    let dag = &dag_set[dag_id];
                     let source_node = &dag[dag.get_source_nodes()[0]];
                     ready_queue.insert(NodeDataWrapper(source_node.clone()));
-                    log.write_dag_start_time(dag_id, current_time);
+                    managers[dag_id].increment_release_count();
+                    log.write_dag_release_time(dag_id, current_time);
                 }
             }
 
@@ -317,7 +270,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         log.write_dag_finish_time(dag_id, current_time);
                         // Reset the state of the DAG
                         dag.reset_pre_done_count();
-                        managers[dag_id].reset_state();
                     } else {
                         for suc_node in suc_nodes {
                             dag.increment_pre_done_count(suc_node);
