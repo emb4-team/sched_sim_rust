@@ -211,12 +211,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let mut log = self.get_log();
         let mut ready_queue = BTreeSet::new();
 
-        // Initialize DAGSet and DAGStateManagers
-        for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_id(dag_id);
-            dag.set_dag_period(dag.get_head_period().unwrap());
-        }
-
         // Start scheduling
         let hyper_period = get_hyper_period(&dag_set);
         while current_time < hyper_period {
