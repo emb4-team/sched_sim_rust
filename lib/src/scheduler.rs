@@ -334,7 +334,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result.clone() {
+            for result in process_result {
                 if let ProcessResult::Done(node_data) = result {
                     let ready_nodes =
                         self.post_process_on_node_completion(&node_data, &mut managers);
