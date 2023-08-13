@@ -308,12 +308,10 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     }
 
     fn schedule(&mut self) -> i32 {
-        let dag_set = self.get_dag_set();
-
         // Start scheduling
-        let mut managers = vec![DAGStateManager::default(); dag_set.len()];
+        let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
         let mut ready_queue = BTreeSet::new();
-        let hyper_period = get_hyper_period(&dag_set);
+        let hyper_period = get_hyper_period(&self.get_dag_set());
         while self.get_current_time() < hyper_period {
             // Release DAGs
             let ready_nodes = self.release_dags(&mut managers);
