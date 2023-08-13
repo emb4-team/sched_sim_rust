@@ -62,6 +62,7 @@ pub struct GlobalEDFScheduler {
     dag_set: Vec<Graph<NodeData, i32>>,
     processor: HomogeneousProcessor,
     log: DAGSetSchedulerLog,
+    current_time: i32,
 }
 
 impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
@@ -75,6 +76,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             dag_set: dag_set.clone(),
             processor: processor.clone(),
             log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
+            current_time: 0,
         }
     }
 

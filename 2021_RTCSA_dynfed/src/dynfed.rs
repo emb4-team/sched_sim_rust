@@ -133,6 +133,7 @@ where
     processor: HomogeneousProcessor,
     scheduler: T,
     log: DAGSetSchedulerLog,
+    current_time: i32,
 }
 
 impl<T> DAGSetSchedulerBase<HomogeneousProcessor> for DynamicFederatedScheduler<T>
@@ -152,6 +153,7 @@ where
             processor: processor.clone(),
             scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
             log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
+            current_time: 0,
         }
     }
 
@@ -166,17 +168,10 @@ where
         }
 
         // Start scheduling
-        let mut current_time = 0;
         let hyper_period = get_hyper_period(&self.dag_set);
-        while current_time < hyper_period {
+        while self.get_current_time() < hyper_period {
             // Release DAGs
-            for dag in self.dag_set.iter() {
-                let dag_id = dag.get_dag_id();
-                if managers[dag_id].can_release(current_time, dag) {
-                    managers[dag_id].release();
-                    self.log.write_dag_release_time(dag_id, current_time);
-                }
-            }
+            self.release_dags(&mut managers);
 
             // Start DAGs if there are free cores
             let mut idle_core_num =
@@ -189,7 +184,7 @@ where
             }
 
             // Allocate the nodes of ready_queue to idle cores
-            for dag in self.dag_set.iter() {
+            for dag in self.get_dag_set().iter() {
                 let dag_id = dag.get_dag_id();
                 if managers[dag_id].get_dag_state() != DAGState::Running {
                     continue;
@@ -198,17 +193,8 @@ where
                 while let Some(node_i) = managers[dag_id].get_execution_order_head() {
                     if dag.is_node_ready(*node_i) && managers[dag_id].get_unused_cores() > 0 {
                         let core_id = self.processor.get_idle_core_index().unwrap();
-                        self.log.write_allocating_node(
-                            dag_id,
-                            node_i.index(),
-                            core_id,
-                            current_time,
-                            *dag[*node_i].params.get("execution_time").unwrap(),
-                        );
-                        self.processor.allocate_specific_core(
-                            core_id,
-                            &dag[managers[dag_id].allocate_head()],
-                        );
+                        let node = &dag[managers[dag_id].allocate_head()];
+                        self.allocate_node(node, core_id);
                     } else {
                         break;
                     }
@@ -216,37 +202,20 @@ where
             }
 
             // Process unit time
-            current_time += 1;
-            let process_result = self.processor.process();
+            let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
             for result in process_result.clone() {
                 if let ProcessResult::Done(node_data) = result {
-                    self.log.write_finishing_node(&node_data, current_time);
-                    let dag_id = node_data.get_params_value("dag_id") as usize;
-                    managers[dag_id].decrement_num_using_cores();
-                    // Increase pre_done_count of successor nodes
-                    let dag = &mut self.dag_set[dag_id];
-                    let suc_nodes = dag
-                        .get_suc_nodes(NodeIndex::new(node_data.get_id() as usize))
-                        .unwrap_or_default();
-                    if suc_nodes.is_empty() {
-                        self.log.write_dag_finish_time(dag_id, current_time);
-                        // Reset the state of the DAG
-                        dag.reset_pre_done_count();
-                        managers[dag_id].complete_execution();
-                    } else {
-                        for suc_node in suc_nodes {
-                            dag.increment_pre_done_count(suc_node);
-                        }
-                    }
+                    managers[node_data.get_params_value("dag_id") as usize]
+                        .decrement_num_using_cores();
+                    self.post_process_on_node_completion(&node_data, &mut managers);
                 }
             }
         }
 
-        self.log.calculate_utilization(current_time);
-        self.log.calculate_response_time();
-        current_time
+        self.calculate_log();
+        self.get_current_time()
     }
 }
 
