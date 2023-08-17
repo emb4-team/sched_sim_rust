@@ -224,21 +224,24 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let current_time = self.get_current_time();
         let mut ready_nodes = Vec::new();
 
-        for dag in self.get_dag_set().iter() {
+        for dag in self.get_dag_set().iter_mut() {
             let dag_id = dag.get_dag_value("dag_id") as usize;
             if (managers[dag_id].get_dag_state() == DAGState::Waiting)
                 && (current_time
                     == dag.get_head_offset()
                         + dag.get_head_period().unwrap() * managers[dag_id].get_release_count())
             {
-                ready_nodes.push(dag[dag.get_source_nodes()[0]].clone());
                 managers[dag_id].release();
-
+                dag.update_dag_value(
+                    "absolute_deadline",
+                    dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
+                );
+                ready_nodes.push(dag[dag.get_source_nodes()[0]].clone());
                 self.get_log_mut()
                     .write_dag_release_time(dag_id, current_time);
             }
         }
-
+        self.set_dag_set(self.get_dag_set().clone());
         ready_nodes
     }
     fn allocate_node(&mut self, node: &NodeData, core_i: usize) {
@@ -303,7 +306,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Release DAGs
             let ready_nodes = self.release_dags(&mut managers);
             for ready_node in ready_nodes {
+                println!("ready_node: {:?}", ready_node);
                 ready_queue.insert(NodeDataWrapper(ready_node));
+                println!("ready_queue: {:?}", ready_queue);
             }
 
             // Allocate the nodes of ready_queue to idle cores

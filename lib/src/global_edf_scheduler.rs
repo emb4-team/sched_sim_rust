@@ -13,8 +13,10 @@ use crate::{
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // Define the keys to compare
-        let key1 = "period";
+        let key1 = "absolute_deadline";
         let key2 = "dag_id";
+
+        println!("self: {:?}", self.0.get_params_value(key1));
         match (self.0.params.get(key1), other.0.params.get(key1)) {
             (Some(self_val), Some(other_val)) => match self_val.cmp(other_val) {
                 // If the keys are equal, compare by id
@@ -69,8 +71,8 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         let mut dag_set = dag_set.to_vec();
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_value("dag_id", dag_id as i32);
-            dag.set_dag_value("period", dag.get_head_period().unwrap());
+            dag.add_dag_value("dag_id", dag_id as i32);
+            dag.add_dag_value("absolute_deadline", dag.get_head_period().unwrap());
         }
         Self {
             dag_set: dag_set.to_vec(),
