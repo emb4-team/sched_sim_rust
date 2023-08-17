@@ -116,7 +116,15 @@ where
                 for finish_node in finish_nodes {
                     let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
                     for suc_node in suc_nodes {
-                        dag.increment_pre_done_count(suc_node);
+                        if dag[suc_node].params.contains_key("pre_done_count") {
+                            dag.update_param(
+                                suc_node,
+                                "pre_done_count",
+                                dag[suc_node].get_params_value("pre_done_count") + 1,
+                            );
+                        } else {
+                            dag.add_param(suc_node, "pre_done_count", 1);
+                        }
                         if dag.is_node_ready(suc_node) {
                             ready_queue.push_back(dag[suc_node].clone());
                         }
@@ -292,14 +300,22 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let mut ready_nodes = Vec::new();
         if let Some(suc_nodes) = dag.get_suc_nodes(NodeIndex::new(node.get_id() as usize)) {
             for suc_node in suc_nodes {
-                dag.increment_pre_done_count(suc_node);
+                if dag[suc_node].params.contains_key("pre_done_count") {
+                    dag.update_param(
+                        suc_node,
+                        "pre_done_count",
+                        dag[suc_node].get_params_value("pre_done_count") + 1,
+                    );
+                } else {
+                    dag.add_param(suc_node, "pre_done_count", 1);
+                }
                 if dag.is_node_ready(suc_node) {
                     ready_nodes.push(dag[suc_node].clone());
                 }
             }
         } else {
             log.write_dag_finish_time(dag_id, current_time);
-            dag.reset_pre_done_count();
+            dag.set_dag_param("pre_done_count", 0);
             managers[dag_id].complete_execution();
         }
 
