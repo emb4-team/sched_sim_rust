@@ -145,7 +145,7 @@ where
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         let mut dag_set = dag_set.to_vec();
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.add_dag_value("dag_id", dag_id as i32);
+            dag.set_dag_value("dag_id", dag_id as i32);
         }
 
         Self {

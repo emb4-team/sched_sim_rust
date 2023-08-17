@@ -223,8 +223,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn release_dags(&mut self, managers: &mut [impl DAGStateManagerBase]) -> Vec<NodeData> {
         let current_time = self.get_current_time();
         let mut ready_nodes = Vec::new();
+        let mut dag_set = self.get_dag_set();
 
-        for dag in self.get_dag_set().iter_mut() {
+        for dag in dag_set.iter_mut() {
             let dag_id = dag.get_dag_value("dag_id") as usize;
             if (managers[dag_id].get_dag_state() == DAGState::Waiting)
                 && (current_time
@@ -232,7 +233,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         + dag.get_head_period().unwrap() * managers[dag_id].get_release_count())
             {
                 managers[dag_id].release();
-                dag.update_dag_value(
+                dag.set_dag_value(
                     "absolute_deadline",
                     dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
                 );
@@ -241,7 +242,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     .write_dag_release_time(dag_id, current_time);
             }
         }
-        self.set_dag_set(self.get_dag_set().clone());
+        self.set_dag_set(dag_set);
         ready_nodes
     }
     fn allocate_node(&mut self, node: &NodeData, core_i: usize) {
@@ -326,6 +327,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Post-process on completion of node execution
             for result in process_result {
                 if let ProcessResult::Done(node_data) = result {
+                    println!("node_data: {:?}", node_data);
                     let ready_nodes =
                         self.post_process_on_node_completion(&node_data, &mut managers);
                     for ready_node in ready_nodes {
