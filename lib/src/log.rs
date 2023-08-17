@@ -4,20 +4,20 @@ use serde::Serialize;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::graph_extension::{GraphExtension, NodeData};
-use crate::util::append_info_to_yaml;
+use crate::util::{append_info_to_yaml, get_hyper_period};
 
 pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     let yaml = serde_yaml::to_string(&target_struct).expect("Failed to serialize.");
     append_info_to_yaml(file_path, &yaml);
 }
 
-fn init_node_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<JobLog> {
-    let mut node_logs = Vec::with_capacity(dag.node_count());
+fn init_job_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<JobLog> {
+    let mut job_logs = Vec::with_capacity(dag.node_count());
     for node in dag.node_indices() {
-        node_logs.push(JobLog::new(dag_id, dag[node].id as usize));
+        job_logs.push(JobLog::new(dag_id, dag[node].id as usize));
     }
 
-    node_logs
+    job_logs
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -241,14 +241,14 @@ impl DAGSchedulerLog {
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
-            node_logs: init_node_logs(dag, dag_id),
+            node_logs: init_job_logs(dag, dag_id),
             processor_log: ProcessorLog::new(num_cores),
         }
     }
 
     pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
         let dag_id = 0;
-        self.node_logs = init_node_logs(dag, dag_id);
+        self.node_logs = init_job_logs(dag, dag_id);
     }
 
     pub fn update_processor(&mut self, processor_log: ProcessorLog) {
@@ -260,11 +260,10 @@ impl DAGSchedulerLog {
         node_data: &NodeData,
         core_id: usize,
         current_time: i32,
-        release_count: usize,
     ) {
         let node_id = node_data.id as usize;
         self.node_logs[node_id].core_id.push(core_id);
-        self.node_logs[node_id].job_id = release_count;
+        self.node_logs[node_id].job_id = 0; // This is a fixed value because DAG is released only once.
         self.node_logs[node_id].start_time = current_time;
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.params.get("execution_time").unwrap_or(&0);
@@ -291,7 +290,7 @@ pub struct DAGSetSchedulerLog {
     dag_set_info: DAGSetInfo,
     processor_info: ProcessorInfo,
     dag_set_log: Vec<DAGLog>,
-    node_set_logs: Vec<Vec<JobLog>>,
+    node_set_logs: Vec<Vec<Vec<JobLog>>>, // node_set_logs[dag_id][job_id][node_id]
     processor_log: ProcessorLog,
 }
 
@@ -302,10 +301,14 @@ impl DAGSetSchedulerLog {
             dag_set_log.push(DAGLog::new(i));
         }
 
+        let mut job_set_logs = Vec::new();
         let mut node_set_logs = Vec::with_capacity(dag_set.len());
         for (dag_id, dag) in dag_set.iter().enumerate() {
-            let node_logs = init_node_logs(dag, dag_id);
-            node_set_logs.push(node_logs);
+            for _ in 0..get_hyper_period(dag_set) / dag.get_head_period().unwrap() {
+                job_set_logs.push(init_job_logs(dag, dag_id));
+            }
+            node_set_logs.push(job_set_logs.clone());
+            job_set_logs.clear();
         }
 
         Self {
@@ -334,14 +337,16 @@ impl DAGSetSchedulerLog {
         current_time: i32,
         proc_time: i32,
     ) {
-        self.node_set_logs[dag_id][node_id].core_id.push(core_id);
-        self.node_set_logs[dag_id][node_id].job_id = job_id;
-        self.node_set_logs[dag_id][node_id].start_time = current_time;
+        self.node_set_logs[dag_id][job_id][node_id]
+            .core_id
+            .push(core_id);
+        self.node_set_logs[dag_id][job_id][node_id].job_id = job_id;
+        self.node_set_logs[dag_id][job_id][node_id].start_time = current_time;
         self.processor_log.core_logs[core_id].total_proc_time += proc_time;
     }
 
-    pub fn write_finishing_job(&mut self, node_data: &NodeData, finish_time: i32) {
-        self.node_set_logs[node_data.params["dag_id"] as usize][node_data.id as usize]
+    pub fn write_finishing_job(&mut self, node_data: &NodeData, finish_time: i32, job_id: usize) {
+        self.node_set_logs[node_data.params["dag_id"] as usize][job_id][node_data.id as usize]
             .finish_time = finish_time;
     }
 

@@ -9,7 +9,7 @@ use num_integer::lcm;
 use petgraph::graph::Graph;
 use yaml_rust::YamlLoader;
 
-pub fn get_hyper_period(dag_set: &Vec<Graph<NodeData, i32>>) -> i32 {
+pub fn get_hyper_period(dag_set: &[Graph<NodeData, i32>]) -> i32 {
     let mut hyper_period = 1;
     for dag in dag_set {
         let dag_period = dag.get_head_period().unwrap();

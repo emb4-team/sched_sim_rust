@@ -55,7 +55,6 @@ where
             ready_queue.push_back(dag[source_node_i].clone());
 
             let mut current_time = 0;
-            let release_count = 1; // This is a fixed value because DAG is released only once.
             loop {
                 Self::sort_ready_queue(&mut ready_queue);
 
@@ -69,7 +68,6 @@ where
                                 &node_d,
                                 core_index,
                                 current_time - DUMMY_EXECUTION_TIME,
-                                release_count,
                             );
                         }
                         execution_order.push_back(NodeIndex::new(node_d.id as usize));
@@ -275,7 +273,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.get_log_mut().write_allocating_job(
             node.get_params_value("dag_id") as usize,
             node.get_id() as usize,
-            release_count as usize,
+            (release_count - 1) as usize,
             core_i,
             current_time,
             node.get_params_value("execution_time"),
@@ -296,7 +294,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
 
-        log.write_finishing_job(node, current_time);
+        log.write_finishing_job(
+            node,
+            current_time,
+            (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
+        );
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
 
@@ -370,7 +372,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Post-process on completion of node execution
             for result in process_result {
                 if let ProcessResult::Done(node_data) = result {
-                    println!("node_data: {:?}", node_data);
                     let ready_nodes =
                         self.post_process_on_node_completion(&node_data, &mut managers);
                     for ready_node in ready_nodes {

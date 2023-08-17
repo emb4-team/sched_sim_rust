@@ -379,27 +379,31 @@ mod tests {
         );
 
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["core_id"][0]
+            yaml_doc["node_set_logs"][1][0][3]["core_id"][0]
                 .as_i64()
                 .unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["dag_id"].as_i64().unwrap(),
+            yaml_doc["node_set_logs"][1][0][3]["dag_id"]
+                .as_i64()
+                .unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["node_id"].as_i64().unwrap(),
+            yaml_doc["node_set_logs"][1][0][3]["node_id"]
+                .as_i64()
+                .unwrap(),
             3
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["start_time"][0]
+            yaml_doc["node_set_logs"][1][0][3]["start_time"]
                 .as_i64()
                 .unwrap(),
             11
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["finish_time"][0]
+            yaml_doc["node_set_logs"][1][0][3]["finish_time"]
                 .as_i64()
                 .unwrap(),
             22
