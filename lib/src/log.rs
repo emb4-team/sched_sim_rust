@@ -101,7 +101,6 @@ impl ProcessorInfo {
 pub struct DAGLog {
     dag_id: usize,
     release_time: Vec<i32>,
-    start_time: Vec<i32>,
     finish_time: Vec<i32>,
     response_time: Vec<i32>,
     average_response_time: f32,
@@ -113,7 +112,6 @@ impl DAGLog {
         Self {
             dag_id,
             release_time: Default::default(),
-            start_time: Default::default(),
             finish_time: Default::default(),
             response_time: Default::default(),
             average_response_time: Default::default(),
@@ -315,10 +313,6 @@ impl DAGSetSchedulerLog {
 
     pub fn write_dag_release_time(&mut self, dag_id: usize, release_time: i32) {
         self.dag_set_log[dag_id].release_time.push(release_time);
-    }
-
-    pub fn write_dag_start_time(&mut self, dag_id: usize, start_time: i32) {
-        self.dag_set_log[dag_id].start_time.push(start_time);
     }
 
     pub fn write_dag_finish_time(&mut self, dag_id: usize, finish_time: i32) {
