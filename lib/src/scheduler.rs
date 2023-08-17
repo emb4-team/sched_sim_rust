@@ -149,11 +149,13 @@ where
 
 // Define a new wrapper type
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NodeDataWrapper(pub NodeData);
+pub struct NodeDataWrapper {
+    pub node_data: NodeData,
+}
 
 impl NodeDataWrapper {
     pub fn convert_node_data(&self) -> NodeData {
-        self.0.clone()
+        self.node_data.clone()
     }
 }
 
@@ -171,11 +173,11 @@ pub trait DAGStateManagerBase {
     fn set_release_count(&mut self, release_count: i32);
     fn get_dag_state(&self) -> DAGState;
     fn set_dag_state(&mut self, dag_state: DAGState);
-    // method definition
+    // method implementation
     fn complete_execution(&mut self) {
         self.set_dag_state(DAGState::Waiting);
     }
-    // method implementation
+
     fn release(&mut self) {
         self.set_release_count(self.get_release_count() + 1);
         self.set_dag_state(DAGState::Ready);
@@ -220,6 +222,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn set_current_time(&mut self, current_time: i32);
     // method definition
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
+    // method implementation
     fn release_dags(&mut self, managers: &mut [impl DAGStateManagerBase]) -> Vec<NodeData> {
         let current_time = self.get_current_time();
         let mut ready_nodes = Vec::new();
@@ -245,6 +248,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.set_dag_set(dag_set);
         ready_nodes
     }
+
     fn allocate_node(&mut self, node: &NodeData, core_i: usize) {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
@@ -257,10 +261,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             node.get_params_value("execution_time"),
         );
     }
+
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
         self.set_current_time(self.get_current_time() + 1);
         self.get_processor_mut().process()
     }
+
     fn post_process_on_node_completion(
         &mut self,
         node: &NodeData,
@@ -292,12 +298,14 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
         ready_nodes
     }
+
     fn calculate_log(&mut self) {
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
         log.calculate_utilization(current_time);
         log.calculate_response_time();
     }
+
     fn schedule(&mut self) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
@@ -307,7 +315,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Release DAGs
             let ready_nodes = self.release_dags(&mut managers);
             for ready_node in ready_nodes {
-                ready_queue.insert(NodeDataWrapper(ready_node));
+                ready_queue.insert(NodeDataWrapper {
+                    node_data: ready_node,
+                });
             }
 
             // Allocate the nodes of ready_queue to idle cores
@@ -331,7 +341,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     let ready_nodes =
                         self.post_process_on_node_completion(&node_data, &mut managers);
                     for ready_node in ready_nodes {
-                        ready_queue.insert(NodeDataWrapper(ready_node));
+                        ready_queue.insert(NodeDataWrapper {
+                            node_data: ready_node,
+                        });
                     }
                 }
             }
@@ -340,6 +352,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.calculate_log();
         self.get_current_time()
     }
+
     fn dump_log(&mut self, dir_path: &str, alg_name: &str) -> String {
         let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log_mut().dump_log_to_yaml(&file_path);

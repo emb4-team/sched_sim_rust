@@ -16,16 +16,16 @@ impl PartialOrd for NodeDataWrapper {
         let key1 = "absolute_deadline";
         let key2 = "dag_id";
 
-        let self_val = self.0.params.get(key1).unwrap();
-        let other_val = other.0.params.get(key1).unwrap();
+        let self_val = self.node_data.params.get(key1).unwrap();
+        let other_val = other.node_data.params.get(key1).unwrap();
 
         match self_val.cmp(other_val) {
             // If the keys are equal, compare by id
-            Ordering::Equal => match self.0.id.partial_cmp(&other.0.id) {
+            Ordering::Equal => match self.node_data.id.partial_cmp(&other.node_data.id) {
                 // If the ids are also equal, compare by dag_id
                 Some(Ordering::Equal) => {
-                    let self_dag = self.0.params.get(key2).unwrap();
-                    let other_dag = other.0.params.get(key2).unwrap();
+                    let self_dag = self.node_data.params.get(key2).unwrap();
+                    let other_dag = other.node_data.params.get(key2).unwrap();
                     Some(self_dag.cmp(other_dag))
                 }
                 other => other,
