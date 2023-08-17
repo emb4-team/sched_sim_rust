@@ -11,7 +11,6 @@ use std::collections::VecDeque;
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
-use lib::log::*;
 use lib::processor::ProcessorBase;
 use lib::scheduler::*;
 use lib::util::get_hyper_period;
@@ -73,6 +72,16 @@ pub struct DynFedDAGStateManager {
     initial_execution_order: VecDeque<NodeIndex>,
     release_count: i32,
     dag_state: DAGState,
+}
+
+impl DAGStateManagerBase for DynFedDAGStateManager {
+    getset_dag_state_manager!();
+
+    fn complete_execution(&mut self) {
+        self.execution_order = self.initial_execution_order.clone();
+        self.num_allocated_cores = 0; // When the last node is finished, the core allocated to dag is freed.
+        self.set_dag_state(DAGState::Waiting);
+    }
 }
 
 impl DynFedDAGStateManager {
