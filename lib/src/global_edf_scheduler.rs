@@ -16,7 +16,6 @@ impl PartialOrd for NodeDataWrapper {
         let key1 = "absolute_deadline";
         let key2 = "dag_id";
 
-        println!("self: {:?}", self.0.get_params_value(key1));
         match (self.0.params.get(key1), other.0.params.get(key1)) {
             (Some(self_val), Some(other_val)) => match self_val.cmp(other_val) {
                 // If the keys are equal, compare by id
