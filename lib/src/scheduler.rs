@@ -1,4 +1,7 @@
-use std::collections::{BTreeSet, VecDeque};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeSet, VecDeque},
+};
 
 use crate::{
     core::ProcessResult,
@@ -153,6 +156,12 @@ pub struct NodeDataWrapper {
     pub node_data: NodeData,
 }
 
+impl Ord for NodeDataWrapper {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap_or(Ordering::Equal)
+    }
+}
+
 impl NodeDataWrapper {
     pub fn convert_node_data(&self) -> NodeData {
         self.node_data.clone()
@@ -229,14 +238,14 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let mut dag_set = self.get_dag_set();
 
         for dag in dag_set.iter_mut() {
-            let dag_id = dag.get_dag_value("dag_id") as usize;
+            let dag_id = dag.get_dag_param("dag_id") as usize;
             if (managers[dag_id].get_dag_state() == DAGState::Waiting)
                 && (current_time
                     == dag.get_head_offset()
                         + dag.get_head_period().unwrap() * managers[dag_id].get_release_count())
             {
                 managers[dag_id].release();
-                dag.set_dag_value(
+                dag.set_dag_param(
                     "absolute_deadline",
                     dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
                 );

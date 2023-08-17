@@ -61,8 +61,8 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
-    fn get_dag_value(&self, key: &str) -> i32;
-    fn set_dag_value(&mut self, key: &str, value: i32);
+    fn get_dag_param(&self, key: &str) -> i32;
+    fn set_dag_param(&mut self, key: &str, value: i32);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
     fn is_node_ready(&self, node_i: NodeIndex) -> bool;
     fn increment_pre_done_count(&mut self, node_i: NodeIndex);
@@ -537,17 +537,17 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn get_dag_value(&self, key: &str) -> i32 {
+    fn get_dag_param(&self, key: &str) -> i32 {
         if self.node_indices().count() == 0 {
             panic!(
-                "Error: {} does not exist. Please use set_dag_value({}, value)",
+                "Error: {} does not exist. Please use set_dag_param({}, value)",
                 key, key
             );
         }
         self[NodeIndex::new(0)].params[key]
     }
 
-    fn set_dag_value(&mut self, key: &str, value: i32) {
+    fn set_dag_param(&mut self, key: &str, value: i32) {
         if self.node_indices().count() == 0 {
             panic!("No node found.");
         }
@@ -1259,22 +1259,22 @@ mod tests {
     fn test_get_dag_id_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "dag_id", 0));
-        assert_eq!(dag.get_dag_value("dag_id"), 0);
+        assert_eq!(dag.get_dag_param("dag_id"), 0);
     }
 
     #[test]
     #[should_panic]
     fn test_get_dag_id_no_exist_node() {
         let dag = Graph::<NodeData, i32>::new();
-        dag.get_dag_value("dag_id");
+        dag.get_dag_param("dag_id");
     }
 
     #[test]
-    fn test_set_dag_value_normal() {
+    fn test_set_dag_param_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         dag.add_node(create_node(1, "execution_time", 0));
-        dag.set_dag_value("dag_id", 0);
+        dag.set_dag_param("dag_id", 0);
 
         for node_i in dag.node_indices() {
             assert_eq!(dag[node_i].params["dag_id"], 0);
@@ -1283,9 +1283,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_set_dag_value_no_exist_node() {
+    fn test_set_dag_param_no_exist_node() {
         let mut dag = Graph::<NodeData, i32>::new();
-        dag.set_dag_value("dag_id", 0);
+        dag.set_dag_param("dag_id", 0);
     }
 
     #[test]

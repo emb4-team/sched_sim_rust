@@ -145,7 +145,7 @@ where
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         let mut dag_set = dag_set.to_vec();
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_value("dag_id", dag_id as i32);
+            dag.set_dag_param("dag_id", dag_id as i32);
         }
 
         Self {
@@ -161,7 +161,7 @@ where
         // Initialize DAGStateManagers
         let mut managers = vec![DynFedDAGStateManager::default(); self.dag_set.len()];
         for dag in self.dag_set.iter() {
-            let dag_id = dag.get_dag_value("dag_id") as usize;
+            let dag_id = dag.get_dag_param("dag_id") as usize;
             let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
             managers[dag_id].set_minimum_cores(minimum_cores as i32);
@@ -185,7 +185,7 @@ where
 
             // Allocate the nodes of ready_queue to idle cores
             for dag in self.get_dag_set().iter() {
-                let dag_id = dag.get_dag_value("dag_id") as usize;
+                let dag_id = dag.get_dag_param("dag_id") as usize;
                 if managers[dag_id].get_dag_state() != DAGState::Running {
                     continue;
                 }
@@ -204,7 +204,7 @@ where
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result.clone() {
+            for result in process_result {
                 if let ProcessResult::Done(node_data) = result {
                     managers[node_data.get_params_value("dag_id") as usize]
                         .decrement_num_using_cores();

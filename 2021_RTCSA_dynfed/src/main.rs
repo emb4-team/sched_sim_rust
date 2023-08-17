@@ -55,7 +55,7 @@ fn main() {
             break; // If result is already false, no need to check further.
         }
         result = result
-            && dag_set_log[dag.get_dag_value("dag_id") as usize]["worst_response_time"]
+            && dag_set_log[dag.get_dag_param("dag_id") as usize]["worst_response_time"]
                 .as_i64()
                 .unwrap()
                 <= dag.get_head_period().unwrap() as i64;

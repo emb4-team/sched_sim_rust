@@ -12,32 +12,24 @@ use crate::{
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        // Define the keys to compare
-        let key1 = "absolute_deadline";
-        let key2 = "dag_id";
-
-        let self_val = self.node_data.params.get(key1).unwrap();
-        let other_val = other.node_data.params.get(key1).unwrap();
-
-        match self_val.cmp(other_val) {
+        let comparison_metric = "absolute_deadline";
+        match self
+            .node_data
+            .get_params_value(comparison_metric)
+            .cmp(&other.node_data.get_params_value(comparison_metric))
+        {
             // If the keys are equal, compare by id
             Ordering::Equal => match self.node_data.id.partial_cmp(&other.node_data.id) {
                 // If the ids are also equal, compare by dag_id
-                Some(Ordering::Equal) => {
-                    let self_dag = self.node_data.params.get(key2).unwrap();
-                    let other_dag = other.node_data.params.get(key2).unwrap();
-                    Some(self_dag.cmp(other_dag))
-                }
+                Some(Ordering::Equal) => Some(
+                    self.node_data
+                        .get_params_value("dag_id")
+                        .cmp(&other.node_data.get_params_value("dag_id")),
+                ),
                 other => other,
             },
             other => Some(other),
         }
-    }
-}
-
-impl Ord for NodeDataWrapper {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap_or(Ordering::Equal)
     }
 }
 
@@ -52,7 +44,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         let mut dag_set = dag_set.to_vec();
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_value("dag_id", dag_id as i32);
+            dag.set_dag_param("dag_id", dag_id as i32);
         }
         Self {
             dag_set: dag_set.to_vec(),
