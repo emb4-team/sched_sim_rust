@@ -62,8 +62,7 @@ pub trait GraphExtension {
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_dag_id(&self) -> usize;
-    fn set_dag_id(&mut self, dag_id: usize);
-    fn set_dag_period(&mut self, period: i32);
+    fn set_dag_value(&mut self, key: &str, value: i32);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
     fn is_node_ready(&self, node_i: NodeIndex) -> bool;
     fn increment_pre_done_count(&mut self, node_i: NodeIndex);
@@ -545,21 +544,12 @@ impl GraphExtension for Graph<NodeData, i32> {
         self[NodeIndex::new(0)].params["dag_id"] as usize
     }
 
-    fn set_dag_id(&mut self, dag_id: usize) {
+    fn set_dag_value(&mut self, key: &str, value: i32) {
         if self.node_indices().count() == 0 {
             panic!("No node found.");
         }
         for node_i in self.node_indices() {
-            self.add_param(node_i, "dag_id", dag_id as i32);
-        }
-    }
-
-    fn set_dag_period(&mut self, period: i32) {
-        if self.node_indices().count() == 0 {
-            panic!("No node found.");
-        }
-        for node_i in self.node_indices() {
-            self.add_param(node_i, "period", period);
+            self.add_param(node_i, key, value);
         }
     }
 
@@ -1273,11 +1263,11 @@ mod tests {
     }
 
     #[test]
-    fn test_set_dag_id_normal() {
+    fn test_set_dag_value_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         dag.add_node(create_node(1, "execution_time", 0));
-        dag.set_dag_id(0);
+        dag.set_dag_value("dag_id", 0);
 
         for node_i in dag.node_indices() {
             assert_eq!(dag[node_i].params["dag_id"], 0);
@@ -1286,9 +1276,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_set_dag_id_no_exist_node() {
+    fn test_set_dag_value_no_exist_node() {
         let mut dag = Graph::<NodeData, i32>::new();
-        dag.set_dag_id(0);
+        dag.set_dag_value("dag_id", 0);
     }
 
     #[test]

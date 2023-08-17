@@ -69,8 +69,8 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
         let mut dag_set = dag_set.to_vec();
         for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_id(dag_id);
-            dag.set_dag_period(dag.get_head_period().unwrap());
+            dag.set_dag_value("dag_id", dag_id as i32);
+            dag.set_dag_value("period", dag.get_head_period().unwrap());
         }
         Self {
             dag_set: dag_set.to_vec(),

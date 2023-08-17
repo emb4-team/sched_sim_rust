@@ -172,7 +172,9 @@ pub trait DAGStateManagerBase {
     fn get_dag_state(&self) -> DAGState;
     fn set_dag_state(&mut self, dag_state: DAGState);
     // method definition
-    fn complete_execution(&mut self);
+    fn complete_execution(&mut self) {
+        self.set_dag_state(DAGState::Waiting);
+    }
     // method implementation
     fn release(&mut self) {
         self.set_release_count(self.get_release_count() + 1);
@@ -206,10 +208,6 @@ pub struct DAGStateManager {
 
 impl DAGStateManagerBase for DAGStateManager {
     getset_dag_state_manager!();
-
-    fn complete_execution(&mut self) {
-        self.set_dag_state(DAGState::Waiting);
-    }
 }
 
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
@@ -235,6 +233,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             {
                 ready_nodes.push(dag[dag.get_source_nodes()[0]].clone());
                 managers[dag_id].release();
+
                 self.get_log_mut()
                     .write_dag_release_time(dag_id, current_time);
             }
