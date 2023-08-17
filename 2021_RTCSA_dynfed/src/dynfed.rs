@@ -194,7 +194,7 @@ where
                     if dag.is_node_ready(*node_i) && managers[dag_id].get_unused_cores() > 0 {
                         let core_id = self.processor.get_idle_core_index().unwrap();
                         let node = &dag[managers[dag_id].allocate_head()];
-                        self.allocate_node(node, core_id);
+                        self.allocate_node(node, core_id, managers[dag_id].get_release_count());
                     } else {
                         break;
                     }

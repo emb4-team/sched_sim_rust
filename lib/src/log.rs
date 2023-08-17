@@ -11,10 +11,10 @@ pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     append_info_to_yaml(file_path, &yaml);
 }
 
-fn init_node_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<NodeLog> {
+fn init_node_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<JobLog> {
     let mut node_logs = Vec::with_capacity(dag.node_count());
     for node in dag.node_indices() {
-        node_logs.push(NodeLog::new(dag_id, dag[node].id as usize));
+        node_logs.push(JobLog::new(dag_id, dag[node].id as usize));
     }
 
     node_logs
@@ -139,22 +139,28 @@ impl DAGLog {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
-pub struct NodeLog {
+pub struct JobLog {
     core_id: Vec<usize>,
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
-    start_time: Vec<i32>,
-    finish_time: Vec<i32>,
+    job_id: usize,
+    start_time: i32,
+    resume_time: Vec<i32>,
+    finish_time: i32,
+    preemptive_time: Vec<i32>,
 }
 
-impl NodeLog {
+impl JobLog {
     fn new(dag_id: usize, node_id: usize) -> Self {
         Self {
             core_id: Default::default(),
             dag_id,
             node_id,
+            job_id: Default::default(),
             start_time: Default::default(),
+            resume_time: Default::default(),
             finish_time: Default::default(),
+            preemptive_time: Default::default(),
         }
     }
 }
@@ -225,7 +231,7 @@ impl CoreLog {
 pub struct DAGSchedulerLog {
     dag_info: DAGInfo,
     processor_info: ProcessorInfo,
-    node_logs: Vec<NodeLog>,
+    node_logs: Vec<JobLog>,
     processor_log: ProcessorLog,
 }
 
@@ -249,23 +255,23 @@ impl DAGSchedulerLog {
         self.processor_log = processor_log;
     }
 
-    pub fn write_allocating_node(
+    pub fn write_allocating_job(
         &mut self,
         node_data: &NodeData,
         core_id: usize,
         current_time: i32,
+        release_count: usize,
     ) {
         let node_id = node_data.id as usize;
         self.node_logs[node_id].core_id.push(core_id);
-        self.node_logs[node_id].start_time.push(current_time);
+        self.node_logs[node_id].job_id = release_count;
+        self.node_logs[node_id].start_time = current_time;
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.params.get("execution_time").unwrap_or(&0);
     }
 
-    pub fn write_finishing_node(&mut self, node_data: &NodeData, current_time: i32) {
-        self.node_logs[node_data.id as usize]
-            .finish_time
-            .push(current_time);
+    pub fn write_finishing_job(&mut self, node_data: &NodeData, current_time: i32) {
+        self.node_logs[node_data.id as usize].finish_time = current_time;
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
@@ -285,7 +291,7 @@ pub struct DAGSetSchedulerLog {
     dag_set_info: DAGSetInfo,
     processor_info: ProcessorInfo,
     dag_set_log: Vec<DAGLog>,
-    node_set_logs: Vec<Vec<NodeLog>>,
+    node_set_logs: Vec<Vec<JobLog>>,
     processor_log: ProcessorLog,
 }
 
@@ -319,25 +325,24 @@ impl DAGSetSchedulerLog {
         self.dag_set_log[dag_id].finish_time.push(finish_time);
     }
 
-    pub fn write_allocating_node(
+    pub fn write_allocating_job(
         &mut self,
         dag_id: usize,
         node_id: usize,
+        job_id: usize,
         core_id: usize,
         current_time: i32,
         proc_time: i32,
     ) {
         self.node_set_logs[dag_id][node_id].core_id.push(core_id);
-        self.node_set_logs[dag_id][node_id]
-            .start_time
-            .push(current_time);
+        self.node_set_logs[dag_id][node_id].job_id = job_id;
+        self.node_set_logs[dag_id][node_id].start_time = current_time;
         self.processor_log.core_logs[core_id].total_proc_time += proc_time;
     }
 
-    pub fn write_finishing_node(&mut self, node_data: &NodeData, finish_time: i32) {
+    pub fn write_finishing_job(&mut self, node_data: &NodeData, finish_time: i32) {
         self.node_set_logs[node_data.params["dag_id"] as usize][node_data.id as usize]
-            .finish_time
-            .push(finish_time);
+            .finish_time = finish_time;
     }
 
     pub fn calculate_response_time(&mut self) {

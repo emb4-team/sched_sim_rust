@@ -55,6 +55,7 @@ where
             ready_queue.push_back(dag[source_node_i].clone());
 
             let mut current_time = 0;
+            let release_count = 1; // This is a fixed value because DAG is released only once.
             loop {
                 Self::sort_ready_queue(&mut ready_queue);
 
@@ -64,10 +65,11 @@ where
                         processor.allocate_specific_core(core_index, &node_d);
 
                         if node_d.id != dag[source_node_i].id && node_d.id != dag[sink_node_i].id {
-                            log.write_allocating_node(
+                            log.write_allocating_job(
                                 &node_d,
                                 core_index,
                                 current_time - DUMMY_EXECUTION_TIME,
+                                release_count,
                             );
                         }
                         execution_order.push_back(NodeIndex::new(node_d.id as usize));
@@ -96,7 +98,7 @@ where
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
-                                log.write_finishing_node(
+                                log.write_finishing_job(
                                     node_data,
                                     current_time - DUMMY_EXECUTION_TIME,
                                 );
@@ -266,13 +268,14 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         ready_nodes
     }
 
-    fn allocate_node(&mut self, node: &NodeData, core_i: usize) {
+    fn allocate_node(&mut self, node: &NodeData, core_i: usize, release_count: i32) {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        self.get_log_mut().write_allocating_node(
+        self.get_log_mut().write_allocating_job(
             node.get_params_value("dag_id") as usize,
             node.get_id() as usize,
+            release_count as usize,
             core_i,
             current_time,
             node.get_params_value("execution_time"),
@@ -293,7 +296,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
 
-        log.write_finishing_node(node, current_time);
+        log.write_finishing_job(node, current_time);
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
 
@@ -350,7 +353,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 match self.get_processor_mut().get_idle_core_index() {
                     Some(idle_core_index) => {
                         let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
-                        self.allocate_node(&ready_node_data, idle_core_index);
+                        self.allocate_node(
+                            &ready_node_data,
+                            idle_core_index,
+                            managers[ready_node_data.get_params_value("dag_id") as usize]
+                                .get_release_count(),
+                        );
                     }
                     None => break,
                 };
