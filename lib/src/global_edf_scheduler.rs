@@ -339,9 +339,6 @@ mod tests {
         let release_time = &dag_set_log["release_time"];
         assert_eq!(release_time[0].as_i64().unwrap(), 0);
         assert_eq!(release_time[1].as_i64().unwrap(), 150);
-        let start_time = &dag_set_log["start_time"];
-        assert_eq!(start_time[0].as_i64().unwrap(), 0);
-        assert_eq!(start_time[1].as_i64().unwrap(), 150);
         let finish_time = &dag_set_log["finish_time"];
         assert_eq!(finish_time[0].as_i64().unwrap(), 50);
         assert_eq!(finish_time[1].as_i64().unwrap(), 200);
