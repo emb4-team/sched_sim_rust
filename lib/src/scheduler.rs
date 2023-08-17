@@ -306,9 +306,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Release DAGs
             let ready_nodes = self.release_dags(&mut managers);
             for ready_node in ready_nodes {
-                println!("ready_node: {:?}", ready_node);
                 ready_queue.insert(NodeDataWrapper(ready_node));
-                println!("ready_queue: {:?}", ready_queue);
             }
 
             // Allocate the nodes of ready_queue to idle cores
