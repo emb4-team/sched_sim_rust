@@ -195,6 +195,6 @@ mod tests {
         assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 200);
         assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.6666667);
 
-        //remove_file(file_path).unwrap();
+        remove_file(file_path).unwrap();
     }
 }
