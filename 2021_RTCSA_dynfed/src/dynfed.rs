@@ -161,10 +161,11 @@ where
         // Initialize DAGStateManagers
         let mut managers = vec![DynFedDAGStateManager::default(); self.dag_set.len()];
         for dag in self.dag_set.iter() {
+            let dag_id = dag.get_dag_value("dag_id") as usize;
             let (minimum_cores, execution_order) =
                 calculate_minimum_cores_and_execution_order(dag, &mut self.scheduler);
-            managers[dag.get_dag_id()].set_minimum_cores(minimum_cores as i32);
-            managers[dag.get_dag_id()].set_execution_order(execution_order);
+            managers[dag_id].set_minimum_cores(minimum_cores as i32);
+            managers[dag_id].set_execution_order(execution_order);
         }
 
         // Start scheduling
@@ -184,7 +185,7 @@ where
 
             // Allocate the nodes of ready_queue to idle cores
             for dag in self.get_dag_set().iter() {
-                let dag_id = dag.get_dag_id();
+                let dag_id = dag.get_dag_value("dag_id") as usize;
                 if managers[dag_id].get_dag_state() != DAGState::Running {
                     continue;
                 }

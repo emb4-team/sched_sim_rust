@@ -225,7 +225,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let mut ready_nodes = Vec::new();
 
         for dag in self.get_dag_set().iter() {
-            let dag_id = dag.get_dag_id();
+            let dag_id = dag.get_dag_value("dag_id") as usize;
             if (managers[dag_id].get_dag_state() == DAGState::Waiting)
                 && (current_time
                     == dag.get_head_offset()

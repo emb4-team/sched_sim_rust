@@ -61,7 +61,7 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
-    fn get_dag_id(&self) -> usize;
+    fn get_dag_value(&self, key: &str) -> i32;
     fn set_dag_value(&mut self, key: &str, value: i32);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
     fn is_node_ready(&self, node_i: NodeIndex) -> bool;
@@ -537,11 +537,14 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn get_dag_id(&self) -> usize {
+    fn get_dag_value(&self, key: &str) -> i32 {
         if self.node_indices().count() == 0 {
-            panic!("Error: dag_id does not exist. Please use set_dag_id(dag_id: usize)");
+            panic!(
+                "Error: {} does not exist. Please use set_dag_value({}, value)",
+                key, key
+            );
         }
-        self[NodeIndex::new(0)].params["dag_id"] as usize
+        self[NodeIndex::new(0)].params[key]
     }
 
     fn set_dag_value(&mut self, key: &str, value: i32) {
@@ -1252,14 +1255,14 @@ mod tests {
     fn test_get_dag_id_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "dag_id", 0));
-        assert_eq!(dag.get_dag_id(), 0);
+        assert_eq!(dag.get_dag_value("dag_id"), 0);
     }
 
     #[test]
     #[should_panic]
     fn test_get_dag_id_no_exist_node() {
         let dag = Graph::<NodeData, i32>::new();
-        dag.get_dag_id();
+        dag.get_dag_value("dag_id");
     }
 
     #[test]
