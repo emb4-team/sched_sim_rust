@@ -29,6 +29,10 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
+    pub fn get_is_idle(&self) -> bool {
+        self.is_idle
+    }
+
     pub fn allocate(&mut self, node_data: &NodeData) -> bool {
         if !self.is_idle {
             warn!("Core is already allocated to a node");

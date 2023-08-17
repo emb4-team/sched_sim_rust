@@ -21,6 +21,17 @@ impl NodeData {
     pub fn new(id: i32, params: BTreeMap<String, i32>) -> NodeData {
         NodeData { id, params }
     }
+
+    pub fn get_id(&self) -> i32 {
+        self.id
+    }
+
+    pub fn get_params_value(&self, key: &str) -> i32 {
+        *self
+            .params
+            .get(key)
+            .unwrap_or_else(|| panic!("The key does not exist. key: {}", key))
+    }
 }
 
 pub trait GraphExtension {
@@ -50,11 +61,10 @@ pub trait GraphExtension {
     fn get_anc_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_des_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
     fn get_parallel_process_nodes(&self, node_i: NodeIndex) -> Option<Vec<NodeIndex>>;
-    fn get_dag_id(&self) -> usize;
-    fn set_dag_id(&mut self, dag_id: usize);
+    fn get_dag_param(&self, key: &str) -> i32;
+    fn set_dag_param(&mut self, key: &str, value: i32);
     fn add_node_with_id_consistency(&mut self, node: NodeData) -> NodeIndex;
     fn is_node_ready(&self, node_i: NodeIndex) -> bool;
-    fn increment_pre_done_count(&mut self, node_i: NodeIndex);
 }
 
 impl GraphExtension for Graph<NodeData, i32> {
@@ -525,19 +535,26 @@ impl GraphExtension for Graph<NodeData, i32> {
         }
     }
 
-    fn get_dag_id(&self) -> usize {
+    fn get_dag_param(&self, key: &str) -> i32 {
         if self.node_indices().count() == 0 {
-            panic!("Error: dag_id does not exist. Please use set_dag_id(dag_id: usize)");
+            panic!(
+                "Error: {} does not exist. Please use set_dag_param({}, value)",
+                key, key
+            );
         }
-        self[NodeIndex::new(0)].params["dag_id"] as usize
+        self[NodeIndex::new(0)].params[key]
     }
 
-    fn set_dag_id(&mut self, dag_id: usize) {
+    fn set_dag_param(&mut self, key: &str, value: i32) {
         if self.node_indices().count() == 0 {
             panic!("No node found.");
         }
         for node_i in self.node_indices() {
-            self.add_param(node_i, "dag_id", dag_id as i32);
+            if self[node_i].params.contains_key(key) {
+                self.update_param(node_i, key, value);
+            } else {
+                self.add_param(node_i, key, value);
+            }
         }
     }
 
@@ -557,13 +574,6 @@ impl GraphExtension for Graph<NodeData, i32> {
         let pre_nodes_count = self.get_pre_nodes(node_i).unwrap_or_default().len() as i32;
         let pre_done_nodes_count = self[node_i].params.get("pre_done_count").unwrap_or(&0);
         pre_nodes_count == *pre_done_nodes_count
-    }
-
-    fn increment_pre_done_count(&mut self, node_i: NodeIndex) {
-        *self[node_i]
-            .params
-            .entry("pre_done_count".to_owned())
-            .or_insert(0) += 1;
     }
 }
 
@@ -1234,22 +1244,22 @@ mod tests {
     fn test_get_dag_id_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "dag_id", 0));
-        assert_eq!(dag.get_dag_id(), 0);
+        assert_eq!(dag.get_dag_param("dag_id"), 0);
     }
 
     #[test]
     #[should_panic]
     fn test_get_dag_id_no_exist_node() {
         let dag = Graph::<NodeData, i32>::new();
-        dag.get_dag_id();
+        dag.get_dag_param("dag_id");
     }
 
     #[test]
-    fn test_set_dag_id_normal() {
+    fn test_set_dag_param_normal() {
         let mut dag = Graph::<NodeData, i32>::new();
         dag.add_node(create_node(0, "execution_time", 0));
         dag.add_node(create_node(1, "execution_time", 0));
-        dag.set_dag_id(0);
+        dag.set_dag_param("dag_id", 0);
 
         for node_i in dag.node_indices() {
             assert_eq!(dag[node_i].params["dag_id"], 0);
@@ -1258,9 +1268,9 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_set_dag_id_no_exist_node() {
+    fn test_set_dag_param_no_exist_node() {
         let mut dag = Graph::<NodeData, i32>::new();
-        dag.set_dag_id(0);
+        dag.set_dag_param("dag_id", 0);
     }
 
     #[test]
@@ -1293,16 +1303,5 @@ mod tests {
         assert!(!dag.is_node_ready(n1));
         dag.add_param(n1, "pre_done_count", 1);
         assert!(dag.is_node_ready(n1));
-    }
-
-    #[test]
-    fn increment_pre_done_count_normal() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 0));
-
-        dag.increment_pre_done_count(n0);
-        assert_eq!(dag[n0].params["pre_done_count"], 1);
-        dag.increment_pre_done_count(n0);
-        assert_eq!(dag[n0].params["pre_done_count"], 2);
     }
 }
