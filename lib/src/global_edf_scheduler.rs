@@ -16,39 +16,21 @@ impl PartialOrd for NodeDataWrapper {
         let key1 = "absolute_deadline";
         let key2 = "dag_id";
 
-        match (self.0.params.get(key1), other.0.params.get(key1)) {
-            (Some(self_val), Some(other_val)) => match self_val.cmp(other_val) {
-                // If the keys are equal, compare by id
-                Ordering::Equal => match self.0.id.partial_cmp(&other.0.id) {
-                    // If the ids are also equal, compare by dag_id
-                    Some(Ordering::Equal) => {
-                        match (self.0.params.get(key2), other.0.params.get(key2)) {
-                            (Some(self_dag), Some(other_dag)) => Some(self_dag.cmp(other_dag)),
-                            (None, None) => Some(Ordering::Equal),
-                            (Some(_), None) => Some(Ordering::Greater),
-                            (None, Some(_)) => Some(Ordering::Less),
-                        }
-                    }
-                    other => other,
-                },
-                other => Some(other),
-            },
-            // If neither of the keys exists, compare by id
-            (None, None) => match self.0.id.partial_cmp(&other.0.id) {
-                // If the ids are equal, compare by dag_id
+        let self_val = self.0.params.get(key1).unwrap();
+        let other_val = other.0.params.get(key1).unwrap();
+
+        match self_val.cmp(other_val) {
+            // If the keys are equal, compare by id
+            Ordering::Equal => match self.0.id.partial_cmp(&other.0.id) {
+                // If the ids are also equal, compare by dag_id
                 Some(Ordering::Equal) => {
-                    match (self.0.params.get(key2), other.0.params.get(key2)) {
-                        (Some(self_dag), Some(other_dag)) => Some(self_dag.cmp(other_dag)),
-                        (None, None) => Some(Ordering::Equal),
-                        (Some(_), None) => Some(Ordering::Greater),
-                        (None, Some(_)) => Some(Ordering::Less),
-                    }
+                    let self_dag = self.0.params.get(key2).unwrap();
+                    let other_dag = other.0.params.get(key2).unwrap();
+                    Some(self_dag.cmp(other_dag))
                 }
                 other => other,
             },
-            // If only one of the keys exists, the one with the key is greater
-            (Some(_), None) => Some(Ordering::Greater),
-            (None, Some(_)) => Some(Ordering::Less),
+            other => Some(other),
         }
     }
 }
