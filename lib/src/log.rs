@@ -330,22 +330,23 @@ impl DAGSetSchedulerLog {
 
     pub fn write_allocating_job(
         &mut self,
-        dag_id: usize,
-        node_id: usize,
-        job_id: usize,
+        node_data: &NodeData,
         core_id: usize,
+        job_id: usize,
         current_time: i32,
-        proc_time: i32,
     ) {
+        let dag_id = node_data.get_params_value("dag_id") as usize;
+        let node_id = node_data.get_id() as usize;
         self.node_set_logs[dag_id][job_id][node_id]
             .core_id
             .push(core_id);
         self.node_set_logs[dag_id][job_id][node_id].job_id = job_id;
         self.node_set_logs[dag_id][job_id][node_id].start_time = current_time;
-        self.processor_log.core_logs[core_id].total_proc_time += proc_time;
+        self.processor_log.core_logs[core_id].total_proc_time +=
+            node_data.get_params_value("execution_time");
     }
 
-    pub fn write_finishing_job(&mut self, node_data: &NodeData, finish_time: i32, job_id: usize) {
+    pub fn write_finishing_job(&mut self, node_data: &NodeData, job_id: usize, finish_time: i32) {
         self.node_set_logs[node_data.params["dag_id"] as usize][job_id][node_data.id as usize]
             .finish_time = finish_time;
     }

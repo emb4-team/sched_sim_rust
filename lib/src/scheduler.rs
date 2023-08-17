@@ -271,12 +271,10 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
         self.get_log_mut().write_allocating_job(
-            node.get_params_value("dag_id") as usize,
-            node.get_id() as usize,
-            (release_count - 1) as usize,
+            node,
             core_i,
+            (release_count - 1) as usize,
             current_time,
-            node.get_params_value("execution_time"),
         );
     }
 
@@ -296,8 +294,8 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
         log.write_finishing_job(
             node,
-            current_time,
             (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
+            current_time,
         );
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
