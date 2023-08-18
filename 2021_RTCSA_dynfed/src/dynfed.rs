@@ -6,6 +6,7 @@
 //! Conference: RTCSA 2021
 //! -----------------
 use getset::{CopyGetters, Setters};
+use lib::dag_scheduler::DAGSchedulerBase;
 use std::collections::VecDeque;
 
 use lib::core::ProcessResult;
