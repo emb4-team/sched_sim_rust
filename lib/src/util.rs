@@ -1,12 +1,12 @@
+use crate::graph_extension::{GraphExtension, NodeData};
+use chrono::{DateTime, Utc};
+use log::{info, warn};
+use num_integer::lcm;
+use petgraph::graph::Graph;
 use std::{
     fs::{self, OpenOptions},
     io::Write,
 };
-
-use crate::graph_extension::{GraphExtension, NodeData};
-use log::{info, warn};
-use num_integer::lcm;
-use petgraph::graph::Graph;
 use yaml_rust::YamlLoader;
 
 pub fn get_hyper_period(dag_set: &[Graph<NodeData, i32>]) -> i32 {
@@ -79,6 +79,13 @@ pub fn create_yaml(folder_path: &str, file_name: &str) -> String {
         warn!("Failed to create file: {}", err);
     }
     file_path
+}
+
+pub fn create_scheduler_log_yaml(dir_path: &str, alg_name: &str) -> String {
+    let now: DateTime<Utc> = Utc::now();
+    let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
+    let file_name = format!("{}-{}-log", date, alg_name);
+    create_yaml(dir_path, &file_name)
 }
 
 #[cfg(test)]

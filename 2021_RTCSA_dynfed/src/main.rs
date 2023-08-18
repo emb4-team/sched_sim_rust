@@ -3,12 +3,12 @@ mod dynfed;
 use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
+use lib::dag_set_scheduler::DAGSetSchedulerBase;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::log::dump_dag_set_scheduler_result_to_yaml;
 use lib::processor::ProcessorBase;
-use lib::scheduler::DAGSetSchedulerBase;
 use lib::util::{adjust_to_implicit_deadline, load_yaml};
 
 #[derive(Parser)]

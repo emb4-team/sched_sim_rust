@@ -2,11 +2,11 @@ mod parallel_provider_consumer;
 mod prioritization_cpc_model;
 
 use clap::Parser;
+use lib::dag_scheduler::DAGSchedulerBase;
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::homogeneous::HomogeneousProcessor;
 use lib::log::dump_dag_scheduler_result_to_yaml;
 use lib::processor::ProcessorBase;
-use lib::scheduler::DAGSchedulerBase;
 use lib::{dag_creator::*, graph_extension::GraphExtension};
 use log::warn;
 

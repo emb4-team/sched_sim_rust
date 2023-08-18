@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::{graph_extension::NodeData, log::*, processor::ProcessorBase, scheduler::*};
+use crate::{
+    dag_scheduler::DAGSchedulerBase, graph_extension::NodeData, log::*, processor::ProcessorBase,
+};
 
 use petgraph::Graph;
 
