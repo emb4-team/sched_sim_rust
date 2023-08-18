@@ -266,7 +266,7 @@ impl DAGSchedulerLog {
         self.node_logs[node_id].job_id = 0; // This is a fixed value because DAG is released only once.
         self.node_logs[node_id].start_time = current_time;
         self.processor_log.core_logs[core_id].total_proc_time +=
-            node_data.params.get("execution_time").unwrap_or(&0);
+            node_data.get_params_value("execution_time");
     }
 
     pub fn write_finishing_job(&mut self, node_data: &NodeData, current_time: i32) {
@@ -301,14 +301,13 @@ impl DAGSetSchedulerLog {
             dag_set_log.push(DAGLog::new(i));
         }
 
-        let mut job_set_logs = Vec::new();
         let mut node_set_logs = Vec::with_capacity(dag_set.len());
+        let hyper_period = get_hyper_period(dag_set);
         for (dag_id, dag) in dag_set.iter().enumerate() {
-            for _ in 0..get_hyper_period(dag_set) / dag.get_head_period().unwrap() {
-                job_set_logs.push(init_job_logs(dag, dag_id));
-            }
-            node_set_logs.push(job_set_logs.clone());
-            job_set_logs.clear();
+            let iterations = hyper_period / dag.get_head_period().unwrap();
+            let mut job_set_logs = Vec::with_capacity(iterations as usize);
+            job_set_logs.resize_with(iterations as usize, || init_job_logs(dag, dag_id));
+            node_set_logs.push(job_set_logs);
         }
 
         Self {
