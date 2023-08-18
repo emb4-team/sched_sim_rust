@@ -43,19 +43,16 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     fn get_max_value_index(&self, key: &str) -> Option<usize> {
-        let mut max_value = 0;
-        let mut max_value_index = None;
-        for (index, core) in self.cores.iter().enumerate() {
-            if let Some(node_data) = core.processing_node() {
-                if let Some(value) = node_data.params.get(key) {
-                    if *value > max_value {
-                        max_value = *value;
-                        max_value_index = Some(index);
-                    }
-                }
-            }
-        }
-        max_value_index
+        self.cores
+            .iter()
+            .enumerate()
+            .filter_map(|(index, core)| {
+                core.processing_node()
+                    .as_ref()
+                    .and_then(|node_data| node_data.params.get(key).map(|&value| (index, value)))
+            })
+            .max_by_key(|&(_, value)| value)
+            .map(|(index, _)| index)
     }
 }
 
