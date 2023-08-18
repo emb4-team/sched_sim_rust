@@ -194,7 +194,11 @@ where
                     if dag.is_node_ready(*node_i) && managers[dag_id].get_unused_cores() > 0 {
                         let core_id = self.processor.get_idle_core_index().unwrap();
                         let node = &dag[managers[dag_id].allocate_head()];
-                        self.allocate_node(node, core_id);
+                        self.allocate_node(
+                            node,
+                            core_id,
+                            managers[dag_id].get_release_count() as usize,
+                        );
                     } else {
                         break;
                     }
@@ -204,11 +208,11 @@ where
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result {
+            for (core_id, result) in process_result.iter().enumerate() {
                 if let ProcessResult::Done(node_data) = result {
                     managers[node_data.get_params_value("dag_id") as usize]
                         .decrement_num_using_cores();
-                    self.post_process_on_node_completion(&node_data, &mut managers);
+                    self.post_process_on_node_completion(node_data, core_id, &mut managers);
                 }
             }
         }
@@ -379,30 +383,34 @@ mod tests {
         );
 
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["core_id"][0]
-                .as_i64()
-                .unwrap(),
+            yaml_doc["node_set_logs"][1][2]["core_id"].as_i64().unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["dag_id"].as_i64().unwrap(),
+            yaml_doc["node_set_logs"][1][2]["dag_id"].as_i64().unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["node_id"].as_i64().unwrap(),
+            yaml_doc["node_set_logs"][1][2]["node_id"].as_i64().unwrap(),
             3
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["start_time"][0]
-                .as_i64()
-                .unwrap(),
-            11
+            yaml_doc["node_set_logs"][1][2]["job_id"].as_i64().unwrap(),
+            0
         );
+        // start_time
         assert_eq!(
-            yaml_doc["node_set_logs"][1][3]["finish_time"][0]
-                .as_i64()
+            yaml_doc["node_set_logs"][1][2]["event_time"]
+                .as_str()
                 .unwrap(),
-            22
+            "11"
+        );
+        // finish_time
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][4]["event_time"]
+                .as_str()
+                .unwrap(),
+            "22"
         );
 
         assert_eq!(

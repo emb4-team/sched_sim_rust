@@ -28,13 +28,10 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.update_dag(dag);
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.log
-            .update_processor(ProcessorLog::new(processor.get_number_of_cores()));
     }
 
     fn set_log(&mut self, log: DAGSchedulerLog) {
@@ -269,14 +266,16 @@ mod tests {
 
         assert_eq!(yaml_doc["node_logs"][0]["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(yaml_doc["node_logs"][0]["node_id"].as_i64().unwrap(), 0);
-        assert_eq!(yaml_doc["node_logs"][0]["core_id"][0].as_i64().unwrap(), 0);
+        assert_eq!(yaml_doc["node_logs"][0]["core_id"].as_i64().unwrap(), 0);
+        // start_time
         assert_eq!(
-            yaml_doc["node_logs"][0]["start_time"][0].as_i64().unwrap(),
-            0
+            yaml_doc["node_logs"][0]["event_time"].as_str().unwrap(),
+            "0"
         );
+        // finish_time
         assert_eq!(
-            yaml_doc["node_logs"][0]["finish_time"][0].as_i64().unwrap(),
-            52
+            yaml_doc["node_logs"][1]["event_time"].as_str().unwrap(),
+            "52"
         );
 
         remove_file(file_path).unwrap();

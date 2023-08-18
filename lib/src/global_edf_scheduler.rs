@@ -168,18 +168,14 @@ mod tests {
         assert_eq!(finish_time[1].as_i64().unwrap(), 200);
 
         // Check the value of node_set_logs
-        let node_set_logs = &yaml_doc["node_set_logs"][0][0];
-        let core_id = &node_set_logs["core_id"];
-        assert_eq!(core_id[0].as_i64().unwrap(), 1);
-        assert_eq!(core_id[1].as_i64().unwrap(), 0);
-        assert_eq!(node_set_logs["dag_id"].as_i64().unwrap(), 0);
-        assert_eq!(node_set_logs["node_id"].as_i64().unwrap(), 0);
-        let start_time = &node_set_logs["start_time"];
-        assert_eq!(start_time[0].as_i64().unwrap(), 0);
-        assert_eq!(start_time[1].as_i64().unwrap(), 150);
-        let finish_time = &node_set_logs["finish_time"];
-        assert_eq!(finish_time[0].as_i64().unwrap(), 10);
-        assert_eq!(finish_time[1].as_i64().unwrap(), 160);
+        let node_set_logs = &yaml_doc["node_set_logs"][0];
+        assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 1);
+        assert_eq!(node_set_logs[0]["dag_id"].as_i64().unwrap(), 0);
+        assert_eq!(node_set_logs[0]["node_id"].as_i64().unwrap(), 0);
+        // start_time
+        assert_eq!(node_set_logs[0]["event_time"].as_str().unwrap(), "0");
+        // finish_time
+        assert_eq!(node_set_logs[1]["event_time"].as_str().unwrap(), "10");
 
         // Check the value of processor_log
         let processor_log = &yaml_doc["processor_log"];

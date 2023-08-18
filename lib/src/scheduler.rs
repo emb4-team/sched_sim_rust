@@ -64,7 +64,7 @@ where
                         processor.allocate_specific_core(core_index, &node_d);
 
                         if node_d.id != dag[source_node_i].id && node_d.id != dag[sink_node_i].id {
-                            log.write_allocating_node(
+                            log.write_allocating_job(
                                 &node_d,
                                 core_index,
                                 current_time - DUMMY_EXECUTION_TIME,
@@ -91,13 +91,15 @@ where
 
                 let finish_nodes: Vec<NodeIndex> = process_result
                     .iter()
-                    .filter_map(|result| {
+                    .enumerate()
+                    .filter_map(|(core_id, result)| {
                         if let ProcessResult::Done(node_data) = result {
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
-                                log.write_finishing_node(
+                                log.write_finishing_job(
                                     node_data,
+                                    core_id,
                                     current_time - DUMMY_EXECUTION_TIME,
                                 );
                             }
@@ -266,17 +268,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         ready_nodes
     }
 
-    fn allocate_node(&mut self, node: &NodeData, core_i: usize) {
+    fn allocate_node(&mut self, node: &NodeData, core_i: usize, job_i: usize) {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        self.get_log_mut().write_allocating_node(
-            node.get_params_value("dag_id") as usize,
-            node.get_id() as usize,
-            core_i,
-            current_time,
-            node.get_params_value("execution_time"),
-        );
+        self.get_log_mut()
+            .write_allocating_job(node, core_i, job_i - 1, current_time);
     }
 
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
@@ -287,13 +284,19 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn post_process_on_node_completion(
         &mut self,
         node: &NodeData,
+        core_id: usize,
         managers: &mut [impl DAGStateManagerBase],
     ) -> Vec<NodeData> {
         let mut dag_set = self.get_dag_set();
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
 
-        log.write_finishing_node(node, current_time);
+        log.write_finishing_job(
+            node,
+            core_id,
+            (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
+            current_time,
+        );
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
 
@@ -350,7 +353,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 match self.get_processor_mut().get_idle_core_index() {
                     Some(idle_core_index) => {
                         let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
-                        self.allocate_node(&ready_node_data, idle_core_index);
+                        self.allocate_node(
+                            &ready_node_data,
+                            idle_core_index,
+                            managers[ready_node_data.get_params_value("dag_id") as usize]
+                                .get_release_count() as usize,
+                        );
                     }
                     None => break,
                 };
@@ -360,11 +368,10 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result {
+            for (core_id, result) in process_result.iter().enumerate() {
                 if let ProcessResult::Done(node_data) = result {
-                    println!("node_data: {:?}", node_data);
                     let ready_nodes =
-                        self.post_process_on_node_completion(&node_data, &mut managers);
+                        self.post_process_on_node_completion(node_data, core_id, &mut managers);
                     for ready_node in ready_nodes {
                         ready_queue.insert(NodeDataWrapper {
                             node_data: ready_node,
