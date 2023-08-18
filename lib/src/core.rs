@@ -1,5 +1,6 @@
 //! This module contains the definition of the core and the process result enum
 use crate::{core::ProcessResult::*, graph_extension::NodeData};
+use getset::Getters;
 use log::warn;
 ///enum to represent three types of states
 ///execution not possible because not allocate, execution in progress, execution finished
@@ -10,9 +11,11 @@ pub enum ProcessResult {
     Done(NodeData),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Getters)]
 pub struct Core {
+    #[get = "pub"]
     pub is_idle: bool,
+    #[get = "pub"]
     pub processing_node: Option<NodeData>,
     pub remain_proc_time: i32,
 }
@@ -29,10 +32,6 @@ impl Default for Core {
 
 ///return bool since "panic!" would terminate
 impl Core {
-    pub fn get_is_idle(&self) -> bool {
-        self.is_idle
-    }
-
     pub fn allocate(&mut self, node_data: &NodeData) -> bool {
         if !self.is_idle {
             warn!("Core is already allocated to a node");

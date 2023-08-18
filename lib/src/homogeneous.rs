@@ -26,12 +26,12 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     fn get_idle_core_num(&self) -> usize {
-        self.cores.iter().filter(|core| core.get_is_idle()).count()
+        self.cores.iter().filter(|core| *core.is_idle()).count()
     }
 
     fn get_idle_core_index(&self) -> Option<usize> {
         for (index, core) in self.cores.iter().enumerate() {
-            if core.get_is_idle() {
+            if *core.is_idle() {
                 return Some(index);
             }
         }
@@ -40,6 +40,22 @@ impl ProcessorBase for HomogeneousProcessor {
 
     fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
         self.cores[core_id].suspend_execution()
+    }
+
+    fn get_max_value_index(&self, key: &str) -> Option<usize> {
+        let mut max_value = 0;
+        let mut max_value_index = None;
+        for (index, core) in self.cores.iter().enumerate() {
+            if let Some(node_data) = core.processing_node() {
+                if let Some(value) = node_data.params.get(key) {
+                    if *value > max_value {
+                        max_value = *value;
+                        max_value_index = Some(index);
+                    }
+                }
+            }
+        }
+        max_value_index
     }
 }
 
