@@ -1,4 +1,7 @@
-use crate::graph_extension::{GraphExtension, NodeData};
+use crate::{
+    core::ProcessResult,
+    graph_extension::{GraphExtension, NodeData},
+};
 use chrono::{DateTime, Utc};
 use log::{info, warn};
 use num_integer::lcm;
@@ -86,6 +89,27 @@ pub fn create_scheduler_log_yaml(dir_path: &str, alg_name: &str) -> String {
     let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
     let file_name = format!("{}-{}-log", date, alg_name);
     create_yaml(dir_path, &file_name)
+}
+
+pub fn get_process_core_indices(process_result: &[ProcessResult]) -> Vec<usize> {
+    process_result
+        .iter()
+        .enumerate()
+        .filter_map(|(index, result)| {
+            if matches!(result, ProcessResult::Continue) {
+                Some(index)
+            } else if let ProcessResult::Done(node_data) = result {
+                // Do not include dummy source and sink nodes.
+                if !node_data.params.contains_key("dummy") {
+                    Some(index)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@ use crate::{
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
-    util::create_scheduler_log_yaml,
+    util::{create_scheduler_log_yaml, get_process_core_indices},
 };
 use petgraph::graph::{Graph, NodeIndex};
 use std::collections::VecDeque;
@@ -14,15 +14,19 @@ pub trait DAGSchedulerBase<T>
 where
     T: ProcessorBase + Clone,
 {
-    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
-    where
-        Self: Sized;
+    // getter, setter
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>);
     fn set_processor(&mut self, processor: &T);
     fn set_log(&mut self, log: DAGSchedulerLog);
     fn get_dag(&self) -> Graph<NodeData, i32>;
     fn get_processor(&self) -> T;
     fn get_log(&self) -> DAGSchedulerLog;
+    // method definition
+    fn new(dag: &Graph<NodeData, i32>, processor: &T) -> Self
+    where
+        Self: Sized;
+    fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>);
+    // method implementation
     fn schedule(&mut self) -> (i32, VecDeque<NodeIndex>) {
         {
             let mut dag = self.get_dag(); //To avoid adding pre_node_count to the original DAG
@@ -46,7 +50,7 @@ where
             loop {
                 Self::sort_ready_queue(&mut ready_queue);
 
-                //Assign the highest priority task first to the first idle core found.
+                // Assign the highest priority task first to the first idle core found.
                 while let Some(core_index) = processor.get_idle_core_index() {
                     if let Some(node_d) = ready_queue.pop_front() {
                         processor.allocate_specific_core(core_index, &node_d);
@@ -64,17 +68,24 @@ where
                     }
                 }
 
-                //Move one unit time so that the core state of the previous loop does not remain.
+                // Move one unit time so that the core state of the previous loop does not remain.
                 let mut process_result = processor.process();
                 current_time += 1;
+                // Write the processing time of the core to the log.
+                let indices: Vec<usize> = get_process_core_indices(&process_result);
+                log.write_processing_time(&indices);
 
-                //Process until there is a task finished.
+                // Process until there is a task finished.
                 while !process_result
                     .iter()
                     .any(|result| matches!(result, ProcessResult::Done(_)))
                 {
                     process_result = processor.process();
                     current_time += 1;
+
+                    // Write the processing time of the core to the log.
+                    let indices: Vec<usize> = get_process_core_indices(&process_result);
+                    log.write_processing_time(&indices)
                 }
 
                 let finish_nodes: Vec<NodeIndex> = process_result
@@ -102,7 +113,7 @@ where
                     break; // The scheduling has finished because the dummy sink node has completed.
                 }
 
-                //Executable if all predecessor nodes are done
+                // Executable if all predecessor nodes are done
                 for finish_node in finish_nodes {
                     let suc_nodes = dag.get_suc_nodes(finish_node).unwrap_or_default();
                     for suc_node in suc_nodes {
@@ -122,11 +133,11 @@ where
                 }
             }
 
-            //remove dummy nodes
+            // Remove dummy nodes
             dag.remove_dummy_sink_node();
             dag.remove_dummy_source_node();
 
-            //Remove the dummy node from the execution order.
+            // Remove the dummy node from the execution order.
             execution_order.pop_back();
             execution_order.pop_front();
 
@@ -135,11 +146,11 @@ where
 
             self.set_log(log);
 
-            //Return the normalized total time taken to finish all tasks.
+            // Return the normalized total time taken to finish all tasks.
             (schedule_length, execution_order)
         }
     }
-    fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>);
+
     fn dump_log(&self, dir_path: &str, alg_name: &str) -> String {
         let file_path = create_scheduler_log_yaml(dir_path, alg_name);
         self.get_log().dump_log_to_yaml(&file_path);
