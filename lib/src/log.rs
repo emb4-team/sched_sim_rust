@@ -245,25 +245,6 @@ impl DAGSchedulerLog {
         }
     }
 
-    pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
-        let dag_id = 0;
-        let mut job_logs = Vec::with_capacity(dag.node_count());
-        for node in dag.node_indices() {
-            job_logs.push(JobLog::new(
-                0,
-                dag_id,
-                dag[node].id as usize,
-                0,
-                JobEvent::StartTime(0),
-            ));
-        }
-        self.node_logs = job_logs;
-    }
-
-    pub fn update_processor(&mut self, processor_log: ProcessorLog) {
-        self.processor_log = processor_log;
-    }
-
     pub fn write_allocating_job(
         &mut self,
         node_data: &NodeData,

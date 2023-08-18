@@ -28,13 +28,10 @@ where
 
     fn set_dag(&mut self, dag: &Graph<NodeData, i32>) {
         self.dag = dag.clone();
-        self.log.update_dag(dag);
     }
 
     fn set_processor(&mut self, processor: &T) {
         self.processor = processor.clone();
-        self.log
-            .update_processor(ProcessorLog::new(processor.get_number_of_cores()));
     }
 
     fn set_log(&mut self, log: DAGSchedulerLog) {
