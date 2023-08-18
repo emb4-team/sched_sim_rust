@@ -224,4 +224,20 @@ mod tests {
         let mut dag_set = vec![create_dag()];
         adjust_to_implicit_deadline(&mut dag_set);
     }
+
+    #[test]
+    fn test_get_process_core_indices_normal() {
+        fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+            let mut params = BTreeMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let process_result = vec![
+            ProcessResult::Continue,
+            ProcessResult::Done(create_node(0, "dummy", -1)),
+            ProcessResult::Idle,
+            ProcessResult::Done(create_node(1, "execution_time", 10)),
+        ];
+        assert_eq!(get_process_core_indices(&process_result), vec![0, 3]);
+    }
 }
