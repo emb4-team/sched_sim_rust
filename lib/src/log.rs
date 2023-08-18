@@ -11,21 +11,6 @@ pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     append_info_to_yaml(file_path, &yaml);
 }
 
-fn init_job_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<JobLog> {
-    let mut job_logs = Vec::with_capacity(dag.node_count());
-    for node in dag.node_indices() {
-        job_logs.push(JobLog::new(
-            0,
-            dag_id,
-            dag[node].id as usize,
-            0,
-            JobEvent::StartTime(0),
-        ));
-    }
-
-    job_logs
-}
-
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct DAGSetInfo {
     total_utilization: f32,
@@ -262,7 +247,17 @@ impl DAGSchedulerLog {
 
     pub fn update_dag(&mut self, dag: &Graph<NodeData, i32>) {
         let dag_id = 0;
-        self.node_logs = init_job_logs(dag, dag_id);
+        let mut job_logs = Vec::with_capacity(dag.node_count());
+        for node in dag.node_indices() {
+            job_logs.push(JobLog::new(
+                0,
+                dag_id,
+                dag[node].id as usize,
+                0,
+                JobEvent::StartTime(0),
+            ));
+        }
+        self.node_logs = job_logs;
     }
 
     pub fn update_processor(&mut self, processor_log: ProcessorLog) {
