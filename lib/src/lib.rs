@@ -6,5 +6,5 @@ pub mod graph_extension;
 pub mod homogeneous;
 pub mod log;
 pub mod processor;
-pub mod scheduler;
+pub mod scheduler_base;
 pub mod util;
