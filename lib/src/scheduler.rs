@@ -286,6 +286,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn post_process_on_node_completion(
         &mut self,
         node: &NodeData,
+        core_id: usize,
         managers: &mut [impl DAGStateManagerBase],
     ) -> Vec<NodeData> {
         let mut dag_set = self.get_dag_set();
@@ -294,6 +295,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
         log.write_finishing_job(
             node,
+            core_id,
             (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
             current_time,
         );
@@ -368,10 +370,10 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result {
+            for (core_id, result) in process_result.iter().enumerate() {
                 if let ProcessResult::Done(node_data) = result {
                     let ready_nodes =
-                        self.post_process_on_node_completion(&node_data, &mut managers);
+                        self.post_process_on_node_completion(node_data, core_id, &mut managers);
                     for ready_node in ready_nodes {
                         ready_queue.insert(NodeDataWrapper {
                             node_data: ready_node,

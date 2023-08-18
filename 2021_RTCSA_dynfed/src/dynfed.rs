@@ -204,11 +204,11 @@ where
             let process_result = self.process_unit_time();
 
             // Post-process on completion of node execution
-            for result in process_result {
+            for (core_id, result) in process_result.iter().enumerate() {
                 if let ProcessResult::Done(node_data) = result {
                     managers[node_data.get_params_value("dag_id") as usize]
                         .decrement_num_using_cores();
-                    self.post_process_on_node_completion(&node_data, &mut managers);
+                    self.post_process_on_node_completion(node_data, core_id, &mut managers);
                 }
             }
         }
@@ -379,31 +379,29 @@ mod tests {
         );
 
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["core_id"]
-                .as_i64()
-                .unwrap(),
+            yaml_doc["node_set_logs"][1][2]["core_id"].as_i64().unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["dag_id"]
-                .as_i64()
-                .unwrap(),
+            yaml_doc["node_set_logs"][1][2]["dag_id"].as_i64().unwrap(),
             1
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["node_id"]
-                .as_i64()
-                .unwrap(),
+            yaml_doc["node_set_logs"][1][2]["node_id"].as_i64().unwrap(),
             3
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["start_time"]
+            yaml_doc["node_set_logs"][1][2]["job_id"].as_i64().unwrap(),
+            0
+        );
+        assert_eq!(
+            yaml_doc["node_set_logs"][1][2]["start_time"]
                 .as_i64()
                 .unwrap(),
             11
         );
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["finish_time"]
+            yaml_doc["node_set_logs"][1][4]["finish_time"]
                 .as_i64()
                 .unwrap(),
             22

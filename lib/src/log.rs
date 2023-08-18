@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_derive::{Deserialize, Serialize};
 
 use crate::graph_extension::{GraphExtension, NodeData};
-use crate::util::{append_info_to_yaml, get_hyper_period};
+use crate::util::append_info_to_yaml;
 
 pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     let yaml = serde_yaml::to_string(&target_struct).expect("Failed to serialize.");
@@ -165,6 +165,65 @@ impl JobLog {
     }
 }
 
+pub struct JobLogBuilder {
+    core_id: usize,
+    dag_id: usize,
+    node_id: usize,
+    job_id: usize,
+    start_time: Option<i32>,
+    resume_time: Option<i32>,
+    finish_time: Option<i32>,
+    preempted_time: Option<i32>,
+}
+
+impl JobLogBuilder {
+    pub fn new(core_id: usize, dag_id: usize, node_id: usize, job_id: usize) -> Self {
+        JobLogBuilder {
+            core_id,
+            dag_id,
+            node_id,
+            job_id,
+            start_time: None,
+            resume_time: None,
+            finish_time: None,
+            preempted_time: None,
+        }
+    }
+
+    pub fn start_time(mut self, start_time: i32) -> Self {
+        self.start_time = Some(start_time);
+        self
+    }
+
+    pub fn resume_time(mut self, resume_time: i32) -> Self {
+        self.resume_time = Some(resume_time);
+        self
+    }
+
+    pub fn finish_time(mut self, finish_time: i32) -> Self {
+        self.finish_time = Some(finish_time);
+        self
+    }
+
+    pub fn preempted_time(mut self, preempted_time: i32) -> Self {
+        self.preempted_time = Some(preempted_time);
+        self
+    }
+
+    pub fn build(self) -> JobLog {
+        JobLog {
+            core_id: self.core_id,
+            dag_id: self.dag_id,
+            node_id: self.node_id,
+            job_id: self.job_id,
+            start_time: self.start_time,
+            resume_time: self.resume_time,
+            finish_time: self.finish_time,
+            preempted_time: self.preempted_time,
+        }
+    }
+}
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct ProcessorLog {
     average_utilization: f32,
@@ -290,7 +349,7 @@ pub struct DAGSetSchedulerLog {
     dag_set_info: DAGSetInfo,
     processor_info: ProcessorInfo,
     dag_set_log: Vec<DAGLog>,
-    node_set_logs: Vec<Vec<Vec<JobLog>>>, // node_set_logs[dag_id][job_id][node_id]
+    node_set_logs: Vec<Vec<JobLog>>, // node_set_logs[dag_id][job_index]
     processor_log: ProcessorLog,
 }
 
@@ -301,20 +360,11 @@ impl DAGSetSchedulerLog {
             dag_set_log.push(DAGLog::new(i));
         }
 
-        let mut node_set_logs = Vec::with_capacity(dag_set.len());
-        let hyper_period = get_hyper_period(dag_set);
-        for (dag_id, dag) in dag_set.iter().enumerate() {
-            let iterations = hyper_period / dag.get_head_period().unwrap();
-            let mut job_set_logs = Vec::with_capacity(iterations as usize);
-            job_set_logs.resize_with(iterations as usize, || init_job_logs(dag, dag_id));
-            node_set_logs.push(job_set_logs);
-        }
-
         Self {
             dag_set_info: DAGSetInfo::new(dag_set),
             processor_info: ProcessorInfo::new(num_cores),
             dag_set_log,
-            node_set_logs,
+            node_set_logs: vec![Vec::new(); dag_set.len()],
             processor_log: ProcessorLog::new(num_cores),
         }
     }
@@ -334,18 +384,35 @@ impl DAGSetSchedulerLog {
         job_id: usize,
         current_time: i32,
     ) {
-        let dag_id = node_data.get_params_value("dag_id") as usize;
-        let node_id = node_data.get_id() as usize;
-        self.node_set_logs[dag_id][job_id][node_id].core_id = core_id;
-        self.node_set_logs[dag_id][job_id][node_id].job_id = job_id;
-        self.node_set_logs[dag_id][job_id][node_id].start_time = Some(current_time);
+        let job_log = JobLogBuilder::new(
+            core_id,
+            node_data.params["dag_id"] as usize,
+            node_data.id as usize,
+            job_id,
+        )
+        .start_time(current_time)
+        .build();
+        self.node_set_logs[node_data.get_params_value("dag_id") as usize].push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
     }
 
-    pub fn write_finishing_job(&mut self, node_data: &NodeData, job_id: usize, finish_time: i32) {
-        self.node_set_logs[node_data.params["dag_id"] as usize][job_id][node_data.id as usize]
-            .finish_time = Some(finish_time);
+    pub fn write_finishing_job(
+        &mut self,
+        node_data: &NodeData,
+        core_id: usize,
+        job_id: usize,
+        finish_time: i32,
+    ) {
+        let job_log = JobLogBuilder::new(
+            core_id,
+            node_data.params["dag_id"] as usize,
+            node_data.id as usize,
+            job_id,
+        )
+        .finish_time(finish_time)
+        .build();
+        self.node_set_logs[node_data.get_params_value("dag_id") as usize].push(job_log);
     }
 
     pub fn calculate_response_time(&mut self) {
