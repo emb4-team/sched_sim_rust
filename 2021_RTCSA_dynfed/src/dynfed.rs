@@ -379,7 +379,7 @@ mod tests {
         );
 
         assert_eq!(
-            yaml_doc["node_set_logs"][1][0][3]["core_id"][0]
+            yaml_doc["node_set_logs"][1][0][3]["core_id"]
                 .as_i64()
                 .unwrap(),
             1

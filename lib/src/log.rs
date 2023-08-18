@@ -140,14 +140,14 @@ impl DAGLog {
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct JobLog {
-    core_id: Vec<usize>,
+    core_id: usize,
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
     job_id: usize,
-    start_time: i32,
-    resume_time: Vec<i32>,
-    finish_time: i32,
-    preemptive_time: Vec<i32>,
+    start_time: Option<i32>,
+    resume_time: Option<i32>,
+    finish_time: Option<i32>,
+    preempted_time: Option<i32>,
 }
 
 impl JobLog {
@@ -160,7 +160,7 @@ impl JobLog {
             start_time: Default::default(),
             resume_time: Default::default(),
             finish_time: Default::default(),
-            preemptive_time: Default::default(),
+            preempted_time: Default::default(),
         }
     }
 }
@@ -262,15 +262,15 @@ impl DAGSchedulerLog {
         current_time: i32,
     ) {
         let node_id = node_data.id as usize;
-        self.node_logs[node_id].core_id.push(core_id);
+        self.node_logs[node_id].core_id = core_id;
         self.node_logs[node_id].job_id = 0; // This is a fixed value because DAG is released only once.
-        self.node_logs[node_id].start_time = current_time;
+        self.node_logs[node_id].start_time = Some(current_time);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
     }
 
     pub fn write_finishing_job(&mut self, node_data: &NodeData, current_time: i32) {
-        self.node_logs[node_data.id as usize].finish_time = current_time;
+        self.node_logs[node_data.id as usize].finish_time = Some(current_time);
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
@@ -336,18 +336,16 @@ impl DAGSetSchedulerLog {
     ) {
         let dag_id = node_data.get_params_value("dag_id") as usize;
         let node_id = node_data.get_id() as usize;
-        self.node_set_logs[dag_id][job_id][node_id]
-            .core_id
-            .push(core_id);
+        self.node_set_logs[dag_id][job_id][node_id].core_id = core_id;
         self.node_set_logs[dag_id][job_id][node_id].job_id = job_id;
-        self.node_set_logs[dag_id][job_id][node_id].start_time = current_time;
+        self.node_set_logs[dag_id][job_id][node_id].start_time = Some(current_time);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
     }
 
     pub fn write_finishing_job(&mut self, node_data: &NodeData, job_id: usize, finish_time: i32) {
         self.node_set_logs[node_data.params["dag_id"] as usize][job_id][node_data.id as usize]
-            .finish_time = finish_time;
+            .finish_time = Some(finish_time);
     }
 
     pub fn calculate_response_time(&mut self) {

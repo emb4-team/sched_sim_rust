@@ -170,7 +170,7 @@ mod tests {
         // Check the value of node_set_logs
         let node_set_logs = &yaml_doc["node_set_logs"][0][0][0];
         let core_id = &node_set_logs["core_id"];
-        assert_eq!(core_id[0].as_i64().unwrap(), 1);
+        assert_eq!(core_id.as_i64().unwrap(), 1);
         assert_eq!(node_set_logs["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(node_set_logs["node_id"].as_i64().unwrap(), 0);
         let start_time = &node_set_logs["start_time"];
