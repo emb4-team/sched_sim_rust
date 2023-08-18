@@ -2,7 +2,7 @@ use clap::Parser;
 use lib::dag_creator::*;
 use lib::homogeneous;
 use lib::processor::ProcessorBase;
-use lib::scheduler_base::create_scheduler_log_yaml;
+use lib::util::create_scheduler_log_yaml;
 use outputs_result::*;
 mod federated;
 mod outputs_result;
