@@ -268,16 +268,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         ready_nodes
     }
 
-    fn allocate_node(&mut self, node: &NodeData, core_i: usize, release_count: i32) {
+    fn allocate_node(&mut self, node: &NodeData, core_i: usize, job_i: usize) {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        self.get_log_mut().write_allocating_job(
-            node,
-            core_i,
-            (release_count - 1) as usize,
-            current_time,
-        );
+        self.get_log_mut()
+            .write_allocating_job(node, core_i, job_i - 1, current_time);
     }
 
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
@@ -361,7 +357,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                             &ready_node_data,
                             idle_core_index,
                             managers[ready_node_data.get_params_value("dag_id") as usize]
-                                .get_release_count(),
+                                .get_release_count() as usize,
                         );
                     }
                     None => break,

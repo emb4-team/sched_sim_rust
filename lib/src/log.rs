@@ -130,7 +130,7 @@ impl DAGLog {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum JobEvent {
+pub enum JobEventTimes {
     StartTime(i32),
     ResumeTime(i32),
     FinishTime(i32),
@@ -143,7 +143,7 @@ pub struct JobLog {
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
     job_id: usize,
-    event_time: JobEvent,
+    event_time: JobEventTimes,
 }
 
 impl JobLog {
@@ -153,7 +153,7 @@ impl JobLog {
         dag_id: usize,
         node_id: usize,
         job_id: usize,
-        event_time: JobEvent,
+        event_time: JobEventTimes,
     ) -> Self {
         Self {
             core_id,
@@ -256,7 +256,7 @@ impl DAGSchedulerLog {
             0, // This is a fixed value because DAG is only one.
             node_data.id as usize,
             0, // This is a fixed value because DAG is released only once.
-            JobEvent::StartTime(current_time),
+            JobEventTimes::StartTime(current_time),
         );
         self.node_logs.push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
@@ -269,7 +269,7 @@ impl DAGSchedulerLog {
             0, // This is a fixed value because DAG is only one.
             node_data.id as usize,
             0, // This is a fixed value because DAG is released only once.
-            JobEvent::FinishTime(current_time),
+            JobEventTimes::FinishTime(current_time),
         );
         self.node_logs.push(job_log);
     }
@@ -291,7 +291,7 @@ pub struct DAGSetSchedulerLog {
     dag_set_info: DAGSetInfo,
     processor_info: ProcessorInfo,
     dag_set_log: Vec<DAGLog>,
-    node_set_logs: Vec<Vec<JobLog>>, // node_set_logs[dag_id][job_index]
+    node_set_logs: Vec<Vec<JobLog>>,
     processor_log: ProcessorLog,
 }
 
@@ -332,7 +332,7 @@ impl DAGSetSchedulerLog {
             dag_id,
             node_data.id as usize,
             job_id,
-            JobEvent::StartTime(current_time),
+            JobEventTimes::StartTime(current_time),
         );
         self.node_set_logs[dag_id].push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
@@ -352,7 +352,7 @@ impl DAGSetSchedulerLog {
             dag_id,
             node_data.id as usize,
             job_id,
-            JobEvent::FinishTime(finish_time),
+            JobEventTimes::FinishTime(finish_time),
         );
         self.node_set_logs[dag_id].push(job_log);
     }
