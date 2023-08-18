@@ -1,7 +1,7 @@
 //! Homogeneous processor module. This module uses Core struct.
 use crate::{core::Core, core::ProcessResult, graph_extension::NodeData, processor::ProcessorBase};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct HomogeneousProcessor {
     pub cores: Vec<Core>,
 }
@@ -239,5 +239,40 @@ mod tests {
         homogeneous_processor.process();
 
         assert_eq!(homogeneous_processor.suspend_execution(0), None);
+    }
+
+    #[test]
+    fn test_get_max_value_index() {
+        let mut homogeneous_processor = HomogeneousProcessor::new(2);
+
+        let n0 = create_node(0, "execution_time", 10);
+        let mut n1 = create_node(1, "execution_time", 10);
+
+        homogeneous_processor.allocate_specific_core(0, &n0);
+        homogeneous_processor.process();
+        homogeneous_processor.allocate_specific_core(1, &n1);
+        homogeneous_processor.process();
+
+        assert_eq!(
+            homogeneous_processor.get_max_value_index("execution_time"),
+            Some(1)
+        );
+
+        n1 = homogeneous_processor.suspend_execution(1).unwrap();
+
+        println!("{:?}", homogeneous_processor);
+
+        assert_eq!(
+            homogeneous_processor.get_max_value_index("execution_time"),
+            Some(0)
+        );
+
+        homogeneous_processor.allocate_specific_core(0, &n1);
+        homogeneous_processor.process();
+
+        assert_eq!(
+            homogeneous_processor.get_max_value_index("execution_time"),
+            Some(0)
+        );
     }
 }

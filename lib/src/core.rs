@@ -11,7 +11,7 @@ pub enum ProcessResult {
     Done(NodeData),
 }
 
-#[derive(Clone, Getters)]
+#[derive(Clone, Getters, Debug)]
 pub struct Core {
     #[get = "pub"]
     pub is_idle: bool,
