@@ -163,64 +163,30 @@ impl JobLog {
             preempted_time: Default::default(),
         }
     }
-}
 
-pub struct JobLogBuilder {
-    core_id: usize,
-    dag_id: usize,
-    node_id: usize,
-    job_id: usize,
-    start_time: Option<i32>,
-    resume_time: Option<i32>,
-    finish_time: Option<i32>,
-    preempted_time: Option<i32>,
-}
-
-impl JobLogBuilder {
-    pub fn new(core_id: usize, dag_id: usize, node_id: usize, job_id: usize) -> Self {
-        JobLogBuilder {
-            core_id,
-            dag_id,
-            node_id,
-            job_id,
-            start_time: None,
-            resume_time: None,
-            finish_time: None,
-            preempted_time: None,
-        }
+    fn set_core_id(&mut self, core_id: usize) {
+        self.core_id = core_id;
     }
 
-    pub fn start_time(mut self, start_time: i32) -> Self {
+    fn set_job_id(&mut self, job_id: usize) {
+        self.job_id = job_id;
+    }
+
+    fn set_start_time(&mut self, start_time: i32) {
         self.start_time = Some(start_time);
-        self
     }
-
-    pub fn resume_time(mut self, resume_time: i32) -> Self {
+    #[allow(dead_code)] // TODO: Remove
+    fn set_resume_time(&mut self, resume_time: i32) {
         self.resume_time = Some(resume_time);
-        self
     }
 
-    pub fn finish_time(mut self, finish_time: i32) -> Self {
+    fn set_finish_time(&mut self, finish_time: i32) {
         self.finish_time = Some(finish_time);
-        self
     }
 
-    pub fn preempted_time(mut self, preempted_time: i32) -> Self {
+    #[allow(dead_code)] // TODO: Remove
+    fn set_preempted_time(&mut self, preempted_time: i32) {
         self.preempted_time = Some(preempted_time);
-        self
-    }
-
-    pub fn build(self) -> JobLog {
-        JobLog {
-            core_id: self.core_id,
-            dag_id: self.dag_id,
-            node_id: self.node_id,
-            job_id: self.job_id,
-            start_time: self.start_time,
-            resume_time: self.resume_time,
-            finish_time: self.finish_time,
-            preempted_time: self.preempted_time,
-        }
     }
 }
 
@@ -384,15 +350,12 @@ impl DAGSetSchedulerLog {
         job_id: usize,
         current_time: i32,
     ) {
-        let job_log = JobLogBuilder::new(
-            core_id,
-            node_data.params["dag_id"] as usize,
-            node_data.id as usize,
-            job_id,
-        )
-        .start_time(current_time)
-        .build();
-        self.node_set_logs[node_data.get_params_value("dag_id") as usize].push(job_log);
+        let dag_id = node_data.get_params_value("dag_id") as usize;
+        let mut job_log = JobLog::new(dag_id, node_data.id as usize);
+        job_log.set_core_id(core_id);
+        job_log.set_job_id(job_id);
+        job_log.set_start_time(current_time);
+        self.node_set_logs[dag_id].push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
     }
@@ -404,15 +367,12 @@ impl DAGSetSchedulerLog {
         job_id: usize,
         finish_time: i32,
     ) {
-        let job_log = JobLogBuilder::new(
-            core_id,
-            node_data.params["dag_id"] as usize,
-            node_data.id as usize,
-            job_id,
-        )
-        .finish_time(finish_time)
-        .build();
-        self.node_set_logs[node_data.get_params_value("dag_id") as usize].push(job_log);
+        let dag_id = node_data.get_params_value("dag_id") as usize;
+        let mut job_log = JobLog::new(dag_id, node_data.id as usize);
+        job_log.set_core_id(core_id);
+        job_log.set_job_id(job_id);
+        job_log.set_finish_time(finish_time);
+        self.node_set_logs[dag_id].push(job_log);
     }
 
     pub fn calculate_response_time(&mut self) {
