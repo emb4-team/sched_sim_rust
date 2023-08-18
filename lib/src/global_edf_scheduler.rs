@@ -173,9 +173,9 @@ mod tests {
         assert_eq!(node_set_logs[0]["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(node_set_logs[0]["node_id"].as_i64().unwrap(), 0);
         // start_time
-        assert_eq!(node_set_logs[0]["event"].as_str().unwrap(), "0");
+        assert_eq!(node_set_logs[0]["event_time"].as_str().unwrap(), "0");
         // finish_time
-        assert_eq!(node_set_logs[1]["event"].as_str().unwrap(), "10");
+        assert_eq!(node_set_logs[1]["event_time"].as_str().unwrap(), "10");
 
         // Check the value of processor_log
         let processor_log = &yaml_doc["processor_log"];

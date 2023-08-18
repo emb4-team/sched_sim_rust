@@ -158,18 +158,24 @@ pub struct JobLog {
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
     job_id: usize,
-    event: JobEvent,
+    event_time: JobEvent,
 }
 
 impl JobLog {
     #[allow(clippy::too_many_arguments)]
-    fn new(core_id: usize, dag_id: usize, node_id: usize, job_id: usize, event: JobEvent) -> Self {
+    fn new(
+        core_id: usize,
+        dag_id: usize,
+        node_id: usize,
+        job_id: usize,
+        event_time: JobEvent,
+    ) -> Self {
         Self {
             core_id,
             dag_id,
             node_id,
             job_id,
-            event,
+            event_time,
         }
     }
 }

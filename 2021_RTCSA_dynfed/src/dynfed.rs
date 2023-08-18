@@ -396,12 +396,16 @@ mod tests {
         );
         // start_time
         assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["event"].as_str().unwrap(),
+            yaml_doc["node_set_logs"][1][2]["event_time"]
+                .as_str()
+                .unwrap(),
             "11"
         );
         // finish_time
         assert_eq!(
-            yaml_doc["node_set_logs"][1][4]["event"].as_str().unwrap(),
+            yaml_doc["node_set_logs"][1][4]["event_time"]
+                .as_str()
+                .unwrap(),
             "22"
         );
 
