@@ -3,8 +3,7 @@ use crate::{
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
-    scheduler_base::create_scheduler_log_yaml,
-    util::get_hyper_period,
+    util::{create_scheduler_log_yaml, get_hyper_period},
 };
 use petgraph::graph::{Graph, NodeIndex};
 use std::{cmp::Ordering, collections::BTreeSet};

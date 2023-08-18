@@ -3,7 +3,7 @@ use crate::{
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
-    scheduler_base::create_scheduler_log_yaml,
+    util::create_scheduler_log_yaml,
 };
 use petgraph::graph::{Graph, NodeIndex};
 use std::collections::VecDeque;
