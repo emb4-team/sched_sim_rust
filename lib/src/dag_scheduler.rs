@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
@@ -8,6 +6,7 @@ use crate::{
     scheduler_base::create_scheduler_log_yaml,
 };
 use petgraph::graph::{Graph, NodeIndex};
+use std::collections::VecDeque;
 
 const DUMMY_EXECUTION_TIME: i32 = 1;
 

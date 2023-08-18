@@ -2,12 +2,12 @@ use petgraph::graph::Graph;
 
 use std::cmp::Ordering;
 
+use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
 use crate::getset_dag_set_scheduler;
 use crate::graph_extension::GraphExtension;
-use crate::scheduler_base::NodeDataWrapper;
 use crate::{
     graph_extension::NodeData, homogeneous::HomogeneousProcessor, log::DAGSetSchedulerLog,
-    processor::ProcessorBase, scheduler_base::DAGSetSchedulerBase,
+    processor::ProcessorBase,
 };
 
 impl PartialOrd for NodeDataWrapper {
