@@ -91,13 +91,15 @@ where
 
                 let finish_nodes: Vec<NodeIndex> = process_result
                     .iter()
-                    .filter_map(|result| {
+                    .enumerate()
+                    .filter_map(|(core_id, result)| {
                         if let ProcessResult::Done(node_data) = result {
                             let node_id = node_data.id as usize;
                             let node_i = NodeIndex::new(node_id);
                             if node_i != source_node_i && node_i != sink_node_i {
                                 log.write_finishing_job(
                                     node_data,
+                                    core_id,
                                     current_time - DUMMY_EXECUTION_TIME,
                                 );
                             }

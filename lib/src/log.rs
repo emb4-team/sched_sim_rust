@@ -14,7 +14,13 @@ pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
 fn init_job_logs(dag: &Graph<NodeData, i32>, dag_id: usize) -> Vec<JobLog> {
     let mut job_logs = Vec::with_capacity(dag.node_count());
     for node in dag.node_indices() {
-        job_logs.push(JobLog::new(dag_id, dag[node].id as usize));
+        job_logs.push(JobLog::new(
+            0,
+            dag_id,
+            dag[node].id as usize,
+            0,
+            JobEvent::StartTime(0),
+        ));
     }
 
     job_logs
@@ -138,55 +144,33 @@ impl DAGLog {
     }
 }
 
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
+pub enum JobEvent {
+    StartTime(i32),
+    ResumeTime(i32),
+    FinishTime(i32),
+    PreemptedTime(i32),
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct JobLog {
     core_id: usize,
     dag_id: usize, // Used to distinguish DAGs when the scheduler input is DAGSet
     node_id: usize,
     job_id: usize,
-    start_time: Option<i32>,
-    resume_time: Option<i32>,
-    finish_time: Option<i32>,
-    preempted_time: Option<i32>,
+    event: JobEvent,
 }
 
 impl JobLog {
-    fn new(dag_id: usize, node_id: usize) -> Self {
+    #[allow(clippy::too_many_arguments)]
+    fn new(core_id: usize, dag_id: usize, node_id: usize, job_id: usize, event: JobEvent) -> Self {
         Self {
-            core_id: Default::default(),
+            core_id,
             dag_id,
             node_id,
-            job_id: Default::default(),
-            start_time: Default::default(),
-            resume_time: Default::default(),
-            finish_time: Default::default(),
-            preempted_time: Default::default(),
+            job_id,
+            event,
         }
-    }
-
-    fn set_core_id(&mut self, core_id: usize) {
-        self.core_id = core_id;
-    }
-
-    fn set_job_id(&mut self, job_id: usize) {
-        self.job_id = job_id;
-    }
-
-    fn set_start_time(&mut self, start_time: i32) {
-        self.start_time = Some(start_time);
-    }
-    #[allow(dead_code)] // TODO: Remove
-    fn set_resume_time(&mut self, resume_time: i32) {
-        self.resume_time = Some(resume_time);
-    }
-
-    fn set_finish_time(&mut self, finish_time: i32) {
-        self.finish_time = Some(finish_time);
-    }
-
-    #[allow(dead_code)] // TODO: Remove
-    fn set_preempted_time(&mut self, preempted_time: i32) {
-        self.preempted_time = Some(preempted_time);
     }
 }
 
@@ -262,11 +246,10 @@ pub struct DAGSchedulerLog {
 
 impl DAGSchedulerLog {
     pub fn new(dag: &Graph<NodeData, i32>, num_cores: usize) -> Self {
-        let dag_id = 0;
         Self {
             dag_info: DAGInfo::new(dag),
             processor_info: ProcessorInfo::new(num_cores),
-            node_logs: init_job_logs(dag, dag_id),
+            node_logs: Vec::new(),
             processor_log: ProcessorLog::new(num_cores),
         }
     }
@@ -286,16 +269,27 @@ impl DAGSchedulerLog {
         core_id: usize,
         current_time: i32,
     ) {
-        let node_id = node_data.id as usize;
-        self.node_logs[node_id].core_id = core_id;
-        self.node_logs[node_id].job_id = 0; // This is a fixed value because DAG is released only once.
-        self.node_logs[node_id].start_time = Some(current_time);
+        let job_log = JobLog::new(
+            core_id,
+            0, // This is a fixed value because DAG is only one.
+            node_data.id as usize,
+            0, // This is a fixed value because DAG is released only once.
+            JobEvent::StartTime(current_time),
+        );
+        self.node_logs.push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
     }
 
-    pub fn write_finishing_job(&mut self, node_data: &NodeData, current_time: i32) {
-        self.node_logs[node_data.id as usize].finish_time = Some(current_time);
+    pub fn write_finishing_job(&mut self, node_data: &NodeData, core_id: usize, current_time: i32) {
+        let job_log = JobLog::new(
+            core_id,
+            0, // This is a fixed value because DAG is only one.
+            node_data.id as usize,
+            0, // This is a fixed value because DAG is released only once.
+            JobEvent::FinishTime(current_time),
+        );
+        self.node_logs.push(job_log);
     }
 
     pub fn calculate_utilization(&mut self, schedule_length: i32) {
@@ -351,10 +345,13 @@ impl DAGSetSchedulerLog {
         current_time: i32,
     ) {
         let dag_id = node_data.get_params_value("dag_id") as usize;
-        let mut job_log = JobLog::new(dag_id, node_data.id as usize);
-        job_log.set_core_id(core_id);
-        job_log.set_job_id(job_id);
-        job_log.set_start_time(current_time);
+        let job_log = JobLog::new(
+            core_id,
+            dag_id,
+            node_data.id as usize,
+            job_id,
+            JobEvent::StartTime(current_time),
+        );
         self.node_set_logs[dag_id].push(job_log);
         self.processor_log.core_logs[core_id].total_proc_time +=
             node_data.get_params_value("execution_time");
@@ -368,10 +365,13 @@ impl DAGSetSchedulerLog {
         finish_time: i32,
     ) {
         let dag_id = node_data.get_params_value("dag_id") as usize;
-        let mut job_log = JobLog::new(dag_id, node_data.id as usize);
-        job_log.set_core_id(core_id);
-        job_log.set_job_id(job_id);
-        job_log.set_finish_time(finish_time);
+        let job_log = JobLog::new(
+            core_id,
+            dag_id,
+            node_data.id as usize,
+            job_id,
+            JobEvent::FinishTime(finish_time),
+        );
         self.node_set_logs[dag_id].push(job_log);
     }
 

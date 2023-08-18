@@ -394,17 +394,15 @@ mod tests {
             yaml_doc["node_set_logs"][1][2]["job_id"].as_i64().unwrap(),
             0
         );
+        // start_time
         assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["start_time"]
-                .as_i64()
-                .unwrap(),
-            11
+            yaml_doc["node_set_logs"][1][2]["event"].as_str().unwrap(),
+            "11"
         );
+        // finish_time
         assert_eq!(
-            yaml_doc["node_set_logs"][1][4]["finish_time"]
-                .as_i64()
-                .unwrap(),
-            22
+            yaml_doc["node_set_logs"][1][4]["event"].as_str().unwrap(),
+            "22"
         );
 
         assert_eq!(
