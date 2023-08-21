@@ -42,17 +42,16 @@ impl ProcessorBase for HomogeneousProcessor {
         self.cores[core_id].suspend_execution()
     }
 
-    fn get_max_value_index(&self, key: &str) -> Option<usize> {
+    fn get_max_value_and_index(&self, key: &str) -> Option<(i32, usize)> {
         self.cores
             .iter()
             .enumerate()
             .filter_map(|(index, core)| {
                 let node_data = core.get_processing_node().as_ref()?;
                 let value = node_data.params.get(key)?;
-                Some((index, *value))
+                Some((*value, index))
             })
-            .max_by_key(|&(_, value)| value)
-            .map(|(index, _)| index)
+            .max_by_key(|&(value, _)| value)
     }
 }
 
@@ -244,35 +243,26 @@ mod tests {
     #[test]
     fn test_get_max_value_index() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
-
         let n0 = create_node(0, "execution_time", 10);
-        let mut n1 = create_node(1, "execution_time", 10);
+        let mut n1 = create_node(1, "execution_time", 11);
 
         homogeneous_processor.allocate_specific_core(0, &n0);
-        homogeneous_processor.process();
         homogeneous_processor.allocate_specific_core(1, &n1);
-        homogeneous_processor.process();
-
         assert_eq!(
-            homogeneous_processor.get_max_value_index("execution_time"),
-            Some(1)
+            homogeneous_processor.get_max_value_and_index("execution_time"),
+            Some((11, 1))
         );
 
         n1 = homogeneous_processor.suspend_execution(1).unwrap();
-
-        println!("{:?}", homogeneous_processor);
-
         assert_eq!(
-            homogeneous_processor.get_max_value_index("execution_time"),
-            Some(0)
+            homogeneous_processor.get_max_value_and_index("execution_time"),
+            Some((10, 0))
         );
 
-        homogeneous_processor.allocate_specific_core(0, &n1);
-        homogeneous_processor.process();
-
+        homogeneous_processor.allocate_specific_core(1, &n1);
         assert_eq!(
-            homogeneous_processor.get_max_value_index("execution_time"),
-            Some(0)
+            homogeneous_processor.get_max_value_and_index("execution_time"),
+            Some((11, 1))
         );
     }
 }
