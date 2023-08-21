@@ -71,6 +71,7 @@ where
                 // Move one unit time so that the core state of the previous loop does not remain.
                 let mut process_result = processor.process();
                 current_time += 1;
+                // TODO: Will be refactoring the core structure to have a core log.
                 // Write the processing time of the core to the log.
                 let indices: Vec<usize> = get_process_core_indices(&process_result);
                 log.write_processing_time(&indices);
@@ -83,6 +84,7 @@ where
                     process_result = processor.process();
                     current_time += 1;
 
+                    // TODO: Will be refactoring the core structure to have a core log.
                     // Write the processing time of the core to the log.
                     let indices: Vec<usize> = get_process_core_indices(&process_result);
                     log.write_processing_time(&indices)
