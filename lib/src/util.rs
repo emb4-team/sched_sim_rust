@@ -1,4 +1,7 @@
-use crate::graph_extension::{GraphExtension, NodeData};
+use crate::{
+    core::ProcessResult,
+    graph_extension::{GraphExtension, NodeData},
+};
 use chrono::{DateTime, Utc};
 use log::{info, warn};
 use num_integer::lcm;
@@ -86,6 +89,20 @@ pub fn create_scheduler_log_yaml(dir_path: &str, alg_name: &str) -> String {
     let date = now.format("%Y-%m-%d-%H-%M-%S").to_string();
     let file_name = format!("{}-{}-log", date, alg_name);
     create_yaml(dir_path, &file_name)
+}
+
+pub fn get_process_core_indices(process_result: &[ProcessResult]) -> Vec<usize> {
+    process_result
+        .iter()
+        .enumerate()
+        .filter_map(|(index, result)| match result {
+            ProcessResult::Continue => Some(index),
+            ProcessResult::Done(node_data) if !node_data.params.contains_key("dummy") => {
+                Some(index)
+            }
+            _ => None,
+        })
+        .collect()
 }
 
 #[cfg(test)]
@@ -199,5 +216,21 @@ mod tests {
     fn test_adjust_to_implicit_deadline_no_period_and_deadline() {
         let mut dag_set = vec![create_dag()];
         adjust_to_implicit_deadline(&mut dag_set);
+    }
+
+    #[test]
+    fn test_get_process_core_indices_normal() {
+        fn create_node(id: i32, key: &str, value: i32) -> NodeData {
+            let mut params = BTreeMap::new();
+            params.insert(key.to_string(), value);
+            NodeData { id, params }
+        }
+        let process_result = vec![
+            ProcessResult::Continue,
+            ProcessResult::Done(create_node(0, "dummy", -1)),
+            ProcessResult::Idle,
+            ProcessResult::Done(create_node(1, "execution_time", 10)),
+        ];
+        assert_eq!(get_process_core_indices(&process_result), vec![0, 3]);
     }
 }

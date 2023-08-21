@@ -3,7 +3,7 @@ use crate::{
     graph_extension::{GraphExtension, NodeData},
     log::*,
     processor::ProcessorBase,
-    util::{create_scheduler_log_yaml, get_hyper_period},
+    util::{create_scheduler_log_yaml, get_hyper_period, get_process_core_indices},
 };
 use petgraph::graph::{Graph, NodeIndex};
 use std::{cmp::Ordering, collections::BTreeSet};
@@ -214,6 +214,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
             // Process unit time
             let process_result = self.process_unit_time();
+            // TODO: Will be refactoring the core structure to have a core log.
+            // Write the processing time of the core to the log.
+            let log = self.get_log_mut();
+            let indices: Vec<usize> = get_process_core_indices(&process_result);
+            log.write_processing_time(&indices);
 
             // Post-process on completion of node execution
             for (core_id, result) in process_result.iter().enumerate() {

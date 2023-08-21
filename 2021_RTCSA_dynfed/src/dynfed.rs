@@ -14,7 +14,7 @@ use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
 use lib::homogeneous::HomogeneousProcessor;
 use lib::processor::ProcessorBase;
-use lib::util::get_hyper_period;
+use lib::util::{get_hyper_period, get_process_core_indices};
 use lib::{getset_dag_set_scheduler, getset_dag_state_manager, log::*};
 use petgraph::{graph::NodeIndex, Graph};
 
@@ -207,6 +207,8 @@ where
             }
             // Process unit time
             let process_result = self.process_unit_time();
+            let indices: Vec<usize> = get_process_core_indices(&process_result);
+            self.log.write_processing_time(&indices);
 
             // Post-process on completion of node execution
             for (core_id, result) in process_result.iter().enumerate() {
