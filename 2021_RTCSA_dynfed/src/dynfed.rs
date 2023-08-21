@@ -7,8 +7,8 @@
 //! -----------------
 use getset::{CopyGetters, Setters};
 use lib::dag_scheduler::DAGSchedulerBase;
-use lib::dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase};
-use std::collections::VecDeque;
+use lib::dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase, NodeDataWrapper};
+use std::collections::{BTreeSet, VecDeque};
 
 use lib::core::ProcessResult;
 use lib::graph_extension::{GraphExtension, NodeData};
@@ -156,6 +156,10 @@ where
             log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
             current_time: 0,
         }
+    }
+
+    fn preemptive(&mut self, _: &NodeData, _: &mut BTreeSet<NodeDataWrapper>) -> bool {
+        false
     }
 
     fn schedule(&mut self) -> i32 {

@@ -1,6 +1,7 @@
 use petgraph::graph::Graph;
 
 use std::cmp::Ordering;
+use std::collections::BTreeSet;
 
 use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
 use crate::getset_dag_set_scheduler;
@@ -52,6 +53,31 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
             current_time: 0,
         }
+    }
+
+    fn preemptive(
+        &mut self,
+        node_data: &NodeData,
+        ready_queue: &mut BTreeSet<NodeDataWrapper>,
+    ) -> bool {
+        let mut preemptive = false;
+
+        if self.processor.get_idle_core_num() == 0 {
+            let (max_value, core_index) = self
+                .processor
+                .get_max_value_and_index("absolute_deadline")
+                .unwrap();
+            if max_value > node_data.get_params_value("absolute_deadline") {
+                let suspended_node_data = self.processor.suspend_execution(core_index).unwrap();
+                self.processor.allocate_specific_core(core_index, node_data);
+                ready_queue.insert(NodeDataWrapper {
+                    node_data: suspended_node_data,
+                });
+                preemptive = true;
+            }
+        }
+
+        preemptive
     }
 
     getset_dag_set_scheduler!(HomogeneousProcessor);

@@ -89,6 +89,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn set_current_time(&mut self, current_time: i32);
     // method definition
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
+    fn preemptive(
+        &mut self,
+        node_data: &NodeData,
+        ready_queue: &mut BTreeSet<NodeDataWrapper>,
+    ) -> bool;
     // method implementation
     fn release_dags(&mut self, managers: &mut [impl DAGStateManagerBase]) -> Vec<NodeData> {
         let current_time = self.get_current_time();
@@ -197,19 +202,26 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             }
 
             // Allocate the nodes of ready_queue to idle cores
-            while !ready_queue.is_empty() {
-                match self.get_processor_mut().get_idle_core_index() {
-                    Some(idle_core_index) => {
-                        let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
-                        self.allocate_node(
-                            &ready_node_data,
-                            idle_core_index,
-                            managers[ready_node_data.get_params_value("dag_id") as usize]
-                                .get_release_count() as usize,
-                        );
-                    }
-                    None => break,
-                };
+            if self.get_processor_mut().get_idle_core_num() == 0 {
+                // Preemption
+                let ready_node_data = ready_queue.first().unwrap().convert_node_data();
+                self.preemptive(&ready_node_data, &mut ready_queue);
+            } else {
+                while !ready_queue.is_empty() {
+                    match self.get_processor_mut().get_idle_core_index() {
+                        Some(idle_core_index) => {
+                            let ready_node_data =
+                                ready_queue.pop_first().unwrap().convert_node_data();
+                            self.allocate_node(
+                                &ready_node_data,
+                                idle_core_index,
+                                managers[ready_node_data.get_params_value("dag_id") as usize]
+                                    .get_release_count() as usize,
+                            );
+                        }
+                        None => break,
+                    };
+                }
             }
 
             // Process unit time
