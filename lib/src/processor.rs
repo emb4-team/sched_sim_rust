@@ -8,4 +8,5 @@ pub trait ProcessorBase {
     fn get_idle_core_index(&self) -> Option<usize>;
     fn get_idle_core_num(&self) -> usize;
     fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData>;
+    fn get_max_value_index(&self, key: &str) -> Option<usize>;
 }
