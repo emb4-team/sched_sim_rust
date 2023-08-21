@@ -26,12 +26,12 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     fn get_idle_core_num(&self) -> usize {
-        self.cores.iter().filter(|core| *core.is_idle()).count()
+        self.cores.iter().filter(|core| core.get_is_idle()).count()
     }
 
     fn get_idle_core_index(&self) -> Option<usize> {
         for (index, core) in self.cores.iter().enumerate() {
-            if *core.is_idle() {
+            if core.get_is_idle() {
                 return Some(index);
             }
         }
@@ -47,9 +47,9 @@ impl ProcessorBase for HomogeneousProcessor {
             .iter()
             .enumerate()
             .filter_map(|(index, core)| {
-                core.processing_node()
-                    .as_ref()
-                    .and_then(|node_data| node_data.params.get(key).map(|&value| (index, value)))
+                let node_data = core.get_processing_node().as_ref()?;
+                let value = node_data.params.get(key)?;
+                Some((index, *value))
             })
             .max_by_key(|&(_, value)| value)
             .map(|(index, _)| index)

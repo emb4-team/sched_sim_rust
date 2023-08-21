@@ -1,6 +1,6 @@
 //! This module contains the definition of the core and the process result enum
 use crate::{core::ProcessResult::*, graph_extension::NodeData};
-use getset::Getters;
+use getset::{CopyGetters, Getters};
 use log::warn;
 ///enum to represent three types of states
 ///execution not possible because not allocate, execution in progress, execution finished
@@ -11,11 +11,11 @@ pub enum ProcessResult {
     Done(NodeData),
 }
 
-#[derive(Clone, Getters, Debug)]
+#[derive(Clone, CopyGetters, Getters, Debug)]
 pub struct Core {
-    #[get = "pub"]
+    #[get_copy = "pub with_prefix"]
     pub is_idle: bool,
-    #[get = "pub"]
+    #[get = "pub with_prefix"]
     pub processing_node: Option<NodeData>,
     pub remain_proc_time: i32,
 }
