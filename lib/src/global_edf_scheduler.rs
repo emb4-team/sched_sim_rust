@@ -154,7 +154,7 @@ mod tests {
 
         assert_eq!(time, 300);
 
-        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_test");
+        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_normal_test");
         let yaml_docs = load_yaml(&file_path);
         let yaml_doc = &yaml_docs[0];
 
@@ -235,7 +235,7 @@ mod tests {
 
         assert_eq!(time, 150);
 
-        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_test");
+        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_preemptive_test");
         let yaml_docs = load_yaml(&file_path);
         let yaml_doc = &yaml_docs[0];
 
