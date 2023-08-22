@@ -79,6 +79,11 @@ impl DAGStateManagerBase for DAGStateManager {
     getset_dag_state_manager!();
 }
 
+pub enum PreemptiveType {
+    NonePreemptive,
+    Preemptive { key: String },
+}
+
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     // getter, setter
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
@@ -182,7 +187,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log.calculate_response_time();
     }
 
-    fn schedule(&mut self, preemptive_key: Option<&str>) -> i32 {
+    fn schedule(&mut self, preemptive_key: PreemptiveType) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
         let mut ready_queue = BTreeSet::new();
@@ -198,16 +203,20 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
             let processor = self.get_processor_mut();
             // Preemptive if preemptive_key is Some and idle core not exists
-            if let (None, Some(preemptive_key_value)) =
-                (processor.get_idle_core_index(), preemptive_key)
+            if let (
+                None,
+                PreemptiveType::Preemptive {
+                    key: preemptive_string_key,
+                },
+            ) = (processor.get_idle_core_index(), &preemptive_key)
             {
                 while let Some(ready_node_data) = ready_queue.first() {
                     let ready_node_data_value = ready_node_data
                         .convert_node_data()
-                        .get_params_value(preemptive_key_value);
+                        .get_params_value(preemptive_string_key);
 
                     if let Some((max_value, core_index)) =
-                        processor.get_max_value_and_index(preemptive_key_value)
+                        processor.get_max_value_and_index(preemptive_string_key)
                     {
                         if max_value <= ready_node_data_value {
                             break;

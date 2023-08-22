@@ -60,7 +60,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::util::load_yaml;
+    use crate::{dag_set_scheduler::PreemptiveType, util::load_yaml};
     use std::{collections::BTreeMap, fs::remove_file};
 
     fn create_node(id: i32, key: &str, value: i32) -> NodeData {
@@ -150,7 +150,7 @@ mod tests {
         let processor = HomogeneousProcessor::new(4);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let time = global_edf_scheduler.schedule(None);
+        let time = global_edf_scheduler.schedule(PreemptiveType::NonePreemptive);
 
         assert_eq!(time, 300);
 
@@ -231,7 +231,9 @@ mod tests {
         let processor = HomogeneousProcessor::new(2);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let time = global_edf_scheduler.schedule(Some("absolute_deadline"));
+        let time = global_edf_scheduler.schedule(PreemptiveType::Preemptive {
+            key: "absolute_deadline".to_string(),
+        });
 
         assert_eq!(time, 150);
 

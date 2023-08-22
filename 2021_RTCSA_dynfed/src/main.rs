@@ -3,7 +3,7 @@ mod dynfed;
 use clap::Parser;
 use dynfed::DynamicFederatedScheduler;
 use lib::dag_creator::*;
-use lib::dag_set_scheduler::DAGSetSchedulerBase;
+use lib::dag_set_scheduler::{DAGSetSchedulerBase, PreemptiveType};
 use lib::fixed_priority_scheduler::FixedPriorityScheduler;
 use lib::graph_extension::GraphExtension;
 use lib::homogeneous::HomogeneousProcessor;
@@ -43,7 +43,7 @@ fn main() {
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
-    dynfed_scheduler.schedule(None);
+    dynfed_scheduler.schedule(PreemptiveType::NonePreemptive);
     let file_path = dynfed_scheduler.dump_log(&arg.output_dir_path, "FixedPriority");
 
     // Check the result

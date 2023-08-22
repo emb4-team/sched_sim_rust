@@ -7,7 +7,7 @@
 //! -----------------
 use getset::{CopyGetters, Setters};
 use lib::dag_scheduler::DAGSchedulerBase;
-use lib::dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase};
+use lib::dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase, PreemptiveType};
 use std::collections::VecDeque;
 
 use lib::core::ProcessResult;
@@ -158,7 +158,7 @@ where
         }
     }
 
-    fn schedule(&mut self, _: Option<&str>) -> i32 {
+    fn schedule(&mut self, _: PreemptiveType) -> i32 {
         // Initialize DAGStateManagers
         let mut managers = vec![DynFedDAGStateManager::default(); self.dag_set.len()];
         for dag in self.dag_set.iter() {
@@ -296,7 +296,7 @@ mod tests {
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
-        let time = dynfed.schedule(None);
+        let time = dynfed.schedule(PreemptiveType::NonePreemptive);
         assert_eq!(time, 300);
 
         let file_path = dynfed.dump_log("../lib/tests", "dyn_test");
