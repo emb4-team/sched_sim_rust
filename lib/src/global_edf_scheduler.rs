@@ -270,7 +270,7 @@ mod tests {
         assert_eq!(dag_set_log["finish_time"][0].as_i64().unwrap(), 80);
         assert_eq!(dag_set_log["response_time"][0].as_i64().unwrap(), 80);
 
-        // TODO: Check after implementing log writing functionality.
+        // TODO: Check after implementing log writing functionality
         /*// Check the value of node_set_logs
         let node_set_logs = &yaml_doc["node_set_logs"][0];
         assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 1);
