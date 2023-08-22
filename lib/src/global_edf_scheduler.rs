@@ -1,7 +1,6 @@
 use petgraph::graph::Graph;
 
 use std::cmp::Ordering;
-use std::collections::BTreeSet;
 
 use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
 use crate::getset_dag_set_scheduler;
@@ -53,31 +52,6 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
             log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
             current_time: 0,
         }
-    }
-
-    fn preemptive(
-        &mut self,
-        node_data: &NodeData,
-        ready_queue: &mut BTreeSet<NodeDataWrapper>,
-    ) -> bool {
-        let mut preemptive = false;
-
-        if self.processor.get_idle_core_num() == 0 {
-            let (max_value, core_index) = self
-                .processor
-                .get_max_value_and_index("absolute_deadline")
-                .unwrap();
-            if max_value > node_data.get_params_value("absolute_deadline") {
-                let suspended_node_data = self.processor.suspend_execution(core_index).unwrap();
-                self.processor.allocate_specific_core(core_index, node_data);
-                ready_queue.insert(NodeDataWrapper {
-                    node_data: suspended_node_data,
-                });
-                preemptive = true;
-            }
-        }
-
-        preemptive
     }
 
     getset_dag_set_scheduler!(HomogeneousProcessor);
@@ -142,6 +116,31 @@ mod tests {
         dag
     }
 
+    fn create_sample_dag3() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
+        // cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 5));
+        let c1 = dag.add_node(create_node(1, "execution_time", 5));
+        let c2 = dag.add_node(create_node(2, "execution_time", 5));
+        dag.add_param(c0, "period", 25);
+        dag.add_param(c1, "end_to_end_deadline", 15);
+        // nY_X is the Yth suc node of cX.
+        let n0_0 = dag.add_node(create_node(3, "execution_time", 5));
+        let n1_0 = dag.add_node(create_node(4, "execution_time", 5));
+
+        // Create critical path edges
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+
+        // Create non-critical path edges
+        dag.add_edge(c0, n0_0, 1);
+        dag.add_edge(c0, n1_0, 1);
+        dag.add_edge(n0_0, c2, 1);
+        dag.add_edge(n1_0, c2, 1);
+
+        dag
+    }
+
     #[test]
     fn test_global_edf_normal() {
         let dag = create_sample_dag();
@@ -151,7 +150,7 @@ mod tests {
         let processor = HomogeneousProcessor::new(4);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let time = global_edf_scheduler.schedule();
+        let time = global_edf_scheduler.schedule(None);
 
         assert_eq!(time, 300);
 
@@ -219,6 +218,86 @@ mod tests {
         assert_eq!(core_logs["core_id"].as_i64().unwrap(), 0);
         assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 200);
         assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.6666667);
+
+        remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_global_edf_preemptive() {
+        let dag = create_sample_dag();
+        let dag3 = create_sample_dag3();
+        let dag_set = vec![dag, dag3];
+
+        let processor = HomogeneousProcessor::new(2);
+
+        let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
+        let time = global_edf_scheduler.schedule(Some("absolute_deadline"));
+
+        assert_eq!(time, 150);
+
+        let file_path = global_edf_scheduler.dump_log("../lib/tests", "edf_test");
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
+
+        // Check the value of total_utilization
+        assert_eq!(
+            yaml_doc["dag_set_info"]["total_utilization"]
+                .as_f64()
+                .unwrap(),
+            3.142857
+        );
+
+        // Check the value of each_dag_info
+        let each_dag_info = &yaml_doc["dag_set_info"]["each_dag_info"][0];
+        assert_eq!(each_dag_info["critical_path_length"].as_i64().unwrap(), 50);
+        assert_eq!(each_dag_info["period"].as_i64().unwrap(), 150);
+        assert_eq!(each_dag_info["end_to_end_deadline"].as_i64().unwrap(), 50);
+        assert_eq!(each_dag_info["volume"].as_i64().unwrap(), 70);
+        assert_eq!(each_dag_info["utilization"].as_f64().unwrap(), 2.142857);
+
+        // Check the value of processor_info
+        assert_eq!(
+            yaml_doc["processor_info"]["number_of_cores"]
+                .as_i64()
+                .unwrap(),
+            2
+        );
+
+        // Check the value of dag_set_log
+        let dag_set_log = &yaml_doc["dag_set_log"][0];
+        assert_eq!(dag_set_log["dag_id"].as_i64().unwrap(), 0);
+        assert_eq!(dag_set_log["release_time"][0].as_i64().unwrap(), 0);
+        assert_eq!(dag_set_log["finish_time"][0].as_i64().unwrap(), 80);
+        assert_eq!(dag_set_log["response_time"][0].as_i64().unwrap(), 80);
+
+        // TODO: Check after implementing log writing functionality.
+        /*// Check the value of node_set_logs
+        let node_set_logs = &yaml_doc["node_set_logs"][0];
+        assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 1);
+        assert_eq!(node_set_logs[0]["dag_id"].as_i64().unwrap(), 0);
+        assert_eq!(node_set_logs[0]["node_id"].as_i64().unwrap(), 0);
+        // start_time
+        assert_eq!(node_set_logs[0]["event_time"].as_str().unwrap(), "0");
+        // finish_time
+        assert_eq!(node_set_logs[1]["event_time"].as_str().unwrap(), "10");
+
+        // Check the value of processor_log
+        let processor_log = &yaml_doc["processor_log"];
+        assert_eq!(
+            processor_log["average_utilization"].as_f64().unwrap(),
+            0.26666668
+        );
+        assert_eq!(
+            processor_log["variance_utilization"].as_f64().unwrap(),
+            0.06055556
+        );
+
+        // Check the value of core_logs
+        let core_logs = &processor_log["core_logs"][0];
+        assert_eq!(core_logs["core_id"].as_i64().unwrap(), 0);
+        assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 200);
+        assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.6666667);
+        */
 
         remove_file(file_path).unwrap();
     }

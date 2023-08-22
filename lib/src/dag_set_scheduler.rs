@@ -89,11 +89,6 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn set_current_time(&mut self, current_time: i32);
     // method definition
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &T) -> Self;
-    fn preemptive(
-        &mut self,
-        node_data: &NodeData,
-        ready_queue: &mut BTreeSet<NodeDataWrapper>,
-    ) -> bool;
     // method implementation
     fn release_dags(&mut self, managers: &mut [impl DAGStateManagerBase]) -> Vec<NodeData> {
         let current_time = self.get_current_time();
@@ -187,7 +182,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log.calculate_response_time();
     }
 
-    fn schedule(&mut self) -> i32 {
+    fn schedule(&mut self, preemptive_key: Option<&str>) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
         let mut ready_queue = BTreeSet::new();
@@ -201,12 +196,35 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 });
             }
 
-            // Allocate the nodes of ready_queue to idle cores
-            if self.get_processor_mut().get_idle_core_num() == 0 {
-                // Preemption
-                let ready_node_data = ready_queue.first().unwrap().convert_node_data();
-                self.preemptive(&ready_node_data, &mut ready_queue);
+            let processor = self.get_processor_mut();
+            // Preemptive if preemptive_key is Some and idle core not exists
+            if let (None, Some(preemptive_key_value)) =
+                (processor.get_idle_core_index(), preemptive_key)
+            {
+                while let Some(ready_node_data) = ready_queue.first() {
+                    let ready_node_data_value = ready_node_data
+                        .convert_node_data()
+                        .get_params_value(preemptive_key_value);
+
+                    if let Some((max_value, core_index)) =
+                        processor.get_max_value_and_index(preemptive_key_value)
+                    {
+                        if max_value <= ready_node_data_value {
+                            break;
+                        }
+                        // Preempt the node with the highest priority
+                        let suspended_node_data = processor.suspend_execution(core_index).unwrap();
+                        let popped_data = ready_queue.pop_first().unwrap().convert_node_data();
+                        processor.allocate_specific_core(core_index, &popped_data);
+                        ready_queue.insert(NodeDataWrapper {
+                            node_data: suspended_node_data,
+                        });
+                    } else {
+                        break; // If the preemptive_key does not exist, the node is considered to have the lowest priority
+                    }
+                }
             } else {
+                // Allocate the nodes of ready_queue to idle cores
                 while !ready_queue.is_empty() {
                     match self.get_processor_mut().get_idle_core_index() {
                         Some(idle_core_index) => {
