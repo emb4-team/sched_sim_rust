@@ -150,7 +150,7 @@ mod tests {
         let processor = HomogeneousProcessor::new(4);
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
-        let time = global_edf_scheduler.schedule(PreemptiveType::NonePreemptive);
+        let time = global_edf_scheduler.schedule(PreemptiveType::NonPreemptive);
 
         assert_eq!(time, 300);
 

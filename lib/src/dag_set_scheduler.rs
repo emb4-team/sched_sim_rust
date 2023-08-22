@@ -80,7 +80,7 @@ impl DAGStateManagerBase for DAGStateManager {
 }
 
 pub enum PreemptiveType {
-    NonePreemptive,
+    NonPreemptive,
     Preemptive { key: String },
 }
 

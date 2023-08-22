@@ -43,7 +43,7 @@ fn main() {
         FixedPriorityScheduler<HomogeneousProcessor>,
     > = DynamicFederatedScheduler::new(&dag_set, &homogeneous_processor);
 
-    dynfed_scheduler.schedule(PreemptiveType::NonePreemptive);
+    dynfed_scheduler.schedule(PreemptiveType::NonPreemptive);
     let file_path = dynfed_scheduler.dump_log(&arg.output_dir_path, "FixedPriority");
 
     // Check the result

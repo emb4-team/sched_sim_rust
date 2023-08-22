@@ -296,7 +296,7 @@ mod tests {
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
             DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
-        let time = dynfed.schedule(PreemptiveType::NonePreemptive);
+        let time = dynfed.schedule(PreemptiveType::NonPreemptive);
         assert_eq!(time, 300);
 
         let file_path = dynfed.dump_log("../lib/tests", "dyn_test");
