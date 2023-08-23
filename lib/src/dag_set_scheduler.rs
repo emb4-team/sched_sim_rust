@@ -258,6 +258,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     // Preempt the node with the lowest priority
                     let current_time = self.get_current_time();
                     let processor = self.get_processor_mut();
+                    // Suspended node data
                     let suspended_node_data = processor.suspend_execution(core_i).unwrap();
                     self.get_log_mut().write_job_event(
                         &suspended_node_data,
@@ -267,6 +268,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                             - 1,
                         JobEventTimes::PreemptedTime(current_time),
                     );
+                    // Allocate the preempted node
                     let allocate_node_data = &ready_queue.pop_first().unwrap().convert_node_data();
                     self.allocate_node(
                         allocate_node_data,
@@ -274,6 +276,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         managers[allocate_node_data.get_params_value("dag_id") as usize]
                             .get_release_count() as usize,
                     );
+                    // Insert the suspended node into the ready queue
                     ready_queue.insert(NodeDataWrapper {
                         node_data: suspended_node_data,
                     });
