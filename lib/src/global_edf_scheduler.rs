@@ -272,34 +272,36 @@ mod tests {
         assert_eq!(dag_set_log["finish_time"][0].as_i64().unwrap(), 80);
         assert_eq!(dag_set_log["response_time"][0].as_i64().unwrap(), 80);
 
-        // TODO: Check after implementing log writing functionality
-        /*// Check the value of node_set_logs
+        // Check the value of node_set_logs
         let node_set_logs = &yaml_doc["node_set_logs"][0];
         assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 1);
         assert_eq!(node_set_logs[0]["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(node_set_logs[0]["node_id"].as_i64().unwrap(), 0);
         // start_time
         assert_eq!(node_set_logs[0]["event_time"].as_str().unwrap(), "0");
+        // preempt_time
+        assert_eq!(node_set_logs[1]["event_time"].as_str().unwrap(), "5");
+        // resume_time
+        assert_eq!(node_set_logs[2]["event_time"].as_str().unwrap(), "10");
         // finish_time
-        assert_eq!(node_set_logs[1]["event_time"].as_str().unwrap(), "10");
+        assert_eq!(node_set_logs[3]["event_time"].as_str().unwrap(), "15");
 
         // Check the value of processor_log
         let processor_log = &yaml_doc["processor_log"];
         assert_eq!(
             processor_log["average_utilization"].as_f64().unwrap(),
-            0.26666668
+            0.73333335
         );
         assert_eq!(
             processor_log["variance_utilization"].as_f64().unwrap(),
-            0.06055556
+            0.017777776
         );
 
         // Check the value of core_logs
         let core_logs = &processor_log["core_logs"][0];
         assert_eq!(core_logs["core_id"].as_i64().unwrap(), 0);
-        assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 200);
-        assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.6666667);
-        */
+        assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 130);
+        assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.8666667);
 
         remove_file(file_path).unwrap();
     }

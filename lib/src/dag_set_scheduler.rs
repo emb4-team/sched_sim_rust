@@ -126,8 +126,21 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        self.get_log_mut()
-            .write_allocating_job(node, core_i, job_i - 1, current_time);
+        if node.params.contains_key("is_suspend") {
+            self.get_log_mut().write_job_event(
+                node,
+                core_i,
+                job_i - 1,
+                JobEventTimes::ResumeTime(current_time),
+            )
+        } else {
+            self.get_log_mut().write_job_event(
+                node,
+                core_i,
+                job_i - 1,
+                JobEventTimes::StartTime(current_time),
+            )
+        }
     }
 
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
@@ -145,11 +158,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
 
-        log.write_finishing_job(
+        log.write_job_event(
             node,
             core_id,
             (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
-            current_time,
+            JobEventTimes::FinishTime(current_time),
         );
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
@@ -243,11 +256,23 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     self.can_preempt(&preemptive_type, ready_queue.first().unwrap())
                 {
                     // Preempt the node with the lowest priority
+                    let current_time = self.get_current_time();
                     let processor = self.get_processor_mut();
                     let suspended_node_data = processor.suspend_execution(core_i).unwrap();
-                    processor.allocate_specific_core(
+                    self.get_log_mut().write_job_event(
+                        &suspended_node_data,
                         core_i,
-                        &ready_queue.pop_first().unwrap().convert_node_data(),
+                        (managers[suspended_node_data.get_params_value("dag_id") as usize]
+                            .get_release_count() as usize)
+                            - 1,
+                        JobEventTimes::PreemptedTime(current_time),
+                    );
+                    let allocate_node_data = &ready_queue.pop_first().unwrap().convert_node_data();
+                    self.allocate_node(
+                        allocate_node_data,
+                        core_i,
+                        managers[allocate_node_data.get_params_value("dag_id") as usize]
+                            .get_release_count() as usize,
                     );
                     ready_queue.insert(NodeDataWrapper {
                         node_data: suspended_node_data,

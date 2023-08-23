@@ -323,21 +323,15 @@ impl DAGSetSchedulerLog {
         self.dag_set_log[dag_id].finish_time.push(finish_time);
     }
 
-    pub fn write_allocating_job(
+    pub fn write_job_event(
         &mut self,
         node_data: &NodeData,
         core_id: usize,
         job_id: usize,
-        current_time: i32,
+        event_time: JobEventTimes,
     ) {
         let dag_id = node_data.get_params_value("dag_id") as usize;
-        let job_log = JobLog::new(
-            core_id,
-            dag_id,
-            node_data.id as usize,
-            job_id,
-            JobEventTimes::StartTime(current_time),
-        );
+        let job_log = JobLog::new(core_id, dag_id, node_data.id as usize, job_id, event_time);
         self.node_set_logs[dag_id].push(job_log);
     }
 
@@ -345,24 +339,6 @@ impl DAGSetSchedulerLog {
         for core_index in core_indices {
             self.processor_log.core_logs[*core_index].total_proc_time += 1;
         }
-    }
-
-    pub fn write_finishing_job(
-        &mut self,
-        node_data: &NodeData,
-        core_id: usize,
-        job_id: usize,
-        finish_time: i32,
-    ) {
-        let dag_id = node_data.get_params_value("dag_id") as usize;
-        let job_log = JobLog::new(
-            core_id,
-            dag_id,
-            node_data.id as usize,
-            job_id,
-            JobEventTimes::FinishTime(finish_time),
-        );
-        self.node_set_logs[dag_id].push(job_log);
     }
 
     pub fn calculate_response_time(&mut self) {
