@@ -201,56 +201,52 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 });
             }
 
+            // Allocate nodes as long as there are idle cores, and attempt to preempt when all cores are busy.
             while !ready_queue.is_empty() {
-                match self.get_processor_mut().get_idle_core_index() {
+                if let Some(idle_core_index) = self.get_processor_mut().get_idle_core_index() {
                     // Allocate the node to the idle core
-                    Some(idle_core_index) => {
-                        let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
-                        self.allocate_node(
-                            &ready_node_data,
-                            idle_core_index,
-                            managers[ready_node_data.get_params_value("dag_id") as usize]
-                                .get_release_count() as usize,
-                        );
-                    }
-                    None => {
-                        if let PreemptiveType::Preemptive {
-                            key: preemptive_string_key,
-                        } = &preemptive_key
-                        {
-                            // If all cores are busy and a preemptive_key is exist, attempt to preemptive
-                            let (max_value, core_index) = self
-                                .get_processor_mut()
-                                .get_max_value_and_index(preemptive_string_key)
-                                .unwrap();
+                    let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
+                    self.allocate_node(
+                        &ready_node_data,
+                        idle_core_index,
+                        managers[ready_node_data.get_params_value("dag_id") as usize]
+                            .get_release_count() as usize,
+                    );
+                    continue; // Jump back to the start of the while loop.
+                }
 
-                            if max_value
-                                > ready_queue
-                                    .first()
-                                    .unwrap()
-                                    .convert_node_data()
-                                    .get_params_value(preemptive_string_key)
-                            {
-                                // Preempt the node with the highest priority
-                                let suspended_node_data = self
-                                    .get_processor_mut()
-                                    .suspend_execution(core_index)
-                                    .unwrap();
-                                self.get_processor_mut().allocate_specific_core(
-                                    core_index,
-                                    &ready_queue.pop_first().unwrap().convert_node_data(),
-                                );
-                                ready_queue.insert(NodeDataWrapper {
-                                    node_data: suspended_node_data,
-                                });
-                            } else {
-                                break; // Finish preemption processing.
-                            }
-                        } else {
-                            break; // No preemption.
-                        }
+                if let PreemptiveType::Preemptive {
+                    key: preemptive_string_key,
+                } = &preemptive_key
+                {
+                    // If all cores are busy and a preemptive_key exists, attempt preemption
+                    let (max_value, core_index) = self
+                        .get_processor_mut()
+                        .get_max_value_and_index(preemptive_string_key)
+                        .unwrap();
+                    let ready_node_data_value = ready_queue
+                        .first()
+                        .unwrap()
+                        .convert_node_data()
+                        .get_params_value(preemptive_string_key);
+
+                    if max_value > ready_node_data_value {
+                        // Preempt the node with the highest priority
+                        let suspended_node_data = self
+                            .get_processor_mut()
+                            .suspend_execution(core_index)
+                            .unwrap();
+                        self.get_processor_mut().allocate_specific_core(
+                            core_index,
+                            &ready_queue.pop_first().unwrap().convert_node_data(),
+                        );
+                        ready_queue.insert(NodeDataWrapper {
+                            node_data: suspended_node_data,
+                        });
+                        continue; // Jump back to the start of the while loop.
                     }
-                };
+                }
+                break; // No core is idle and no preemption possible, exit the loop.
             }
 
             // Process unit time
