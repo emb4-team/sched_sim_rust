@@ -79,11 +79,17 @@ impl DAGStateManagerBase for DAGStateManager {
     getset_dag_state_manager!();
 }
 
+pub enum PreemptiveType {
+    NonPreemptive,
+    Preemptive { key: String },
+}
+
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     // getter, setter
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
     fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>);
     fn get_processor_mut(&mut self) -> &mut T;
+    fn get_processor(&self) -> &T;
     fn get_log_mut(&mut self) -> &mut DAGSetSchedulerLog;
     fn get_current_time(&self) -> i32;
     fn set_current_time(&mut self, current_time: i32);
@@ -182,7 +188,33 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log.calculate_response_time();
     }
 
-    fn schedule(&mut self) -> i32 {
+    fn can_preempt(
+        &self,
+        preemptive_type: &PreemptiveType,
+        ready_head_node: &NodeDataWrapper,
+    ) -> Option<usize> {
+        if let PreemptiveType::Preemptive {
+            key: preemptive_key,
+        } = &preemptive_type
+        {
+            let (max_value, core_i) = self
+                .get_processor()
+                .get_max_value_and_index(preemptive_key)
+                .unwrap();
+
+            if max_value
+                > ready_head_node
+                    .convert_node_data()
+                    .get_params_value(preemptive_key)
+            {
+                return Some(core_i);
+            }
+        }
+
+        None
+    }
+
+    fn schedule(&mut self, preemptive_type: PreemptiveType) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
         let mut ready_queue = BTreeSet::new();
@@ -196,20 +228,33 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 });
             }
 
-            // Allocate the nodes of ready_queue to idle cores
+            // Allocate nodes as long as there are idle cores, and attempt to preempt when all cores are busy.
             while !ready_queue.is_empty() {
-                match self.get_processor_mut().get_idle_core_index() {
-                    Some(idle_core_index) => {
-                        let ready_node_data = ready_queue.pop_first().unwrap().convert_node_data();
-                        self.allocate_node(
-                            &ready_node_data,
-                            idle_core_index,
-                            managers[ready_node_data.get_params_value("dag_id") as usize]
-                                .get_release_count() as usize,
-                        );
-                    }
-                    None => break,
-                };
+                if let Some(idle_core_i) = self.get_processor().get_idle_core_index() {
+                    // Allocate the node to the idle core
+                    let node_data = ready_queue.pop_first().unwrap().convert_node_data();
+                    self.allocate_node(
+                        &node_data,
+                        idle_core_i,
+                        managers[node_data.get_params_value("dag_id") as usize].get_release_count()
+                            as usize,
+                    );
+                } else if let Some(core_i) =
+                    self.can_preempt(&preemptive_type, ready_queue.first().unwrap())
+                {
+                    // Preempt the node with the lowest priority
+                    let processor = self.get_processor_mut();
+                    let suspended_node_data = processor.suspend_execution(core_i).unwrap();
+                    processor.allocate_specific_core(
+                        core_i,
+                        &ready_queue.pop_first().unwrap().convert_node_data(),
+                    );
+                    ready_queue.insert(NodeDataWrapper {
+                        node_data: suspended_node_data,
+                    });
+                } else {
+                    break; // No core is idle and can not preempt. Exit the loop.
+                }
             }
 
             // Process unit time
@@ -257,6 +302,9 @@ macro_rules! getset_dag_set_scheduler {
         }
         fn get_processor_mut(&mut self) -> &mut $t{
             &mut self.processor
+        }
+        fn get_processor(&self) -> &$t{
+            &self.processor
         }
         fn get_log_mut(&mut self) -> &mut DAGSetSchedulerLog{
             &mut self.log
