@@ -89,6 +89,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
     fn set_dag_set(&mut self, dag_set: Vec<Graph<NodeData, i32>>);
     fn get_processor_mut(&mut self) -> &mut T;
+    fn get_processor(&self) -> &T;
     fn get_log_mut(&mut self) -> &mut DAGSetSchedulerLog;
     fn get_current_time(&self) -> i32;
     fn set_current_time(&mut self, current_time: i32);
@@ -187,6 +188,32 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log.calculate_response_time();
     }
 
+    fn can_preempt(
+        &self,
+        preemptive_type: &PreemptiveType,
+        ready_head_node: &NodeDataWrapper,
+    ) -> Option<usize> {
+        if let PreemptiveType::Preemptive {
+            key: preemptive_key,
+        } = &preemptive_type
+        {
+            let (max_value, core_i) = self
+                .get_processor()
+                .get_max_value_and_index(preemptive_key)
+                .unwrap();
+
+            if max_value
+                > ready_head_node
+                    .convert_node_data()
+                    .get_params_value(preemptive_key)
+            {
+                return Some(core_i);
+            }
+        }
+
+        None
+    }
+
     fn schedule(&mut self, preemptive_type: PreemptiveType) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
@@ -203,45 +230,30 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
 
             // Allocate nodes as long as there are idle cores, and attempt to preempt when all cores are busy.
             while !ready_queue.is_empty() {
-                let processor = self.get_processor_mut();
-
-                if let Some(idle_core_index) = processor.get_idle_core_index() {
+                if let Some(idle_core_i) = self.get_processor().get_idle_core_index() {
                     // Allocate the node to the idle core
                     let node_data = ready_queue.pop_first().unwrap().convert_node_data();
                     self.allocate_node(
                         &node_data,
-                        idle_core_index,
+                        idle_core_i,
                         managers[node_data.get_params_value("dag_id") as usize].get_release_count()
                             as usize,
                     );
-                } else if let PreemptiveType::Preemptive {
-                    key: preemptive_key,
-                } = &preemptive_type
+                } else if let Some(core_i) =
+                    self.can_preempt(&preemptive_type, ready_queue.first().unwrap())
                 {
-                    // If all cores are busy and a preemptive_type exists, attempt preemption
-                    let (max_value, core_index) =
-                        processor.get_max_value_and_index(preemptive_key).unwrap();
-                    let ready_node_data_value = ready_queue
-                        .first()
-                        .unwrap()
-                        .convert_node_data()
-                        .get_params_value(preemptive_key);
-
-                    if max_value > ready_node_data_value {
-                        // Preempt the node with the lowest priority
-                        let suspended_node_data = processor.suspend_execution(core_index).unwrap();
-                        processor.allocate_specific_core(
-                            core_index,
-                            &ready_queue.pop_first().unwrap().convert_node_data(),
-                        );
-                        ready_queue.insert(NodeDataWrapper {
-                            node_data: suspended_node_data,
-                        });
-                    } else {
-                        break; // Cannot be preempted. Exit the loop.
-                    }
+                    // Preempt the node with the lowest priority
+                    let processor = self.get_processor_mut();
+                    let suspended_node_data = processor.suspend_execution(core_i).unwrap();
+                    processor.allocate_specific_core(
+                        core_i,
+                        &ready_queue.pop_first().unwrap().convert_node_data(),
+                    );
+                    ready_queue.insert(NodeDataWrapper {
+                        node_data: suspended_node_data,
+                    });
                 } else {
-                    break; // No core is idle and no preemptive_type. Exit the loop.
+                    break;
                 }
             }
 
@@ -290,6 +302,9 @@ macro_rules! getset_dag_set_scheduler {
         }
         fn get_processor_mut(&mut self) -> &mut $t{
             &mut self.processor
+        }
+        fn get_processor(&self) -> &$t{
+            &self.processor
         }
         fn get_log_mut(&mut self) -> &mut DAGSetSchedulerLog{
             &mut self.log
