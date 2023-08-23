@@ -187,7 +187,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         log.calculate_response_time();
     }
 
-    fn schedule(&mut self, preemptive_key: PreemptiveType) -> i32 {
+    fn schedule(&mut self, preemptive_type: PreemptiveType) -> i32 {
         // Start scheduling
         let mut managers = vec![DAGStateManager::default(); self.get_dag_set().len()];
         let mut ready_queue = BTreeSet::new();
@@ -216,9 +216,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     );
                 } else if let PreemptiveType::Preemptive {
                     key: preemptive_key,
-                } = &preemptive_key
+                } = &preemptive_type
                 {
-                    // If all cores are busy and a preemptive_key exists, attempt preemption
+                    // If all cores are busy and a preemptive_type exists, attempt preemption
                     let (max_value, core_index) =
                         processor.get_max_value_and_index(preemptive_key).unwrap();
                     let ready_node_data_value = ready_queue
@@ -241,7 +241,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         break; // Cannot be preempted. Exit the loop.
                     }
                 } else {
-                    break; // No core is idle and no preemption_key. Exit the loop.
+                    break; // No core is idle and no preemptive_type. Exit the loop.
                 }
             }
 
