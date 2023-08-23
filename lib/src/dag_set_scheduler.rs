@@ -204,6 +204,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             // Allocate nodes as long as there are idle cores, and attempt to preempt when all cores are busy.
             while !ready_queue.is_empty() {
                 let processor = self.get_processor_mut();
+
                 if let Some(idle_core_index) = processor.get_idle_core_index() {
                     // Allocate the node to the idle core
                     let node_data = ready_queue.pop_first().unwrap().convert_node_data();
@@ -213,25 +214,21 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         managers[node_data.get_params_value("dag_id") as usize].get_release_count()
                             as usize,
                     );
-                    continue; // Jump back to the start of the while loop.
-                }
-
-                if let PreemptiveType::Preemptive {
-                    key: preemptive_string_key,
+                } else if let PreemptiveType::Preemptive {
+                    key: preemptive_key,
                 } = &preemptive_key
                 {
                     // If all cores are busy and a preemptive_key exists, attempt preemption
-                    let (max_value, core_index) = processor
-                        .get_max_value_and_index(preemptive_string_key)
-                        .unwrap();
+                    let (max_value, core_index) =
+                        processor.get_max_value_and_index(preemptive_key).unwrap();
                     let ready_node_data_value = ready_queue
                         .first()
                         .unwrap()
                         .convert_node_data()
-                        .get_params_value(preemptive_string_key);
+                        .get_params_value(preemptive_key);
 
                     if max_value > ready_node_data_value {
-                        // Preempt the node with the highest priority
+                        // Preempt the node with the lowest priority
                         let suspended_node_data = processor.suspend_execution(core_index).unwrap();
                         processor.allocate_specific_core(
                             core_index,
@@ -240,10 +237,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         ready_queue.insert(NodeDataWrapper {
                             node_data: suspended_node_data,
                         });
-                        continue; // Jump back to the start of the while loop.
+                    } else {
+                        break; // Cannot be preempted. Exit the loop.
                     }
+                } else {
+                    break; // No core is idle and no preemption_key. Exit the loop.
                 }
-                break; // No core is idle and no preemption possible, exit the loop.
             }
 
             // Process unit time
