@@ -38,8 +38,8 @@ impl ProcessorBase for HomogeneousProcessor {
         None
     }
 
-    fn suspend_execution(&mut self, core_id: usize) -> Option<NodeData> {
-        self.cores[core_id].suspend_execution()
+    fn preempt_execution(&mut self, core_id: usize) -> Option<NodeData> {
+        self.cores[core_id].preempt_execution()
     }
 
     fn get_max_value_and_index(&self, key: &str) -> Option<(i32, usize)> {
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn test_processor_suspend_execution_normal() {
+    fn test_processor_preempt_execution_normal() {
         let mut homogeneous_processor = HomogeneousProcessor::new(2);
 
         let n0 = create_node(0, "execution_time", 2);
@@ -228,16 +228,16 @@ mod tests {
         homogeneous_processor.allocate_specific_core(1, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.suspend_execution(0), None);
+        assert_eq!(homogeneous_processor.preempt_execution(0), None);
 
-        n1 = homogeneous_processor.suspend_execution(1).unwrap();
+        n1 = homogeneous_processor.preempt_execution(1).unwrap();
 
         assert_eq!(n1.params["execution_time"], 1);
 
         homogeneous_processor.allocate_specific_core(0, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.suspend_execution(0), None);
+        assert_eq!(homogeneous_processor.preempt_execution(0), None);
     }
 
     #[test]
@@ -253,7 +253,7 @@ mod tests {
             Some((11, 1))
         );
 
-        n1 = homogeneous_processor.suspend_execution(1).unwrap();
+        n1 = homogeneous_processor.preempt_execution(1).unwrap();
         assert_eq!(
             homogeneous_processor.get_max_value_and_index("execution_time"),
             Some((10, 0))

@@ -62,7 +62,7 @@ impl Core {
         Continue
     }
 
-    pub fn suspend_execution(&mut self) -> Option<NodeData> {
+    pub fn preempt_execution(&mut self) -> Option<NodeData> {
         if self.is_idle {
             None
         } else {
@@ -70,7 +70,7 @@ impl Core {
             node_data
                 .params
                 .insert("execution_time".to_string(), self.remain_proc_time);
-            node_data.params.insert("is_suspend".to_string(), 1);
+            node_data.params.insert("is_preempt".to_string(), 1);
             self.is_idle = true;
             self.processing_node = None;
             self.remain_proc_time = 0;

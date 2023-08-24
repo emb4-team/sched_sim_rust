@@ -126,7 +126,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        if node.params.contains_key("is_suspend") {
+        if node.params.contains_key("is_preempt") {
             self.get_log_mut().write_job_event(
                 node,
                 core_i,
@@ -258,12 +258,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     // Preempt the node with the lowest priority
                     let current_time = self.get_current_time();
                     let processor = self.get_processor_mut();
-                    // Suspended node data
-                    let suspended_node_data = processor.suspend_execution(core_i).unwrap();
+                    // Preempted node data
+                    let preempted_node_data = processor.preempt_execution(core_i).unwrap();
                     self.get_log_mut().write_job_event(
-                        &suspended_node_data,
+                        &preempted_node_data,
                         core_i,
-                        (managers[suspended_node_data.get_params_value("dag_id") as usize]
+                        (managers[preempted_node_data.get_params_value("dag_id") as usize]
                             .get_release_count() as usize)
                             - 1,
                         JobEventTimes::PreemptedTime(current_time),
@@ -276,9 +276,9 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         managers[allocate_node_data.get_params_value("dag_id") as usize]
                             .get_release_count() as usize,
                     );
-                    // Insert the suspended node into the ready queue
+                    // Insert the preempted node into the ready queue
                     ready_queue.insert(NodeDataWrapper {
-                        node_data: suspended_node_data,
+                        node_data: preempted_node_data,
                     });
                 } else {
                     break; // No core is idle and can not preempt. Exit the loop.
