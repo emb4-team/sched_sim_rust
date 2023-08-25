@@ -323,6 +323,30 @@ impl DAGSetSchedulerLog {
         self.dag_set_log[dag_id].finish_time.push(finish_time);
     }
 
+    pub fn write_allocating_job(
+        &mut self,
+        node_data: &NodeData,
+        core_id: usize,
+        job_id: usize,
+        current_time: i32,
+    ) {
+        if node_data.params.contains_key("is_preempted") {
+            self.write_job_event(
+                node_data,
+                core_id,
+                job_id - 1,
+                JobEventTimes::ResumeTime(current_time),
+            )
+        } else {
+            self.write_job_event(
+                node_data,
+                core_id,
+                job_id - 1,
+                JobEventTimes::StartTime(current_time),
+            )
+        }
+    }
+
     pub fn write_job_event(
         &mut self,
         node_data: &NodeData,

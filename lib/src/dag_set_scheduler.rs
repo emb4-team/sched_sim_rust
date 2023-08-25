@@ -122,25 +122,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         ready_nodes
     }
 
-    fn allocate_node(&mut self, node: &NodeData, core_i: usize, job_i: usize) {
+    fn allocate_node(&mut self, node_data: &NodeData, core_id: usize, job_id: usize) {
         self.get_processor_mut()
-            .allocate_specific_core(core_i, node);
+            .allocate_specific_core(core_id, node_data);
         let current_time = self.get_current_time();
-        if node.params.contains_key("is_preempted") {
-            self.get_log_mut().write_job_event(
-                node,
-                core_i,
-                job_i - 1,
-                JobEventTimes::ResumeTime(current_time),
-            )
-        } else {
-            self.get_log_mut().write_job_event(
-                node,
-                core_i,
-                job_i - 1,
-                JobEventTimes::StartTime(current_time),
-            )
-        }
+        self.get_log_mut()
+            .write_allocating_job(node_data, core_id, job_id, current_time)
     }
 
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
