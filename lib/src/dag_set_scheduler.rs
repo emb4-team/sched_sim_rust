@@ -122,12 +122,12 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         ready_nodes
     }
 
-    fn allocate_node(&mut self, node: &NodeData, core_i: usize, job_i: usize) {
+    fn allocate_node(&mut self, node_data: &NodeData, core_id: usize, job_id: usize) {
         self.get_processor_mut()
-            .allocate_specific_core(core_i, node);
+            .allocate_specific_core(core_id, node_data);
         let current_time = self.get_current_time();
         self.get_log_mut()
-            .write_allocating_job(node, core_i, job_i - 1, current_time);
+            .write_allocating_job(node_data, core_id, job_id, current_time)
     }
 
     fn process_unit_time(&mut self) -> Vec<ProcessResult> {
@@ -145,11 +145,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         let current_time = self.get_current_time();
         let log = self.get_log_mut();
 
-        log.write_finishing_job(
+        log.write_job_event(
             node,
             core_id,
             (managers[node.get_params_value("dag_id") as usize].get_release_count() - 1) as usize,
-            current_time,
+            JobEventTimes::FinishTime(current_time),
         );
         let dag_id = node.get_params_value("dag_id") as usize;
         let dag = &mut dag_set[dag_id];
@@ -243,14 +243,29 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     self.can_preempt(&preemptive_type, ready_queue.first().unwrap())
                 {
                     // Preempt the node with the lowest priority
+                    let current_time = self.get_current_time();
                     let processor = self.get_processor_mut();
-                    let suspended_node_data = processor.suspend_execution(core_i).unwrap();
-                    processor.allocate_specific_core(
+                    // Preempted node data
+                    let preempted_node_data = processor.preempt(core_i).unwrap();
+                    self.get_log_mut().write_job_event(
+                        &preempted_node_data,
                         core_i,
-                        &ready_queue.pop_first().unwrap().convert_node_data(),
+                        (managers[preempted_node_data.get_params_value("dag_id") as usize]
+                            .get_release_count() as usize)
+                            - 1,
+                        JobEventTimes::PreemptedTime(current_time),
                     );
+                    // Allocate the preempted node
+                    let allocate_node_data = &ready_queue.pop_first().unwrap().convert_node_data();
+                    self.allocate_node(
+                        allocate_node_data,
+                        core_i,
+                        managers[allocate_node_data.get_params_value("dag_id") as usize]
+                            .get_release_count() as usize,
+                    );
+                    // Insert the preempted node into the ready queue
                     ready_queue.insert(NodeDataWrapper {
-                        node_data: suspended_node_data,
+                        node_data: preempted_node_data,
                     });
                 } else {
                     break; // No core is idle and can not preempt. Exit the loop.
