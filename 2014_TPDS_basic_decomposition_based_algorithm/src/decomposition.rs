@@ -56,6 +56,19 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
             }
         }
     }
+    calculate_node_absolute_integer_deadline(dag);
+}
+
+fn calculate_node_absolute_integer_deadline(dag: &mut Graph<NodeData, i32>) {
+    for node_i in dag.node_indices() {
+        let integer_scaled_deadline = dag[node_i].params["integer_scaled_deadline"];
+        let integer_scaled_offset = dag[node_i].params["integer_scaled_offset"];
+        dag.add_param(
+            node_i,
+            "node_absolute_deadline",
+            integer_scaled_deadline + integer_scaled_offset,
+        );
+    }
 }
 
 #[cfg(test)]
