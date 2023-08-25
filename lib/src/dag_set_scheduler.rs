@@ -126,7 +126,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
         self.get_processor_mut()
             .allocate_specific_core(core_i, node);
         let current_time = self.get_current_time();
-        if node.params.contains_key("is_preempt") {
+        if node.params.contains_key("is_preempted") {
             self.get_log_mut().write_job_event(
                 node,
                 core_i,

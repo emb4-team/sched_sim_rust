@@ -39,7 +39,7 @@ impl ProcessorBase for HomogeneousProcessor {
     }
 
     fn preempt_execution(&mut self, core_id: usize) -> Option<NodeData> {
-        self.cores[core_id].preempt_execution()
+        self.cores[core_id].preempt()
     }
 
     fn get_max_value_and_index(&self, key: &str) -> Option<(i32, usize)> {
