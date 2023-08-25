@@ -246,7 +246,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     let current_time = self.get_current_time();
                     let processor = self.get_processor_mut();
                     // Preempted node data
-                    let preempted_node_data = processor.preempt_execution(core_i).unwrap();
+                    let preempted_node_data = processor.preempt(core_i).unwrap();
                     self.get_log_mut().write_job_event(
                         &preempted_node_data,
                         core_i,

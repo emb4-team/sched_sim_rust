@@ -38,7 +38,7 @@ impl ProcessorBase for HomogeneousProcessor {
         None
     }
 
-    fn preempt_execution(&mut self, core_id: usize) -> Option<NodeData> {
+    fn preempt(&mut self, core_id: usize) -> Option<NodeData> {
         self.cores[core_id].preempt()
     }
 
@@ -228,16 +228,16 @@ mod tests {
         homogeneous_processor.allocate_specific_core(1, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.preempt_execution(0), None);
+        assert_eq!(homogeneous_processor.preempt(0), None);
 
-        n1 = homogeneous_processor.preempt_execution(1).unwrap();
+        n1 = homogeneous_processor.preempt(1).unwrap();
 
         assert_eq!(n1.params["execution_time"], 1);
 
         homogeneous_processor.allocate_specific_core(0, &n1);
         homogeneous_processor.process();
 
-        assert_eq!(homogeneous_processor.preempt_execution(0), None);
+        assert_eq!(homogeneous_processor.preempt(0), None);
     }
 
     #[test]
@@ -253,7 +253,7 @@ mod tests {
             Some((11, 1))
         );
 
-        n1 = homogeneous_processor.preempt_execution(1).unwrap();
+        n1 = homogeneous_processor.preempt(1).unwrap();
         assert_eq!(
             homogeneous_processor.get_max_value_and_index("execution_time"),
             Some((10, 0))
