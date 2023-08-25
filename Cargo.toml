@@ -6,4 +6,5 @@ members = [
     "2020_RTSS_cpc_model_based_algorithm",
     "2014_TPDS_basic_decomposition_based_algorithm",
     "2014_ECRTS_federated_original",
+    "2013_ECRTS_basic_global_edf",
 ]
