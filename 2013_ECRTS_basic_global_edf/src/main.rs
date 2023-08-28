@@ -1,5 +1,5 @@
 use clap::Parser;
-use lib::dag_creator::*;
+use lib::dag_creator::create_dag_set_from_dir;
 use lib::dag_set_scheduler::{DAGSetSchedulerBase, PreemptiveType};
 use lib::global_edf_scheduler::GlobalEDFScheduler;
 use lib::graph_extension::GraphExtension;
