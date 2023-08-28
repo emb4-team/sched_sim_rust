@@ -12,7 +12,7 @@ use crate::{
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let comparison_metric = "int_scaled_absolute_deadline";
+        let comparison_metric = "absolute_deadline";
         match self
             .node_data
             .get_params_value(comparison_metric)
@@ -232,7 +232,7 @@ mod tests {
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
         let time = global_edf_scheduler.schedule(PreemptiveType::Preemptive {
-            key: "int_scaled_absolute_deadline".to_string(),
+            key: "absolute_deadline".to_string(),
         });
 
         assert_eq!(time, 150);
@@ -269,8 +269,8 @@ mod tests {
         let dag_set_log = &yaml_doc["dag_set_log"][0];
         assert_eq!(dag_set_log["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(dag_set_log["release_time"][0].as_i64().unwrap(), 0);
-        assert_eq!(dag_set_log["finish_time"][0].as_i64().unwrap(), 75);
-        assert_eq!(dag_set_log["response_time"][0].as_i64().unwrap(), 75);
+        assert_eq!(dag_set_log["finish_time"][0].as_i64().unwrap(), 80);
+        assert_eq!(dag_set_log["response_time"][0].as_i64().unwrap(), 80);
 
         // Check the value of node_set_logs
         let node_set_logs = &yaml_doc["node_set_logs"][0];
@@ -294,14 +294,14 @@ mod tests {
         );
         assert_eq!(
             processor_log["variance_utilization"].as_f64().unwrap(),
-            0.027777774
+            0.017777776
         );
 
         // Check the value of core_logs
         let core_logs = &processor_log["core_logs"][0];
         assert_eq!(core_logs["core_id"].as_i64().unwrap(), 0);
-        assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 135);
-        assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.9);
+        assert_eq!(core_logs["total_proc_time"].as_i64().unwrap(), 130);
+        assert_eq!(core_logs["utilization"].as_f64().unwrap(), 0.8666667);
 
         remove_file(file_path).unwrap();
     }

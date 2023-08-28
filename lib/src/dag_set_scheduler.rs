@@ -112,20 +112,19 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                 // If Node does not have individual deadlines, use DAG deadline.
                 if dag[NodeIndex::new(0)]
                     .params
-                    .contains_key("int_scaled_absolute_deadline")
+                    .contains_key("node_integer_absolute_deadline")
                 {
                     for node_i in dag.node_indices() {
                         let node_deadline =
-                            dag[node_i].get_params_value("int_scaled_absolute_deadline");
+                            dag[node_i].get_params_value("node_integer_absolute_deadline");
                         dag[node_i].params.insert(
-                            "int_scaled_absolute_deadline".to_string(),
+                            "absolute_deadline".to_string(),
                             node_deadline * managers[dag_id].get_release_count(),
                         );
                     }
                 } else {
-                    dag.set_dag_param("deadline_factor", 1);
                     dag.set_dag_param(
-                        "int_scaled_absolute_deadline",
+                        "absolute_deadline",
                         dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
                     );
                 }
