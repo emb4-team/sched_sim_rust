@@ -16,14 +16,16 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
         });
     }
 
+    // Set deadline factor.
     let deadline_factor = 10u64.pow(5) as i32;
     dag.set_dag_param("deadline_factor", deadline_factor);
+
+    // Set integer absolute deadline.
     let integer_scaled_deadline = nodes_deadline
         .iter()
         .map(|&node_deadline| (node_deadline * deadline_factor as f32) as i32)
         .collect::<Vec<_>>();
     let integer_scaled_offset = compute_offsets(dag, &integer_scaled_deadline);
-
     for (node_i, (&deadline, &offset)) in dag
         .node_indices()
         .zip(integer_scaled_deadline.iter().zip(&integer_scaled_offset))
@@ -34,11 +36,13 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
 
 fn compute_offsets(dag: &Graph<NodeData, i32>, deadlines: &[i32]) -> Vec<i32> {
     let mut offsets = vec![0; deadlines.len()];
-    let mut topo_order = Topo::new(dag);
 
+    // Sort because offsets need to be calculated in the order of execution.
+    let mut topo_order = Topo::new(dag);
     while let Some(node_i) = topo_order.next(dag) {
         let idx = node_i.index();
         if let Some(pre_nodes) = dag.get_pre_nodes(node_i) {
+            // offset = maximum of offset + deadline of predecessor nodes.
             let max_offset = pre_nodes
                 .iter()
                 .map(|pre_node_i| {
