@@ -9,12 +9,11 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     calculate_segments_deadline(dag, &mut segments);
 
     // Add deadlines to nodes.
-    let node_count = dag.node_count();
-    let mut nodes_deadline = vec![0.0; node_count];
-    for segment in &segments {
-        for node in &segment.nodes {
+    let mut nodes_deadline = vec![0.0; dag.node_count()];
+    for segment in segments.iter() {
+        segment.nodes.iter().for_each(|node| {
             nodes_deadline[node.id as usize] += segment.deadline;
-        }
+        });
     }
 
     let deadline_factor = 10u64.pow(5) as i32;
