@@ -47,10 +47,10 @@ fn main() {
     let dag_set_log = &yaml_doc["dag_set_log"];
     let mut result = true;
     for dag in dag_set {
-        if (dag_set_log[dag.get_dag_param("dag_id") as usize]["worst_response_time"]
+        if dag_set_log[dag.get_dag_param("dag_id") as usize]["worst_response_time"]
             .as_i64()
             .unwrap()
-            > dag.get_head_period().unwrap() as i64)
+            > dag.get_head_period().unwrap() as i64
         {
             result = false;
             break;
