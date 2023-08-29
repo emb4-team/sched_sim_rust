@@ -84,6 +84,8 @@ pub enum PreemptiveType {
     Preemptive { key: String },
 }
 
+pub const DECOMPOSE_KEY: &str = "node_deadline_multiplied_by_100000";
+
 pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
     // getter, setter
     fn get_dag_set(&self) -> Vec<Graph<NodeData, i32>>;
@@ -110,15 +112,11 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
             {
                 managers[dag_id].release();
                 // If Node does not have individual deadlines, use DAG deadline.
-                if dag[NodeIndex::new(0)]
-                    .params
-                    .contains_key("int_scaled_absolute_deadline")
-                {
+                if dag[NodeIndex::new(0)].params.contains_key(DECOMPOSE_KEY) {
                     for node_i in dag.node_indices() {
-                        let node_deadline =
-                            dag[node_i].get_params_value("int_scaled_absolute_deadline");
+                        let node_deadline = dag[node_i].get_params_value(DECOMPOSE_KEY);
                         dag[node_i].params.insert(
-                            "absolute_deadline".to_string(),
+                            DECOMPOSE_KEY.to_string(),
                             node_deadline * managers[dag_id].get_release_count(),
                         );
                     }

@@ -2,7 +2,7 @@ use petgraph::graph::Graph;
 
 use std::cmp::Ordering;
 
-use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
+use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper, DECOMPOSE_KEY};
 use crate::getset_dag_set_scheduler;
 use crate::graph_extension::GraphExtension;
 use crate::{
@@ -12,7 +12,14 @@ use crate::{
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let comparison_metric = "absolute_deadline";
+        // Compare by absolute_deadline or int_scaled_absolute_deadline.
+        let mut comparison_metric = "absolute_deadline";
+        if self.node_data.params.contains_key(DECOMPOSE_KEY)
+            && other.node_data.params.contains_key(DECOMPOSE_KEY)
+        {
+            comparison_metric = DECOMPOSE_KEY;
+        }
+
         match self
             .node_data
             .get_params_value(comparison_metric)

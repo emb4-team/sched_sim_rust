@@ -1,5 +1,8 @@
 use crate::handle_segment::*;
-use lib::graph_extension::{GraphExtension, NodeData};
+use lib::{
+    dag_set_scheduler::DECOMPOSE_KEY,
+    graph_extension::{GraphExtension, NodeData},
+};
 use petgraph::{graph::Graph, visit::Topo};
 use std::vec;
 
@@ -8,16 +11,12 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     let mut segments = create_segments(dag);
     calculate_segments_deadline(dag, &mut segments);
 
-    // Set deadline factor.
-    let deadline_factor = 10u64.pow(5) as i32;
-    dag.set_dag_param("deadline_factor", deadline_factor);
-
     // Calculate integer scaled deadlines and offsets.
+    let deadline_factor = 100000.0;
     let mut int_scaled_deadline = vec![0; dag.node_count()];
     for segment in segments.iter() {
         segment.nodes.iter().for_each(|node| {
-            int_scaled_deadline[node.id as usize] +=
-                (segment.deadline * deadline_factor as f32) as i32;
+            int_scaled_deadline[node.id as usize] += (segment.deadline * deadline_factor) as i32;
         });
     }
     let int_scaled_offset = calc_int_scaled_offsets(dag, &int_scaled_deadline);
@@ -26,7 +25,7 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     for node_i in dag.node_indices() {
         dag.add_param(
             node_i,
-            "int_scaled_absolute_deadline",
+            DECOMPOSE_KEY,
             int_scaled_deadline[node_i.index()] + int_scaled_offset[node_i.index()],
         );
     }
@@ -90,9 +89,8 @@ mod tests {
 
         let expect_absolute_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
         for node_i in dag.node_indices() {
-            assert_eq!(dag[node_i].params["deadline_factor"], 100000);
             assert_eq!(
-                dag[node_i].params["int_scaled_absolute_deadline"],
+                dag[node_i].params[DECOMPOSE_KEY],
                 expect_absolute_deadline[node_i.index()]
             );
         }
