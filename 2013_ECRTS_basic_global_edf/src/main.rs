@@ -47,14 +47,14 @@ fn main() {
     let dag_set_log = &yaml_doc["dag_set_log"];
     let mut result = true;
     for dag in dag_set {
-        if !result {
-            break; // If result is already false, no need to check further.
+        if (dag_set_log[dag.get_dag_param("dag_id") as usize]["worst_response_time"]
+            .as_i64()
+            .unwrap()
+            > dag.get_head_period().unwrap() as i64)
+        {
+            result = false;
+            break;
         }
-        result = result
-            && dag_set_log[dag.get_dag_param("dag_id") as usize]["worst_response_time"]
-                .as_i64()
-                .unwrap()
-                <= dag.get_head_period().unwrap() as i64;
     }
 
     dump_dag_set_scheduler_result_to_yaml(&file_path, result);
