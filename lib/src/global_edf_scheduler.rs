@@ -17,13 +17,13 @@ impl PartialOrd for NodeDataWrapper {
         if self
             .node_data
             .params
-            .contains_key("node_deadline_multiplied_by_100000")
+            .contains_key("int_scaled_node_absolute_deadline")
             && other
                 .node_data
                 .params
-                .contains_key("node_deadline_multiplied_by_100000")
+                .contains_key("int_scaled_node_absolute_deadline")
         {
-            comparison_metric = "node_deadline_multiplied_by_100000";
+            comparison_metric = "int_scaled_node_relative_deadline";
         }
 
         match self

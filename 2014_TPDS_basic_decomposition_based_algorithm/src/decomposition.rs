@@ -22,7 +22,7 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     for node_i in dag.node_indices() {
         dag.add_param(
             node_i,
-            "node_deadline_multiplied_by_100000",
+            "int_scaled_node_relative_deadline",
             int_scaled_deadline[node_i.index()] + int_scaled_offset[node_i.index()],
         );
     }
@@ -87,7 +87,7 @@ mod tests {
         let expect_absolute_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
         for node_i in dag.node_indices() {
             assert_eq!(
-                dag[node_i].params["node_deadline_multiplied_by_100000"],
+                dag[node_i].params["int_scaled_node_relative_deadline"],
                 expect_absolute_deadline[node_i.index()]
             );
         }
