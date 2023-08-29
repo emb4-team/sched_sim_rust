@@ -109,10 +109,26 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                         + dag.get_head_period().unwrap() * managers[dag_id].get_release_count())
             {
                 managers[dag_id].release();
-                dag.set_dag_param(
-                    "absolute_deadline",
-                    dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
-                );
+                // If Node does not have individual deadlines, use DAG deadline.
+                if dag[NodeIndex::new(0)]
+                    .params
+                    .contains_key("int_scaled_node_relative_deadline")
+                {
+                    for node_i in dag.node_indices() {
+                        let node_relative_deadline =
+                            dag[node_i].get_params_value("int_scaled_node_relative_deadline");
+                        dag[node_i].params.insert(
+                            "int_scaled_node_absolute_deadline".to_string(),
+                            node_relative_deadline * managers[dag_id].get_release_count(),
+                        );
+                    }
+                } else {
+                    dag.set_dag_param(
+                        "node_absolute_deadline",
+                        dag.get_end_to_end_deadline().unwrap()
+                            * managers[dag_id].get_release_count(),
+                    );
+                }
                 ready_nodes.push(dag[dag.get_source_nodes()[0]].clone());
                 self.get_log_mut()
                     .write_dag_release_time(dag_id, current_time);

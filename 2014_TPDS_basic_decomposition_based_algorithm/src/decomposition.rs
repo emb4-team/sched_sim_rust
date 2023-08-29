@@ -1,61 +1,55 @@
-use lib::graph_extension::{GraphExtension, NodeData};
-use petgraph::graph::{Graph, NodeIndex};
-use petgraph::visit::Topo;
-use std::vec;
-
 use crate::handle_segment::*;
+use lib::graph_extension::{GraphExtension, NodeData};
+use petgraph::{graph::Graph, visit::Topo};
+use std::vec;
 
 #[allow(dead_code)]
 pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     let mut segments = create_segments(dag);
     calculate_segments_deadline(dag, &mut segments);
 
-    // Add deadlines to nodes.
-    let mut nodes_deadline = vec![0.0; dag.node_count()];
+    // `deadline_factor` is used to scale the deadline of a node to an integer type.
+    // The fifth decimal place is truncated.
+    let deadline_factor = 100000.0;
+    let mut int_scaled_deadline = vec![0; dag.node_count()];
     for segment in segments.iter() {
         segment.nodes.iter().for_each(|node| {
-            nodes_deadline[node.id as usize] += segment.deadline;
+            int_scaled_deadline[node.id as usize] += (segment.deadline * deadline_factor) as i32;
         });
     }
-    // Convert to rational numbers to handle floating point numbers.
-    for (i, node_deadline) in nodes_deadline.iter().enumerate() {
-        let rounded_node_deadline: f32 = format!("{:.5}", node_deadline).parse().unwrap();
-        let integer_part_str = rounded_node_deadline.trunc().abs().to_string();
-        let fractional_part_str = rounded_node_deadline
-            .abs()
-            .to_string()
-            .chars()
-            .skip(integer_part_str.len() + 1)
-            .collect::<String>();
-        let deadline_factor = 10u64.pow(fractional_part_str.len().try_into().unwrap()) as i32;
-        let node_i = NodeIndex::new(i);
-        dag.add_param(node_i, "deadline_factor", deadline_factor);
+    let int_scaled_offset = calc_int_scaled_offsets(dag, &int_scaled_deadline);
+
+    // Set integer scaled node relative deadline.
+    for node_i in dag.node_indices() {
         dag.add_param(
             node_i,
-            "integer_scaled_deadline",
-            (rounded_node_deadline * deadline_factor as f32) as i32,
+            "int_scaled_node_relative_deadline",
+            int_scaled_deadline[node_i.index()] + int_scaled_offset[node_i.index()],
         );
     }
+}
+
+fn calc_int_scaled_offsets(dag: &Graph<NodeData, i32>, deadlines: &[i32]) -> Vec<i32> {
+    let mut int_scaled_offsets = vec![0; dag.node_count()];
 
     // Sort because offsets need to be calculated in the order of execution.
-    let mut topological_order = Topo::new(&*dag);
-    while let Some(node_i) = topological_order.next(&*dag) {
-        match dag.get_pre_nodes(node_i) {
-            None => dag.add_param(node_i, "integer_scaled_offset", 0),
-            // offset = maximum of offset + deadline of predecessor node
-            Some(nodes) => {
-                let max_offset = nodes
-                    .iter()
-                    .map(|&pre_node_i| {
-                        dag[pre_node_i].params["integer_scaled_offset"]
-                            + dag[pre_node_i].params["integer_scaled_deadline"]
-                    })
-                    .max()
-                    .unwrap();
-                dag.add_param(node_i, "integer_scaled_offset", max_offset);
-            }
+    let mut topo_order = Topo::new(dag);
+    while let Some(node_i) = topo_order.next(dag) {
+        if let Some(pre_nodes) = dag.get_pre_nodes(node_i) {
+            // offset = maximum of offset + deadline of predecessor nodes.
+            let max_offset = pre_nodes
+                .iter()
+                .map(|pre_node_i| {
+                    let pre_idx = pre_node_i.index();
+                    int_scaled_offsets[pre_idx] + deadlines[pre_idx]
+                })
+                .max()
+                .unwrap_or(0);
+            int_scaled_offsets[node_i.index()] = max_offset;
         }
     }
+
+    int_scaled_offsets
 }
 
 #[cfg(test)]
@@ -91,17 +85,11 @@ mod tests {
         let mut dag = create_sample_dag(120);
         decompose(&mut dag);
 
-        let expect_deadline = [322857, 1033721, 7318570, 5316279, 4358571];
-        let expect_offset = [0, 322857, 322857, 1356578, 7641427];
+        let expect_relative_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
         for node_i in dag.node_indices() {
             assert_eq!(
-                dag[node_i].params["integer_scaled_deadline"],
-                expect_deadline[node_i.index()]
-            );
-            assert_eq!(dag[node_i].params["deadline_factor"], 100000);
-            assert_eq!(
-                dag[node_i].params["integer_scaled_offset"],
-                expect_offset[node_i.index()]
+                dag[node_i].params["int_scaled_node_relative_deadline"],
+                expect_relative_deadline[node_i.index()]
             );
         }
     }

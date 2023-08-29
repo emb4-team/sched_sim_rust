@@ -12,7 +12,20 @@ use crate::{
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let comparison_metric = "absolute_deadline";
+        // Compare by absolute_deadline or int_scaled_absolute_deadline.
+        let mut comparison_metric = "node_absolute_deadline";
+        if self
+            .node_data
+            .params
+            .contains_key("int_scaled_node_absolute_deadline")
+            && other
+                .node_data
+                .params
+                .contains_key("int_scaled_node_absolute_deadline")
+        {
+            comparison_metric = "int_scaled_node_absolute_deadline"; // decomposition-based algorithm
+        }
+
         match self
             .node_data
             .get_params_value(comparison_metric)
@@ -194,7 +207,7 @@ mod tests {
 
         // Check the value of node_set_logs
         let node_set_logs = &yaml_doc["node_set_logs"][0];
-        assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 1);
+        assert_eq!(node_set_logs[0]["core_id"].as_i64().unwrap(), 0);
         assert_eq!(node_set_logs[0]["dag_id"].as_i64().unwrap(), 0);
         assert_eq!(node_set_logs[0]["node_id"].as_i64().unwrap(), 0);
         // start_time
@@ -206,11 +219,11 @@ mod tests {
         let processor_log = &yaml_doc["processor_log"];
         assert_eq!(
             processor_log["average_utilization"].as_f64().unwrap(),
-            0.26666668
+            0.2666667
         );
         assert_eq!(
             processor_log["variance_utilization"].as_f64().unwrap(),
-            0.06055556
+            0.060000006
         );
 
         // Check the value of core_logs
@@ -232,7 +245,7 @@ mod tests {
 
         let mut global_edf_scheduler = GlobalEDFScheduler::new(&dag_set, &processor);
         let time = global_edf_scheduler.schedule(PreemptiveType::Preemptive {
-            key: "absolute_deadline".to_string(),
+            key: "node_absolute_deadline".to_string(),
         });
 
         assert_eq!(time, 150);
