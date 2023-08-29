@@ -21,7 +21,7 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     }
     let int_scaled_offset = calc_int_scaled_offsets(dag, &int_scaled_deadline);
 
-    // Set integer scaled absolute deadline.
+    // Set integer scaled absolute deadlines.
     for node_i in dag.node_indices() {
         dag.add_param(
             node_i,
