@@ -30,6 +30,9 @@ struct ArgParser {
     ///Path to output directory.
     #[clap(short = 'o', long = "output_dir_path", default_value = "../outputs")]
     output_dir_path: String,
+    ///Enable or disable preemptive scheduling.
+    #[clap(short = 'p', long = "enable_preemption", default_value = "false")]
+    enable_preemption: bool,
 }
 
 fn main() {
@@ -45,9 +48,20 @@ fn main() {
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut gedf_scheduler = GlobalEDFScheduler::new(&dag_set, &homogeneous_processor);
 
-    // To make it preemptive, rename the second argument of dump_log.
-    gedf_scheduler.schedule(PreemptiveType::NonPreemptive);
-    let file_path = gedf_scheduler.dump_log(&arg.output_dir_path, "gedf_non_preemptive");
+    // Change whether it is preemptive or not depending on the argument.
+    let (preemptive_type, file_name) = if arg.enable_preemption {
+        (
+            PreemptiveType::Preemptive {
+                key: "int_scaled_node_absolute_deadline".to_string(),
+            },
+            "decomp_gedf_preemptive",
+        )
+    } else {
+        (PreemptiveType::NonPreemptive, "decomp_gedf_non_preemptive")
+    };
+
+    gedf_scheduler.schedule(preemptive_type);
+    let file_path = gedf_scheduler.dump_log(&arg.output_dir_path, file_name);
 
     // Check the result
     let yaml_doc = &load_yaml(&file_path)[0];
