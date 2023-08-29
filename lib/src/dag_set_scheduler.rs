@@ -115,17 +115,18 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     .contains_key("int_scaled_node_relative_deadline")
                 {
                     for node_i in dag.node_indices() {
-                        let node_deadline =
+                        let node_relative_deadline =
                             dag[node_i].get_params_value("int_scaled_node_relative_deadline");
                         dag[node_i].params.insert(
                             "int_scaled_node_absolute_deadline".to_string(),
-                            node_deadline * managers[dag_id].get_release_count(),
+                            node_relative_deadline * managers[dag_id].get_release_count(),
                         );
                     }
                 } else {
                     dag.set_dag_param(
-                        "absolute_deadline",
-                        dag.get_head_period().unwrap() * managers[dag_id].get_release_count(),
+                        "node_absolute_deadline",
+                        dag.get_end_to_end_deadline().unwrap()
+                            * managers[dag_id].get_release_count(),
                     );
                 }
                 ready_nodes.push(dag[dag.get_source_nodes()[0]].clone());

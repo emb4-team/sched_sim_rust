@@ -8,7 +8,8 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     let mut segments = create_segments(dag);
     calculate_segments_deadline(dag, &mut segments);
 
-    // Calculate integer scaled deadlines and offsets.
+    // `deadline_factor` is used to scale the deadline of a node to an integer type.
+    // The fifth decimal place is truncated.
     let deadline_factor = 100000.0;
     let mut int_scaled_deadline = vec![0; dag.node_count()];
     for segment in segments.iter() {
@@ -18,7 +19,7 @@ pub fn decompose(dag: &mut Graph<NodeData, i32>) {
     }
     let int_scaled_offset = calc_int_scaled_offsets(dag, &int_scaled_deadline);
 
-    // Set integer scaled absolute deadline.
+    // Set integer scaled node relative deadline.
     for node_i in dag.node_indices() {
         dag.add_param(
             node_i,
@@ -84,11 +85,11 @@ mod tests {
         let mut dag = create_sample_dag(120);
         decompose(&mut dag);
 
-        let expect_absolute_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
+        let expect_relative_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
         for node_i in dag.node_indices() {
             assert_eq!(
                 dag[node_i].params["int_scaled_node_relative_deadline"],
-                expect_absolute_deadline[node_i.index()]
+                expect_relative_deadline[node_i.index()]
             );
         }
     }
