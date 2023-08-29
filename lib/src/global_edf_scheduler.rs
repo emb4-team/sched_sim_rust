@@ -23,7 +23,7 @@ impl PartialOrd for NodeDataWrapper {
                 .params
                 .contains_key("int_scaled_node_absolute_deadline")
         {
-            comparison_metric = "int_scaled_node_relative_deadline";
+            comparison_metric = "int_scaled_node_absolute_deadline";
         }
 
         match self
