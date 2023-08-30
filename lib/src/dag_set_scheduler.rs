@@ -1,7 +1,7 @@
 use crate::{
     core::ProcessResult,
     graph_extension::{GraphExtension, NodeData},
-    log::*,
+    log::{DAGSetSchedulerLog, JobEventTimes},
     processor::ProcessorBase,
     util::{create_scheduler_log_yaml, get_hyper_period, get_process_core_indices},
 };

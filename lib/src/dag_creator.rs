@@ -1,15 +1,10 @@
 //! Generate a petgraph DAG object from a yaml file
-
-use log::warn;
-use petgraph::graph::Graph;
-use petgraph::prelude::*;
-use std::collections::BTreeMap;
-use yaml_rust::Yaml;
-
-use std::path::PathBuf;
-
 use crate::graph_extension::NodeData;
 use crate::util::load_yaml;
+use log::warn;
+use petgraph::{graph::Graph, prelude::*};
+use std::{collections::BTreeMap, path::PathBuf};
+use yaml_rust::Yaml;
 
 fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     let mut minimum_decimal_places = 0;

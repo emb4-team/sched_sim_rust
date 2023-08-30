@@ -1,3 +1,4 @@
+use crate::federated::FederateResult;
 use lib::{
     graph_extension::NodeData,
     log::{dump_struct, DAGSetInfo, ProcessorInfo},
@@ -5,8 +6,6 @@ use lib::{
 };
 use petgraph::Graph;
 use serde_derive::{Deserialize, Serialize};
-
-use crate::federated::FederateResult;
 
 #[derive(Serialize, Deserialize)]
 struct ResultInfo<FederateResult> {
