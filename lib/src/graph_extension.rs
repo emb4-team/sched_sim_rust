@@ -1,11 +1,12 @@
 use log::warn;
-use petgraph::algo::toposort;
-use petgraph::graph::{Graph, NodeIndex};
-use petgraph::visit::EdgeRef;
-use petgraph::Direction::{Incoming, Outgoing};
+use petgraph::{
+    algo::toposort,
+    graph::{Graph, NodeIndex},
+    visit::EdgeRef,
+    Direction::{Incoming, Outgoing},
+};
 use std::cmp::Ord;
-use std::collections::VecDeque;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 
 const DUMMY_SOURCE_NODE_FLAG: i32 = -1;
 const DUMMY_SINK_NODE_FLAG: i32 = -2;

@@ -1,7 +1,6 @@
+use crate::parallel_provider_consumer::{get_f_consumers, get_providers};
 use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::graph::{Graph, NodeIndex};
-
-use crate::parallel_provider_consumer::*;
 
 //Create a dag for f_consumer only
 //NodeIndex is changed, but NodeData is retained.

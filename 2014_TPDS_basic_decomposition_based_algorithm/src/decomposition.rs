@@ -1,4 +1,4 @@
-use crate::handle_segment::*;
+use crate::handle_segment::{calculate_segments_deadline, create_segments};
 use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::{graph::Graph, visit::Topo};
 use std::vec;

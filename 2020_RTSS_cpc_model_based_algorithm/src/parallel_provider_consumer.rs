@@ -5,10 +5,9 @@
 //! Authors: Shuai Zhao, Xiaotian Dai, Iain Bate, Alan Burns, Wanli Chang
 //! Conference: RTSS 2020
 //! -----------------
-use std::collections::{BTreeMap, HashSet, VecDeque};
-
-use lib::graph_extension::*;
+use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::graph::{Graph, NodeIndex};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 
 /// See the second paragraph of IV. A. Concurrent provider and consumer model for a detailed explanation.
 /// Algorithm 1: Step1 identifying capacity providers.

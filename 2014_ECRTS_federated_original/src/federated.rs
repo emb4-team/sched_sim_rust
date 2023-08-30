@@ -1,20 +1,19 @@
 //! This module implements the federated scheduling algorithm.
-use lib::graph_extension::GraphExtension;
-use lib::graph_extension::NodeData;
+use lib::graph_extension::{GraphExtension, NodeData};
 use petgraph::graph::Graph;
 use serde_derive::{Deserialize, Serialize};
-use FederateResult::*;
+use FederateResult::{Schedulable, Unschedulable};
 
 /// For determination of federates
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum FederateResult {
-    Unschedulable {
-        reason: String,
-        insufficient_cores: usize,
-    },
     Schedulable {
         high_dedicated_cores: usize,
         low_dedicated_cores: usize,
+    },
+    Unschedulable {
+        reason: String,
+        insufficient_cores: usize,
     },
 }
 

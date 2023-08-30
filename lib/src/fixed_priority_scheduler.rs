@@ -1,10 +1,8 @@
-use std::collections::VecDeque;
-
 use crate::{
     dag_scheduler::DAGSchedulerBase, graph_extension::NodeData, log::*, processor::ProcessorBase,
 };
-
 use petgraph::Graph;
+use std::collections::VecDeque;
 
 #[derive(Clone, Default)]
 pub struct FixedPriorityScheduler<T>

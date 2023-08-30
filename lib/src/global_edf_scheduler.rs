@@ -1,7 +1,3 @@
-use petgraph::graph::Graph;
-
-use std::cmp::Ordering;
-
 use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
 use crate::getset_dag_set_scheduler;
 use crate::graph_extension::GraphExtension;
@@ -9,6 +5,8 @@ use crate::{
     graph_extension::NodeData, homogeneous::HomogeneousProcessor, log::DAGSetSchedulerLog,
     processor::ProcessorBase,
 };
+use petgraph::graph::Graph;
+use std::cmp::Ordering;
 
 impl PartialOrd for NodeDataWrapper {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {

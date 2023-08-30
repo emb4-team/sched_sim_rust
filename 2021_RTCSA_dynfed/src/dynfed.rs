@@ -6,17 +6,19 @@
 //! Conference: RTCSA 2021
 //! -----------------
 use getset::{CopyGetters, Setters};
-use lib::dag_scheduler::DAGSchedulerBase;
-use lib::dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase, PreemptiveType};
-use std::collections::VecDeque;
-
-use lib::core::ProcessResult;
-use lib::graph_extension::{GraphExtension, NodeData};
-use lib::homogeneous::HomogeneousProcessor;
-use lib::processor::ProcessorBase;
-use lib::util::{get_hyper_period, get_process_core_indices};
-use lib::{getset_dag_set_scheduler, getset_dag_state_manager, log::*};
+use lib::{
+    core::ProcessResult,
+    dag_scheduler::DAGSchedulerBase,
+    dag_set_scheduler::{DAGSetSchedulerBase, DAGState, DAGStateManagerBase, PreemptiveType},
+    getset_dag_set_scheduler, getset_dag_state_manager,
+    graph_extension::{GraphExtension, NodeData},
+    homogeneous::HomogeneousProcessor,
+    log::DAGSetSchedulerLog,
+    processor::ProcessorBase,
+    util::{get_hyper_period, get_process_core_indices},
+};
 use petgraph::{graph::NodeIndex, Graph};
+use std::collections::VecDeque;
 
 /// Calculate the execution order when minimum number of cores required to meet the end-to-end deadline.
 ///

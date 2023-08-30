@@ -1,15 +1,18 @@
 mod decomposition;
 mod handle_segment;
+
 use clap::Parser;
 use decomposition::decompose;
-use lib::dag_creator::create_dag_set_from_dir;
-use lib::dag_set_scheduler::{DAGSetSchedulerBase, PreemptiveType};
-use lib::global_edf_scheduler::GlobalEDFScheduler;
-use lib::graph_extension::GraphExtension;
-use lib::homogeneous::HomogeneousProcessor;
-use lib::log::dump_dag_set_scheduler_result_to_yaml;
-use lib::processor::ProcessorBase;
-use lib::util::{adjust_to_implicit_deadline, load_yaml};
+use lib::{
+    dag_creator::create_dag_set_from_dir,
+    dag_set_scheduler::{DAGSetSchedulerBase, PreemptiveType},
+    global_edf_scheduler::GlobalEDFScheduler,
+    graph_extension::GraphExtension,
+    homogeneous::HomogeneousProcessor,
+    log::dump_dag_set_scheduler_result_to_yaml,
+    processor::ProcessorBase,
+    util::{adjust_to_implicit_deadline, load_yaml},
+};
 
 #[derive(Parser)]
 #[clap(

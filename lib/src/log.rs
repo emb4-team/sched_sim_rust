@@ -1,10 +1,9 @@
+use crate::graph_extension::{GraphExtension, NodeData};
+use crate::util::append_info_to_yaml;
 use log::warn;
 use petgraph::Graph;
 use serde::Serialize;
 use serde_derive::{Deserialize, Serialize};
-
-use crate::graph_extension::{GraphExtension, NodeData};
-use crate::util::append_info_to_yaml;
 
 pub fn dump_struct(file_path: &str, target_struct: &impl Serialize) {
     let yaml = serde_yaml::to_string(&target_struct).expect("Failed to serialize.");
