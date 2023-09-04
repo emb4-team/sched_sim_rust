@@ -1,6 +1,5 @@
 use crate::dag_set_scheduler::{DAGSetSchedulerBase, NodeDataWrapper};
 use crate::getset_dag_set_scheduler;
-use crate::graph_extension::GraphExtension;
 use crate::{
     graph_extension::NodeData, homogeneous::HomogeneousProcessor, log::DAGSetSchedulerLog,
     processor::ProcessorBase,
@@ -67,6 +66,7 @@ impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::graph_extension::GraphExtension;
     use crate::{dag_set_scheduler::PreemptiveType, util::load_yaml};
     use std::{collections::BTreeMap, fs::remove_file};
 
