@@ -146,16 +146,11 @@ where
     getset_dag_set_scheduler!(HomogeneousProcessor);
 
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
-        let mut dag_set = dag_set.to_vec();
-        for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_param("dag_id", dag_id as i32);
-        }
-
         Self {
-            dag_set: dag_set.clone(),
+            dag_set: dag_set.to_vec(),
             processor: processor.clone(),
             scheduler: T::new(&Graph::<NodeData, i32>::new(), processor),
-            log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
+            log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             current_time: 0,
         }
     }
@@ -292,8 +287,10 @@ mod tests {
 
     #[test]
     fn test_dynfed_normal() {
-        let dag = create_sample_dag();
-        let dag2 = create_sample_dag2();
+        let mut dag = create_sample_dag();
+        let mut dag2 = create_sample_dag2();
+        dag.set_dag_param("dag_id", 0);
+        dag2.set_dag_param("dag_id", 1);
         let dag_set = vec![dag, dag2];
 
         let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
