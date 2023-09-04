@@ -12,3 +12,10 @@ lib = { path = "../lib"}
 serde = "1.0.163"
 serde_yaml = "0.9.21"
 serde_derive = "1.0.163"
+
+[dev-dependencies]
+lib = { path = "../lib", features = ["test-helpers"] }
+
+[features]
+default = []
+test-helpers = []

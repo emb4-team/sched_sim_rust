@@ -109,13 +109,7 @@ pub fn get_g_consumers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
+    use lib::tests_helper::create_node;
 
     ///DAG in Figure 2 (b) of the paper
     fn create_sample_dag() -> Graph<NodeData, i32> {

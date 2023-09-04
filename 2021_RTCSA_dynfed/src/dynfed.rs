@@ -227,7 +227,7 @@ where
     }
 }
 
-#[cfg(feature = "test-helpers")]
+#[cfg(test)]
 mod tests {
     use super::*;
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;

@@ -33,16 +33,11 @@ mod tests {
     use lib::{
         graph_extension::NodeData,
         homogeneous,
+        tests_helper::create_node,
         util::{create_yaml, load_yaml},
     };
     use petgraph::Graph;
     use std::{collections::BTreeMap, fs::remove_file};
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
 
     fn create_high_utilization_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
