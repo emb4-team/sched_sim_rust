@@ -227,21 +227,15 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(feature = "test-helpers")]
 mod tests {
     use super::*;
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
+    use lib::tests_helper::create_node;
     use lib::util::load_yaml;
-    use std::collections::BTreeMap;
     use std::fs::remove_file;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
 
     fn create_sample_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
