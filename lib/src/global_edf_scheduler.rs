@@ -150,8 +150,10 @@ mod tests {
 
     #[test]
     fn test_global_edf_normal() {
-        let dag = create_sample_dag();
-        let dag2 = create_sample_dag2();
+        let mut dag = create_sample_dag();
+        let mut dag2 = create_sample_dag2();
+        dag.set_dag_param("dag_id", 0);
+        dag2.set_dag_param("dag_id", 1);
         let dag_set = vec![dag, dag2];
 
         let processor = HomogeneousProcessor::new(4);
@@ -231,8 +233,10 @@ mod tests {
 
     #[test]
     fn test_global_edf_preemptive() {
-        let dag = create_sample_dag();
-        let dag3 = create_sample_dag3();
+        let mut dag = create_sample_dag();
+        let mut dag3 = create_sample_dag3();
+        dag.set_dag_param("dag_id", 0);
+        dag3.set_dag_param("dag_id", 1);
         let dag_set = vec![dag, dag3];
 
         let processor = HomogeneousProcessor::new(2);
