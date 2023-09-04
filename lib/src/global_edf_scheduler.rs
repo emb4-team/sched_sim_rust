@@ -53,14 +53,10 @@ pub struct GlobalEDFScheduler {
 
 impl DAGSetSchedulerBase<HomogeneousProcessor> for GlobalEDFScheduler {
     fn new(dag_set: &[Graph<NodeData, i32>], processor: &HomogeneousProcessor) -> Self {
-        let mut dag_set = dag_set.to_vec();
-        for (dag_id, dag) in dag_set.iter_mut().enumerate() {
-            dag.set_dag_param("dag_id", dag_id as i32);
-        }
         Self {
             dag_set: dag_set.to_vec(),
             processor: processor.clone(),
-            log: DAGSetSchedulerLog::new(&dag_set, processor.get_number_of_cores()),
+            log: DAGSetSchedulerLog::new(dag_set, processor.get_number_of_cores()),
             current_time: 0,
         }
     }
