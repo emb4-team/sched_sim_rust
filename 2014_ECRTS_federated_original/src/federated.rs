@@ -110,16 +110,10 @@ pub fn federated(dag_set: &mut [Graph<NodeData, i32>], number_of_cores: usize) -
 }
 
 #[cfg(test)]
-
 mod tests {
     use super::*;
+    use lib::tests_helper::create_node;
     use std::collections::BTreeMap;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
 
     fn create_high_utilization_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();

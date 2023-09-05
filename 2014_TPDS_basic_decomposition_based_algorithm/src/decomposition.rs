@@ -54,16 +54,9 @@ fn calc_int_scaled_offsets(dag: &Graph<NodeData, i32>, deadlines: &[i32]) -> Vec
 
 #[cfg(test)]
 mod tests {
-    use lib::graph_extension::GraphExtension;
-
     use super::*;
-    use std::collections::BTreeMap;
+    use lib::{graph_extension::GraphExtension, tests_helper::create_node};
 
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
     fn create_sample_dag(period: i32) -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         let n0 = dag.add_node(create_node(0, "execution_time", 4));
