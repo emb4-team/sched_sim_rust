@@ -14,5 +14,4 @@ clap = { version = "4.2.4", features = ["derive"] }
 lib = { path = "../lib", features = ["test-helpers"] }
 
 [features]
-default = []
 test-helpers = []

@@ -17,5 +17,4 @@ serde_derive = "1.0.163"
 lib = { path = "../lib", features = ["test-helpers"] }
 
 [features]
-default = []
 test-helpers = []

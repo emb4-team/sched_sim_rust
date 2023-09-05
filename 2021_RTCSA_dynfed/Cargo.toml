@@ -18,5 +18,4 @@ getset = "0.1.2"
 lib = { path = "../lib", features = ["test-helpers"] }
 
 [features]
-default = []
 test-helpers = []
