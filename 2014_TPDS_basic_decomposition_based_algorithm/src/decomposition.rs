@@ -55,27 +55,11 @@ fn calc_int_scaled_offsets(dag: &Graph<NodeData, i32>, deadlines: &[i32]) -> Vec
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::{graph_extension::GraphExtension, tests_helper::create_node};
-
-    fn create_sample_dag(period: i32) -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 4));
-        let n1 = dag.add_node(create_node(1, "execution_time", 7));
-        let n2 = dag.add_node(create_node(2, "execution_time", 55));
-        let n3 = dag.add_node(create_node(3, "execution_time", 36));
-        let n4 = dag.add_node(create_node(4, "execution_time", 54));
-        dag.add_param(n0, "period", period);
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag.add_edge(n1, n3, 1);
-        dag.add_edge(n2, n4, 1);
-
-        dag
-    }
+    use lib::tests_helper::create_dag_for_segment;
 
     #[test]
     fn test_decompose_normal_float() {
-        let mut dag = create_sample_dag(120);
+        let mut dag = create_dag_for_segment(120, false);
         decompose(&mut dag);
 
         let expect_relative_deadline = [322857, 1356578, 7641428, 6672857, 11999999];
