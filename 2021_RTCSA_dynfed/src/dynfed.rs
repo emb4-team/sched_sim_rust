@@ -233,7 +233,7 @@ mod tests {
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
-    use lib::tests_helper::{common_sched_dump_test, create_sample_dag_custom};
+    use lib::tests_helper::{common_sched_dump_test, create_dag_for_dynfed};
     use lib::{assert_yaml_value, assert_yaml_values_for_prefix};
     use std::path::PathBuf;
 
@@ -242,8 +242,8 @@ mod tests {
         common_sched_dump_test(
             || {
                 let dag_set = vec![
-                    create_sample_dag_custom(0, 150, 50, true),
-                    create_sample_dag_custom(1, 100, 60, false),
+                    create_dag_for_dynfed(0, 150, 50, true),
+                    create_dag_for_dynfed(1, 100, 60, false),
                 ];
 
                 let mut dynfed: DynamicFederatedScheduler<

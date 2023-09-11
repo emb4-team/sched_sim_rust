@@ -231,7 +231,7 @@ pub mod tests_helper {
     }
 
     // 2021_RTCSA_dynfed
-    pub fn create_sample_dag_custom(
+    pub fn create_dag_for_dynfed(
         exec_time_offset: i32,
         period: i32,
         deadline: i32,
