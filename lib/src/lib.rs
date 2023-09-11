@@ -133,7 +133,7 @@ pub mod tests_helper {
         dag
     }
 
-    // 2021_RTCSA_dynfed
+    // 2014_TPDS_basic_decomposition_based_algorithm
     pub fn create_dag_for_segment(
         period: i32,
         is_duplicates_segment: bool,
@@ -151,6 +151,43 @@ pub mod tests_helper {
         dag.add_edge(n0, n2, 1);
         dag.add_edge(n1, n3, 1);
         dag.add_edge(n2, n4, 1);
+
+        dag
+    }
+
+    // 2020_RTSS_cpc_model_based_algorithm
+    pub fn create_dag_for_cpc() -> Graph<NodeData, i32> {
+        let mut dag = Graph::<NodeData, i32>::new();
+
+        //cX is the Xth critical node.
+        let c0 = dag.add_node(create_node(0, "execution_time", 10));
+        let c1 = dag.add_node(create_node(1, "execution_time", 10));
+        let c2 = dag.add_node(create_node(2, "execution_time", 10));
+
+        //create non-critical node.
+        //No distinction is made because of the complexity.
+        let n3 = dag.add_node(create_node(3, "execution_time", 2));
+        let n4 = dag.add_node(create_node(4, "execution_time", 2));
+        let n5 = dag.add_node(create_node(5, "execution_time", 3));
+        let n6 = dag.add_node(create_node(6, "execution_time", 1));
+        let n7 = dag.add_node(create_node(7, "execution_time", 1));
+        let n8 = dag.add_node(create_node(8, "execution_time", 3));
+
+        //create critical path edges
+        dag.add_edge(c0, c1, 1);
+        dag.add_edge(c1, c2, 1);
+
+        //create non-critical path edges
+        dag.add_edge(c0, n3, 1);
+        dag.add_edge(n3, c2, 1);
+        dag.add_edge(c0, n4, 1);
+        dag.add_edge(n4, n6, 1);
+        dag.add_edge(c0, n5, 1);
+        dag.add_edge(n5, n6, 1);
+        dag.add_edge(n5, n7, 1);
+        dag.add_edge(n6, n8, 1);
+        dag.add_edge(n7, n8, 1);
+        dag.add_edge(n8, c2, 1);
 
         dag
     }

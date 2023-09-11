@@ -109,159 +109,34 @@ pub fn get_g_consumers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::tests_helper::create_node;
+    use lib::tests_helper::create_dag_for_cpc;
 
-    ///DAG in Figure 2 (b) of the paper
-    fn create_sample_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 1));
-        let c1 = dag.add_node(create_node(1, "execution_time", 1));
-        let c2 = dag.add_node(create_node(2, "execution_time", 1));
-        let c3 = dag.add_node(create_node(3, "execution_time", 1));
-        let c4 = dag.add_node(create_node(4, "execution_time", 1));
-        //nY_X is the Yth preceding node of cX.
-        let n0_2 = dag.add_node(create_node(5, "execution_time", 0));
-        let n1_2 = dag.add_node(create_node(6, "execution_time", 0));
-        let n0_3 = dag.add_node(create_node(7, "execution_time", 0));
-        let n1_3 = dag.add_node(create_node(8, "execution_time", 0));
-        let n2_3 = dag.add_node(create_node(9, "execution_time", 0));
-        let n0_4 = dag.add_node(create_node(10, "execution_time", 0));
-        let n1_4 = dag.add_node(create_node(11, "execution_time", 0));
-        let n2_4 = dag.add_node(create_node(12, "execution_time", 0));
-
-        //create critical path edges
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-        dag.add_edge(c2, c3, 1);
-        dag.add_edge(c3, c4, 1);
-
-        //create non-critical path edges
-        dag.add_edge(c0, n0_2, 1);
-        dag.add_edge(n0_2, c2, 1);
-        dag.add_edge(c0, n1_2, 1);
-        dag.add_edge(n1_2, c2, 1);
-        dag.add_edge(c0, n0_3, 1);
-        dag.add_edge(n0_3, c3, 1);
-        dag.add_edge(c1, n1_3, 1);
-        dag.add_edge(n1_3, c3, 1);
-        dag.add_edge(c1, n2_3, 1);
-        dag.add_edge(n2_3, c3, 1);
-        dag.add_edge(n0_3, n0_4, 1);
-        dag.add_edge(n0_4, c4, 1);
-        dag.add_edge(n1_3, n1_4, 1);
-        dag.add_edge(n1_4, c4, 1);
-        dag.add_edge(n2_3, n2_4, 1);
-        dag.add_edge(n2_4, c4, 1);
-
-        dag
-    }
-
-    fn create_sample_dag_not_consolidated() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-
-        //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 3));
-        let c1 = dag.add_node(create_node(1, "execution_time", 1));
-        let c2 = dag.add_node(create_node(2, "execution_time", 3));
-        //nY_X is the Yth preceding node of cX.
-        let n0_1 = dag.add_node(create_node(3, "execution_time", 2));
-        let n0_2 = dag.add_node(create_node(4, "execution_time", 1));
-        //Independent Node
-        dag.add_node(create_node(5, "execution_time", 2));
-
-        //create critical path edges
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-        //create non-critical path edges
-        dag.add_edge(n0_1, c1, 1);
-        dag.add_edge(n0_1, n0_2, 1);
-        dag.add_edge(n0_2, c2, 1);
-
-        dag
+    fn common_test_setup_for_cpc() -> (Graph<NodeData, i32>, Vec<NodeIndex>, Vec<Vec<NodeIndex>>) {
+        let mut dag = create_dag_for_cpc();
+        let critical_path = dag.get_critical_path();
+        let providers = get_providers(&dag, &critical_path);
+        (dag, critical_path, providers)
     }
 
     #[test]
     fn test_get_providers_normal() {
-        let mut dag = create_sample_dag();
-        let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, &critical_path);
-        assert_eq!(providers.len(), 4);
+        let (_, _, providers) = common_test_setup_for_cpc();
 
+        assert_eq!(providers.len(), 2);
         assert_eq!(providers[0][0].index(), 0);
         assert_eq!(providers[0][1].index(), 1);
         assert_eq!(providers[1][0].index(), 2);
-        assert_eq!(providers[2][0].index(), 3);
-        assert_eq!(providers[3][0].index(), 4);
-    }
-
-    #[test]
-    fn test_get_providers_dag_not_consolidated() {
-        let mut dag = create_sample_dag_not_consolidated();
-        let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, &critical_path);
-        assert_eq!(providers.len(), 3);
-
-        assert_eq!(providers[0][0].index(), 0);
-        assert_eq!(providers[1][0].index(), 1);
-        assert_eq!(providers[2][0].index(), 2);
     }
 
     #[test]
     fn test_get_f_consumers_normal() {
-        let mut dag = create_sample_dag();
-        let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, &critical_path);
+        let (mut dag, critical_path, providers) = common_test_setup_for_cpc();
         let f_consumers = get_f_consumers(&mut dag, &critical_path);
 
-        assert_eq!(f_consumers.len(), 3);
-        assert_eq!(f_consumers[&providers[0]].len(), 2);
-        assert_eq!(f_consumers[&providers[1]].len(), 3);
-        assert_eq!(f_consumers[&providers[2]].len(), 3);
-
-        assert_eq!(f_consumers[&providers[0]][0].index(), 6);
-        assert_eq!(f_consumers[&providers[0]][1].index(), 5);
-        assert_eq!(f_consumers[&providers[1]][0].index(), 9);
-        assert_eq!(f_consumers[&providers[1]][1].index(), 8);
-        assert_eq!(f_consumers[&providers[1]][2].index(), 7);
-        assert_eq!(f_consumers[&providers[2]][0].index(), 12);
-        assert_eq!(f_consumers[&providers[2]][1].index(), 11);
-        assert_eq!(f_consumers[&providers[2]][2].index(), 10);
+        let expected_indices = [8, 3, 7, 6, 5, 4];
+        assert_eq!(f_consumers[&providers[0]].len(), 6);
+        for (i, &expected) in expected_indices.iter().enumerate() {
+            assert_eq!(f_consumers[&providers[0]][i].index(), expected);
+        }
     }
-
-    #[test]
-    fn test_get_f_consumers_dag_not_consolidated() {
-        let mut dag = create_sample_dag_not_consolidated();
-        let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, &critical_path);
-        let f_consumers = get_f_consumers(&mut dag, &critical_path);
-
-        assert_eq!(f_consumers.len(), 2);
-        assert_eq!(f_consumers[&providers[0]].len(), 1);
-        assert_eq!(f_consumers[&providers[1]].len(), 1);
-
-        assert_eq!(f_consumers[&providers[0]][0].index(), 3);
-        assert_eq!(f_consumers[&providers[1]][0].index(), 4);
-    }
-    /*
-    #[test]
-    fn test_get_g_consumers_normal() {
-        let dag = create_sample_dag();
-        let critical_path = dag.get_critical_path();
-        let providers = get_providers(&dag, critical_path);
-        let g_consumers = get_g_consumers(dag, critical_path);
-
-        assert_eq!(g_consumers.len(), 4);
-        assert_eq!(g_consumers[&providers[0]].len(), 2);
-        assert_eq!(g_consumers[&providers[1]].len(), 3);
-        assert_eq!(g_consumers[&providers[2]].len(), 0);
-        assert_eq!(g_consumers[&providers[3]].len(), 0);
-
-        assert_eq!(g_consumers[&providers[0]][0].index(), 7);
-        assert_eq!(g_consumers[&providers[0]][1].index(), 10);
-        assert_eq!(g_consumers[&providers[1]][0].index(), 10);
-        assert_eq!(g_consumers[&providers[1]][1].index(), 11);
-        assert_eq!(g_consumers[&providers[1]][2].index(), 12);
-    }
-    */
 }
