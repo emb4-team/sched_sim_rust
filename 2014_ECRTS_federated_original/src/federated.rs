@@ -112,85 +112,85 @@ pub fn federated(dag_set: &mut [Graph<NodeData, i32>], number_of_cores: usize) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use lib::tests_helper::{create_high_utilization_dag, create_low_utilization_dag};
-    use std::collections::BTreeMap;
+    use lib::tests_helper::{
+        create_high_utilization_dag, create_low_utilization_dag, create_simple_graph,
+    };
+
+    fn test_federated_helper(
+        dags: Vec<fn() -> Graph<NodeData, i32>>,
+        cores: usize,
+        expected: FederateResult,
+    ) {
+        let mut dag_set: Vec<Graph<NodeData, i32>> = dags.into_iter().map(|dag| dag()).collect();
+        assert_eq!(federated(&mut dag_set, cores), expected);
+    }
 
     #[test]
     fn test_federated_enough_core() {
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-
-        assert_eq!(
-            federated(&mut dag_set, 40),
+        test_federated_helper(
+            vec![
+                create_high_utilization_dag,
+                create_high_utilization_dag,
+                create_low_utilization_dag,
+            ],
+            40,
             Schedulable {
                 high_dedicated_cores: 6,
-                low_dedicated_cores: 34
-            }
+                low_dedicated_cores: 34,
+            },
         );
     }
 
     #[test]
     fn test_federated_lack_cores_for_high_tasks() {
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-
-        assert_eq!(
-            federated(&mut dag_set, 1),
+        test_federated_helper(
+            vec![
+                create_high_utilization_dag,
+                create_high_utilization_dag,
+                create_low_utilization_dag,
+            ],
+            1,
             Unschedulable {
-                reason: (String::from("Insufficient number of cores for high-utilization tasks.")),
-                insufficient_cores: 2
-            }
+                reason: String::from("Insufficient number of cores for high-utilization tasks."),
+                insufficient_cores: 2,
+            },
         );
     }
 
     #[test]
     fn test_federated_lack_cores_for_low_tasks() {
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-
-        assert_eq!(
-            federated(&mut dag_set, 3),
+        test_federated_helper(
+            vec![
+                create_high_utilization_dag,
+                create_low_utilization_dag,
+                create_low_utilization_dag,
+            ],
+            3,
             Unschedulable {
-                reason: (String::from("Insufficient number of cores for low-utilization tasks.")),
-                insufficient_cores: 2
-            }
+                reason: String::from("Insufficient number of cores for low-utilization tasks."),
+                insufficient_cores: 2,
+            },
         );
     }
 
     #[test]
     fn test_federated_unsuited_tasks() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = BTreeMap::new();
-        params.insert("execution_time".to_owned(), 20);
-        params.insert("period".to_owned(), 10);
-        dag.add_node(NodeData { id: 0, params });
-        assert_eq!(
-            federated(&mut [dag], 5),
+        test_federated_helper(
+            vec![|| create_simple_graph(20, Some(10))],
+            5,
             Unschedulable {
-                reason: (String::from(
-                    "The critical path length is greater than end_to_end_deadline."
-                )),
-                insufficient_cores: 0
-            }
+                reason: String::from(
+                    "The critical path length is greater than end_to_end_deadline.",
+                ),
+                insufficient_cores: 0,
+            },
         );
     }
 
     #[test]
     #[should_panic]
     fn test_federated_no_has_period() {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = BTreeMap::new();
-        params.insert("execution_time".to_owned(), 3);
-        dag.add_node(NodeData { id: 0, params });
+        let dag = create_simple_graph(20, None);
         federated(&mut [dag], 1);
     }
 }
