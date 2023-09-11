@@ -87,7 +87,8 @@ pub mod tests_helper {
         NodeData { id, params }
     }
 
-    pub fn create_simple_graph(exec_time: i32, period: Option<i32>) -> Graph<NodeData, i32> {
+    // 2014_ECRTS_federated_original
+    pub fn create_simple_dag(exec_time: i32, period: Option<i32>) -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         let mut params = BTreeMap::new();
         params.insert("execution_time".to_owned(), exec_time);
@@ -98,7 +99,6 @@ pub mod tests_helper {
         dag
     }
 
-    // 2014_ECRTS_federated_original
     pub fn create_high_utilization_dag() -> Graph<NodeData, i32> {
         let mut dag = Graph::<NodeData, i32>::new();
         let n0 = {

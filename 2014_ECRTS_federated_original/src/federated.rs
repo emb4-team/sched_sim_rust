@@ -113,7 +113,7 @@ pub fn federated(dag_set: &mut [Graph<NodeData, i32>], number_of_cores: usize) -
 mod tests {
     use super::*;
     use lib::tests_helper::{
-        create_high_utilization_dag, create_low_utilization_dag, create_simple_graph,
+        create_high_utilization_dag, create_low_utilization_dag, create_simple_dag,
     };
 
     fn test_federated_helper(
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn test_federated_unsuited_tasks() {
         test_federated_helper(
-            vec![|| create_simple_graph(20, Some(10))],
+            vec![|| create_simple_dag(20, Some(10))],
             5,
             Unschedulable {
                 reason: String::from(
@@ -190,7 +190,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_federated_no_has_period() {
-        let dag = create_simple_graph(20, None);
+        let dag = create_simple_dag(20, None);
         federated(&mut [dag], 1);
     }
 }
