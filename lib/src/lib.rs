@@ -13,11 +13,8 @@ pub mod util;
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod tests_helper {
     use crate::graph_extension::{GraphExtension, NodeData};
-    use crate::util::{create_yaml, load_yaml};
     use petgraph::Graph;
-    use std::path::Path;
-    use std::{collections::BTreeMap, fs::remove_file};
-    use yaml_rust::Yaml;
+    use std::collections::BTreeMap;
 
     #[macro_export]
     macro_rules! assert_yaml_value {
@@ -62,23 +59,6 @@ pub mod tests_helper {
             }
             temp_yaml
         }};
-    }
-
-    pub fn common_yaml_test<F, A>(test_name: &str, dump_fn: F, asserts: A)
-    where
-        F: FnOnce(&Path),
-        A: FnOnce(&Yaml),
-    {
-        let file_path_str = create_yaml("../lib/tests", test_name);
-        let file_path = Path::new(&file_path_str);
-        dump_fn(file_path);
-
-        let yaml_docs = load_yaml(file_path.to_str().unwrap());
-        let yaml_doc = &yaml_docs[0];
-
-        asserts(yaml_doc);
-
-        remove_file(file_path).unwrap();
     }
 
     pub fn create_node(id: i32, key: &str, value: i32) -> NodeData {

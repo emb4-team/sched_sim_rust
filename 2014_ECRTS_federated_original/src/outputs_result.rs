@@ -32,8 +32,28 @@ mod tests {
     use super::*;
     use lib::{
         assert_yaml_value, assert_yaml_values_for_prefix, homogeneous,
-        tests_helper::{common_yaml_test, create_high_utilization_dag, create_low_utilization_dag},
+        tests_helper::{create_high_utilization_dag, create_low_utilization_dag},
+        util::{create_yaml, load_yaml},
     };
+    use std::{fs::remove_file, path::Path};
+    use yaml_rust::Yaml;
+
+    pub fn common_yaml_test<F, A>(test_name: &str, dump_fn: F, asserts: A)
+    where
+        F: FnOnce(&Path),
+        A: FnOnce(&Yaml),
+    {
+        let file_path_str = create_yaml("../lib/tests", test_name);
+        let file_path = Path::new(&file_path_str);
+        dump_fn(file_path);
+
+        let yaml_docs = load_yaml(file_path.to_str().unwrap());
+        let yaml_doc = &yaml_docs[0];
+
+        asserts(yaml_doc);
+
+        remove_file(file_path).unwrap();
+    }
 
     #[test]
     fn test_dump_federated_result_to_yaml_normal() {
