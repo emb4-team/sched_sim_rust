@@ -38,7 +38,7 @@ mod tests {
     use std::{fs::remove_file, path::Path};
     use yaml_rust::Yaml;
 
-    pub fn common_yaml_test<F, A>(test_name: &str, dump_fn: F, asserts: A)
+    pub fn common_dump_test<F, A>(test_name: &str, dump_fn: F, asserts: A)
     where
         F: FnOnce(&Path),
         A: FnOnce(&Yaml),
@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_dump_federated_result_to_yaml_normal() {
-        common_yaml_test(
+        common_dump_test(
             "test_dump_federated_info_normal",
             |path| {
                 let result = crate::federated::federated(
@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn test_dump_dag_set_info_to_yaml_normal() {
-        common_yaml_test(
+        common_dump_test(
             "dag_set_info",
             |path| {
                 let path_str = path.to_str().unwrap();
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        common_yaml_test(
+        common_dump_test(
             "processor_info",
             |path| {
                 let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);

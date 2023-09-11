@@ -37,7 +37,7 @@ pub mod tests_helper {
         ($yaml:expr, $prefix:expr, [$(($path_str:expr, $typ:ident, $expected:expr)),*]) => {
             $(
                 let path = format!("{}.{}", $prefix, $path_str);
-                assert_yaml_value!($yaml, &path, $typ, $expected);
+                $crate::assert_yaml_value!($yaml, &path, $typ, $expected);
             )*
         };
     }
