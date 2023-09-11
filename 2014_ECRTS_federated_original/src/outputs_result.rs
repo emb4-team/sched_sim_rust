@@ -33,9 +33,7 @@ mod tests {
     use lib::{
         assert_yaml_value, assert_yaml_values_for_prefix, homogeneous,
         tests_helper::{common_yaml_test, create_high_utilization_dag, create_low_utilization_dag},
-        util::{create_yaml, load_yaml},
     };
-    use std::fs::remove_file;
 
     #[test]
     fn test_dump_federated_result_to_yaml_normal() {
