@@ -12,9 +12,13 @@ pub mod util;
 
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod tests_helper {
-    use crate::graph_extension::{GraphExtension, NodeData};
+    use crate::{
+        graph_extension::{GraphExtension, NodeData},
+        util::load_yaml,
+    };
     use petgraph::Graph;
-    use std::collections::BTreeMap;
+    use std::{collections::BTreeMap, fs::remove_file, path::PathBuf};
+    use yaml_rust::Yaml;
 
     #[macro_export]
     macro_rules! assert_yaml_value {
@@ -65,6 +69,20 @@ pub mod tests_helper {
         let mut params = BTreeMap::new();
         params.insert(key.to_string(), value);
         NodeData { id, params }
+    }
+
+    pub fn common_sched_dump_test<F, A>(dump_fn: F, asserts: A)
+    where
+        F: FnOnce() -> PathBuf,
+        A: FnOnce(&Yaml),
+    {
+        let file_path = dump_fn();
+
+        let yaml_docs = load_yaml(file_path.to_str().unwrap());
+        let yaml_doc = &yaml_docs[0];
+        asserts(yaml_doc);
+
+        remove_file(&file_path).unwrap();
     }
 
     // 2014_ECRTS_federated_original
