@@ -233,40 +233,9 @@ mod tests {
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
-    use lib::tests_helper::{common_sched_dump_test, create_node};
+    use lib::tests_helper::{common_sched_dump_test, create_sample_dag_custom};
     use lib::{assert_yaml_value, assert_yaml_values_for_prefix};
     use std::path::PathBuf;
-
-    fn create_sample_dag_custom(
-        exec_time_offset: i32,
-        period: i32,
-        deadline: i32,
-        add_extra_node: bool,
-    ) -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-
-        let c0 = dag.add_node(create_node(0, "execution_time", 10 + exec_time_offset));
-        let c1 = dag.add_node(create_node(1, "execution_time", 20 + exec_time_offset));
-        let c2 = dag.add_node(create_node(2, "execution_time", 20 + exec_time_offset));
-
-        dag.add_param(c0, "period", period);
-        dag.add_param(c2, "end_to_end_deadline", deadline);
-
-        let n0_0 = dag.add_node(create_node(3, "execution_time", 10 + exec_time_offset));
-
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-        dag.add_edge(c0, n0_0, 1);
-        dag.add_edge(n0_0, c2, 1);
-
-        if add_extra_node {
-            let n1_0 = dag.add_node(create_node(4, "execution_time", 10 + exec_time_offset));
-            dag.add_edge(c0, n1_0, 1);
-            dag.add_edge(n1_0, c2, 1);
-        }
-
-        dag
-    }
 
     #[test]
     fn test_dynfed_normal() {
