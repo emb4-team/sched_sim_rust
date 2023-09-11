@@ -33,54 +33,11 @@ mod tests {
     use lib::{
         graph_extension::NodeData,
         homogeneous,
-        tests_helper::create_node,
+        tests_helper::{create_high_utilization_dag, create_low_utilization_dag},
         util::{create_yaml, load_yaml},
     };
     use petgraph::Graph;
     use std::{collections::BTreeMap, fs::remove_file};
-
-    fn create_high_utilization_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = {
-            let mut params = BTreeMap::new();
-            params.insert("execution_time".to_owned(), 4);
-            params.insert("period".to_owned(), 10);
-            dag.add_node(NodeData { id: 3, params })
-        };
-        let n1 = dag.add_node(create_node(1, "execution_time", 4));
-        let n2 = dag.add_node(create_node(2, "execution_time", 3));
-        let n3 = dag.add_node(create_node(3, "execution_time", 3));
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag.add_edge(n0, n3, 1);
-
-        dag
-    }
-
-    fn create_low_utilization_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = {
-            let mut params = BTreeMap::new();
-            params.insert("execution_time".to_owned(), 3);
-            params.insert("period".to_owned(), 30);
-            dag.add_node(NodeData { id: 2, params })
-        };
-        let n1 = dag.add_node(create_node(0, "execution_time", 3));
-        let n2 = dag.add_node(create_node(1, "execution_time", 4));
-
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag
-    }
-
-    fn create_period_exceeding_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = BTreeMap::new();
-        params.insert("execution_time".to_owned(), 20);
-        params.insert("period".to_owned(), 10);
-        dag.add_node(NodeData { id: 0, params });
-        dag
-    }
 
     #[test]
     fn test_dump_federated_result_to_yaml_normal() {
@@ -163,7 +120,12 @@ mod tests {
     #[test]
     fn test_dump_federated_result_to_yaml_unsuited_tasks() {
         let number_of_cores = 1;
-        let mut dag_set = vec![create_period_exceeding_dag()];
+        let mut dag = Graph::<NodeData, i32>::new();
+        let mut params = BTreeMap::new();
+        params.insert("execution_time".to_owned(), 20);
+        params.insert("period".to_owned(), 10);
+        dag.add_node(NodeData { id: 0, params });
+        let mut dag_set = vec![dag];
         let result = crate::federated::federated(&mut dag_set, number_of_cores);
         let file_path = create_yaml("../lib/tests", "test_federated_unsuited_tasks");
         dump_federated_result_to_yaml(&file_path, result);
