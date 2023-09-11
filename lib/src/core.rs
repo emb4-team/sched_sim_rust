@@ -82,13 +82,7 @@ impl Core {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
+    use crate::tests_helper::create_node;
 
     #[test]
     fn test_core_default_params() {
