@@ -110,8 +110,10 @@ impl DAGLog {
     }
 
     pub fn calculate_response_time(&mut self) {
+        // Unequal lengths indicate that the DAG was not completed within the hyper_period, and deadline miss occurred.
         if self.release_time.len() != self.finish_time.len() {
-            self.finish_time.push(999999);
+            // Mark as a deadline miss by maximizing the response time.
+            self.finish_time.push(std::i32::MAX);
         }
         self.response_time = self
             .release_time
