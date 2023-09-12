@@ -485,7 +485,7 @@ mod tests {
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
             &410000,
-            "first node weight is expected to be 409999"
+            "first node weight is expected to be 410000"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
