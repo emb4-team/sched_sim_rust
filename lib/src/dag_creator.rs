@@ -1,7 +1,7 @@
 //! Generate a petgraph DAG object from a yaml file
 use crate::graph_extension::NodeData;
 use crate::util::load_yaml;
-use log::warn;
+
 use petgraph::{graph::Graph, prelude::*};
 use std::{collections::BTreeMap, path::PathBuf};
 use yaml_rust::Yaml;
@@ -42,6 +42,18 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     minimum_decimal_places
 }
 
+fn is_decimal(dir_path: &str) -> bool {
+    let file_path_list = get_yaml_paths_from_dir(dir_path);
+    for file_path in file_path_list {
+        let yaml_docs = load_yaml(&file_path);
+        let yaml_doc = &yaml_docs[0];
+        if get_minimum_decimal_places(yaml_doc) > 0 {
+            return true;
+        }
+    }
+    false
+}
+
 /// load yaml file and return a dag object (petgraph)
 ///
 /// # Arguments
@@ -57,7 +69,7 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
 /// ```
 /// use lib::dag_creator::create_dag_from_yaml;
 ///
-/// let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml");
+/// let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml", false);
 /// let first_node = dag.node_indices().next().unwrap();
 /// let first_edge = dag.edge_indices().next().unwrap();
 ///
@@ -66,13 +78,18 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
-pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
+pub fn create_dag_from_yaml(file_path: &str, other_decimal: bool) -> Graph<NodeData, i32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
-    let int_conversion_factor =
+    let mut int_conversion_factor =
         10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i32;
-    if int_conversion_factor > 100000 {
-        warn!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
+    if other_decimal {
+        int_conversion_factor = 100000;
+    } else if int_conversion_factor == 1 {
+    } else if int_conversion_factor <= 100000 {
+        int_conversion_factor = 100000;
+    } else {
+        panic!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
     }
 
     // Check if nodes and links fields exist
@@ -98,7 +115,8 @@ pub fn create_dag_from_yaml(file_path: &str) -> Graph<NodeData, i32> {
                         Yaml::Real(_r) => {
                             params.insert(
                                 key_str.to_owned(),
-                                (value.as_f64().unwrap() * int_conversion_factor as f64) as i32,
+                                (value.as_f64().unwrap() * int_conversion_factor as f64).round()
+                                    as i32,
                             );
                         }
                         _ => {
@@ -179,10 +197,11 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
     let file_path_list = get_yaml_paths_from_dir(dir_path);
+    let other_decimal = is_decimal(dir_path);
     let mut dag_set: Vec<Graph<NodeData, i32>> = Vec::new();
 
     for file_path in file_path_list {
-        let dag = create_dag_from_yaml(&file_path);
+        let dag = create_dag_from_yaml(&file_path, other_decimal);
         dag_set.push(dag);
     }
     dag_set
@@ -200,9 +219,48 @@ mod tests {
         assert_eq!(number_of_digits, 1, "number of digits is expected to be 1");
     }
     #[test]
-    fn test_create_dag_set_from_dir_multiple_yaml() {
+    fn test_create_dag_set_from_dir_multiple_int_yaml() {
         let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_yaml");
+        let first_node = NodeIndex::new(0);
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
+        assert_eq!(
+            dag_set[0][first_node].params["execution_time"], 3,
+            "first node execution time is expected to be 3"
+        );
+        assert_eq!(
+            dag_set[1][first_node].params["execution_time"], 3,
+            "first node execution time is expected to be 3"
+        );
+    }
+
+    #[test]
+    fn test_create_dag_set_from_dir_multiple_float_yaml() {
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_float_yaml");
+        let first_node = NodeIndex::new(0);
+        assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
+        assert_eq!(
+            dag_set[0][first_node].params["execution_time"], 301000,
+            "first node execution time is expected to be 301000"
+        );
+        assert_eq!(
+            dag_set[1][first_node].params["execution_time"], 310000,
+            "first node execution time is expected to be 301000"
+        );
+    }
+
+    #[test]
+    fn test_create_dag_set_from_dir_int_float_yaml() {
+        let dag_set = create_dag_set_from_dir("tests/sample_dags/multiple_int_float_yaml");
+        let first_node = NodeIndex::new(0);
+        assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
+        assert_eq!(
+            dag_set[0][first_node].params["execution_time"], 310000,
+            "first node execution time is expected to be 310000"
+        );
+        assert_eq!(
+            dag_set[1][first_node].params["execution_time"], 300000,
+            "first node execution time is expected to be 300000"
+        );
     }
 
     #[test]
@@ -231,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_chain_base() {
-        let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/chain_base_format.yaml", false);
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -282,7 +340,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_fan_in_fan_out() {
-        let dag = create_dag_from_yaml("tests/sample_dags/fan_in_fan_out_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/fan_in_fan_out_format.yaml", false);
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -339,7 +397,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_gnp() {
-        let dag = create_dag_from_yaml("tests/sample_dags/gnp_format.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/gnp_format.yaml", false);
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -419,7 +477,7 @@ mod tests {
 
     #[test]
     fn test_create_dag_from_yaml_float_params() {
-        let dag = create_dag_from_yaml("tests/sample_dags/float_params.yaml");
+        let dag = create_dag_from_yaml("tests/sample_dags/float_params.yaml", false);
         let first_node = dag.node_indices().next().unwrap();
         let last_node = dag.node_indices().last().unwrap();
         let first_edge = dag.edge_indices().next().unwrap();
@@ -428,23 +486,23 @@ mod tests {
         assert_eq!(dag.node_count(), 3, "number of nodes is expected to be 3");
         assert_eq!(
             dag[first_node].params.get("Weight").unwrap(),
-            &41,
-            "first node weight is expected to be 41"
+            &410000,
+            "first node weight is expected to be 409999"
         );
         assert_eq!(
             dag[last_node].params.get("Weight").unwrap(),
-            &10,
-            "last node weight is expected to be 10"
+            &100000,
+            "last node weight is expected to be 100000"
         );
         assert_eq!(
             dag[first_node].params.get("execution_time").unwrap(),
-            &31,
-            "first node execution time is expected to be 31"
+            &310000,
+            "first node execution time is expected to be 310000"
         );
         assert_eq!(
             dag[last_node].params.get("execution_time").unwrap(),
-            &430,
-            "last node execution time is expected to be 430"
+            &4300000,
+            "last node execution time is expected to be 4300000"
         );
         assert_eq!(dag.edge_count(), 2, "number of edges is expected to be 2");
         assert_eq!(
@@ -468,27 +526,110 @@ mod tests {
             "last edge target node id is expected to be 19"
         );
         assert_eq!(
-            dag[first_edge], 111,
-            "first edge weight is expected to be 111"
+            dag[first_edge], 1110000,
+            "first edge weight is expected to be 1110000"
         );
-        assert_eq!(dag[last_edge], 20, "last edge weight is expected to be 20");
+        assert_eq!(
+            dag[last_edge], 200000,
+            "last edge weight is expected to be 200000"
+        );
+    }
+
+    #[test]
+    fn test_create_dag_from_dag_int_when_other_dag_float() {
+        let dag = create_dag_from_yaml("tests/sample_dags/gnp_format.yaml", true);
+        let first_node = dag.node_indices().next().unwrap();
+        let last_node = dag.node_indices().last().unwrap();
+        let first_edge = dag.edge_indices().next().unwrap();
+        let last_edge = dag.edge_indices().last().unwrap();
+
+        assert_eq!(dag.node_count(), 70, "number of nodes is expected to be 70");
+        assert_eq!(dag[first_node].id, 0, "first node id is expected to be 0");
+        assert_eq!(dag[last_node].id, 69, "last node id is expected to be 69");
+        assert_eq!(
+            dag[first_node].params.get("Weight").unwrap(),
+            &100000,
+            "first node weight is expected to be 100000"
+        );
+        assert_eq!(
+            dag[last_node].params.get("Weight").unwrap(),
+            &500000,
+            "last node weight is expected to be 500000"
+        );
+        assert_eq!(
+            dag[first_node].params.get("execution_time").unwrap(),
+            &3400000,
+            "first node execution time is expected to be 3400000"
+        );
+        assert_eq!(
+            dag[last_node].params.get("execution_time").unwrap(),
+            &100000,
+            "last node execution time is expected to be 100000"
+        );
+        assert_eq!(
+            dag[first_node].params.get("offset").unwrap(),
+            &400000,
+            "first node offset is expected to be 400000"
+        );
+        assert_eq!(
+            dag[last_node].params.get("offset").unwrap(),
+            &500000,
+            "last node offset is expected to be 500000"
+        );
+        assert_eq!(
+            dag[first_node].params.get("period").unwrap(),
+            &600000000,
+            "first node period is expected to be 600000000"
+        );
+        assert_eq!(
+            dag[last_node].params.get("period").unwrap(),
+            &1000000,
+            "last node period is expected to be 1000000"
+        );
+        assert_eq!(
+            dag.edge_count(),
+            233,
+            "number of edges is expected to be 233"
+        );
+        assert_eq!(
+            dag[dag.edge_endpoints(first_edge).unwrap().0].id,
+            0,
+            "first edge source node id is expected to be 0"
+        );
+        assert_eq!(
+            dag[dag.edge_endpoints(first_edge).unwrap().1].id,
+            2,
+            "first edge target node id is expected to be 2"
+        );
+        assert_eq!(
+            dag[dag.edge_endpoints(last_edge).unwrap().0].id,
+            68,
+            "last edge source node id is expected to be 68"
+        );
+        assert_eq!(
+            dag[dag.edge_endpoints(last_edge).unwrap().1].id,
+            14,
+            "last edge target node id is expected to be 14"
+        );
+        assert_eq!(dag[first_edge], 0, "first edge weight is expected to be 0");
+        assert_eq!(dag[last_edge], 0, "last edge weight is expected to be 0");
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_path() {
-        let _dag = create_dag_from_yaml("tests/sample_dags/disable_path.yaml");
+        let _dag = create_dag_from_yaml("tests/sample_dags/disable_path.yaml", false);
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_no_yaml() {
-        let _dag = create_dag_from_yaml("tests/sample_dags/no_yaml.tex");
+        let _dag = create_dag_from_yaml("tests/sample_dags/no_yaml.tex", false);
     }
 
     #[test]
     #[should_panic]
     fn test_create_dag_from_yaml_broken_link() {
-        create_dag_from_yaml("tests/sample_dags/broken_link.yaml");
+        create_dag_from_yaml("tests/sample_dags/broken_link.yaml", false);
     }
 }

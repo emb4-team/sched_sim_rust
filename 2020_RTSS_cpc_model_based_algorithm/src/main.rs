@@ -40,7 +40,7 @@ fn main() {
     if arg.ratio_deadline_to_period > 1.0 {
         panic!("ratio_deadline_to_period must be less than or equal to 1.0");
     }
-    let mut dag = create_dag_from_yaml(&arg.dag_file_path);
+    let mut dag = create_dag_from_yaml(&arg.dag_file_path, false);
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     prioritization_cpc_model::assign_priority_to_cpc_model(&mut dag);
     let mut fixed_priority_scheduler = FixedPriorityScheduler::new(&dag, &homogeneous_processor);
