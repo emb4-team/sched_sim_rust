@@ -42,7 +42,7 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     minimum_decimal_places
 }
 
-fn is_decimal(dir_path: &str) -> bool {
+fn is_contains_decimal_in_yamls(dir_path: &str) -> bool {
     let file_path_list = get_yaml_paths_from_dir(dir_path);
     for file_path in file_path_list {
         let yaml_docs = load_yaml(&file_path);
@@ -78,17 +78,14 @@ fn is_decimal(dir_path: &str) -> bool {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
-pub fn create_dag_from_yaml(file_path: &str, other_decimal: bool) -> Graph<NodeData, i32> {
+pub fn create_dag_from_yaml(file_path: &str, is_other_decimal: bool) -> Graph<NodeData, i32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
     let mut int_conversion_factor =
         10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i32;
-    if other_decimal {
+    if is_other_decimal || int_conversion_factor > 1 && int_conversion_factor <= 100000 {
         int_conversion_factor = 100000;
-    } else if int_conversion_factor == 1 {
-    } else if int_conversion_factor <= 100000 {
-        int_conversion_factor = 100000;
-    } else {
+    } else if int_conversion_factor > 100000 {
         panic!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
     }
 
@@ -197,11 +194,11 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
     let file_path_list = get_yaml_paths_from_dir(dir_path);
-    let other_decimal = is_decimal(dir_path);
+    let is_contains_decimal = is_contains_decimal_in_yamls(dir_path);
     let mut dag_set: Vec<Graph<NodeData, i32>> = Vec::new();
 
     for (dag_id, file_path) in file_path_list.iter().enumerate() {
-        let mut dag = create_dag_from_yaml(file_path, other_decimal);
+        let mut dag = create_dag_from_yaml(file_path, is_contains_decimal);
         dag.set_dag_param("dag_id", dag_id as i32);
         dag_set.push(dag);
     }
