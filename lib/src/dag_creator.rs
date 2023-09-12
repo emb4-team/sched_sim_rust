@@ -1,5 +1,5 @@
 //! Generate a petgraph DAG object from a yaml file
-use crate::graph_extension::NodeData;
+use crate::graph_extension::{GraphExtension, NodeData};
 use crate::util::load_yaml;
 
 use petgraph::{graph::Graph, prelude::*};
@@ -200,8 +200,9 @@ pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
     let other_decimal = is_decimal(dir_path);
     let mut dag_set: Vec<Graph<NodeData, i32>> = Vec::new();
 
-    for file_path in file_path_list {
-        let dag = create_dag_from_yaml(&file_path, other_decimal);
+    for (dag_id, file_path) in file_path_list.iter().enumerate() {
+        let mut dag = create_dag_from_yaml(file_path, other_decimal);
+        dag.set_dag_param("dag_id", dag_id as i32);
         dag_set.push(dag);
     }
     dag_set
