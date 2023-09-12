@@ -110,6 +110,9 @@ impl DAGLog {
     }
 
     pub fn calculate_response_time(&mut self) {
+        if self.release_time.len() != self.finish_time.len() {
+            self.finish_time.push(999999);
+        }
         self.response_time = self
             .release_time
             .iter()

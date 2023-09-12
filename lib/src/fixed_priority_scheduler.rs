@@ -1,6 +1,7 @@
 use crate::{
     dag_scheduler::DAGSchedulerBase, graph_extension::NodeData, log::*, processor::ProcessorBase,
 };
+use log::warn;
 use petgraph::Graph;
 use std::collections::VecDeque;
 
@@ -53,7 +54,7 @@ where
     fn sort_ready_queue(ready_queue: &mut VecDeque<NodeData>) {
         ready_queue.make_contiguous().sort_by_key(|node| {
             *node.params.get("priority").unwrap_or_else(|| {
-                eprintln!(
+                warn!(
                     "Warning: 'priority' parameter not found for node {:?}",
                     node
                 );
