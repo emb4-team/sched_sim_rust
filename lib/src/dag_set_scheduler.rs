@@ -124,7 +124,7 @@ pub trait DAGSetSchedulerBase<T: ProcessorBase + Clone> {
                     }
                 } else {
                     dag.set_dag_param(
-                        "int_scaled_node_absolute_deadline",
+                        "node_absolute_deadline",
                         dag.get_end_to_end_deadline().unwrap()
                             * managers[dag_id].get_release_count(),
                     );
