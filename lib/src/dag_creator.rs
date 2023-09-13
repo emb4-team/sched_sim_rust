@@ -163,7 +163,7 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
     file_path_list
 }
 
-/// load yaml files and return a dag_set (dag list)
+/// load yaml files and return a DAGSet (dag list)
 ///
 /// # Arguments
 ///
