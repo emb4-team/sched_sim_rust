@@ -51,7 +51,7 @@ fn main() {
     let homogeneous_processor = HomogeneousProcessor::new(arg.number_of_cores);
     let mut gedf_scheduler = GlobalEDFScheduler::new(&dag_set, &homogeneous_processor);
 
-    // Change whether it is preemptive or not depending on the argument.
+    // Change whether it is preemptive or not depending on the argument
     let (preemptive_type, file_name) = if arg.enable_preemption {
         (
             PreemptiveType::Preemptive {
