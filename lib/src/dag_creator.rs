@@ -2,6 +2,7 @@
 use crate::graph_extension::{GraphExtension, NodeData};
 use crate::util::load_yaml;
 
+use log::warn;
 use petgraph::{graph::Graph, prelude::*};
 use std::{collections::BTreeMap, path::PathBuf};
 use yaml_rust::Yaml;
@@ -42,18 +43,6 @@ fn get_minimum_decimal_places(yaml: &Yaml) -> usize {
     minimum_decimal_places
 }
 
-fn is_contains_decimal_in_yamls(dir_path: &str) -> bool {
-    let file_path_list = get_yaml_paths_from_dir(dir_path);
-    for file_path in file_path_list {
-        let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];
-        if get_minimum_decimal_places(yaml_doc) > 0 {
-            return true;
-        }
-    }
-    false
-}
-
 /// load yaml file and return a dag object (petgraph)
 ///
 /// # Arguments
@@ -78,15 +67,16 @@ fn is_contains_decimal_in_yamls(dir_path: &str) -> bool {
 /// let node_id = dag[first_node].id;
 /// let edge_weight = dag[first_edge];
 /// ```
-pub fn create_dag_from_yaml(file_path: &str, is_other_decimal: bool) -> Graph<NodeData, i32> {
+pub fn create_dag_from_yaml(file_path: &str, exist_other_float_dag: bool) -> Graph<NodeData, i32> {
     let yaml_docs = load_yaml(file_path);
     let yaml_doc = &yaml_docs[0];
     let mut int_conversion_factor =
         10f32.powi(get_minimum_decimal_places(yaml_doc).try_into().unwrap()) as i32;
-    if is_other_decimal || int_conversion_factor > 1 && int_conversion_factor <= 100000 {
+    if exist_other_float_dag || int_conversion_factor > 1 {
+        if int_conversion_factor > 100000 {
+            warn!("The number of decimal places is too large. The sixth decimal place is rounded off.")
+        }
         int_conversion_factor = 100000;
-    } else if int_conversion_factor > 100000 {
-        panic!("The number of decimal places is too large. Please reduce the number of decimal places to 5 or less.");
     }
 
     // Check if nodes and links fields exist
@@ -194,11 +184,14 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
     let file_path_list = get_yaml_paths_from_dir(dir_path);
-    let is_contains_decimal = is_contains_decimal_in_yamls(dir_path);
+    let exist_float_dag = get_yaml_paths_from_dir(dir_path).iter().any(|file_path| {
+        let yaml_doc = &load_yaml(file_path)[0];
+        get_minimum_decimal_places(yaml_doc) > 0
+    });
     let mut dag_set: Vec<Graph<NodeData, i32>> = Vec::new();
 
     for (dag_id, file_path) in file_path_list.iter().enumerate() {
-        let mut dag = create_dag_from_yaml(file_path, is_contains_decimal);
+        let mut dag = create_dag_from_yaml(file_path, exist_float_dag);
         dag.set_dag_param("dag_id", dag_id as i32);
         dag_set.push(dag);
     }
