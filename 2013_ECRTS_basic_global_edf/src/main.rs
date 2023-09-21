@@ -47,7 +47,7 @@ fn main() {
     let (preemptive_type, file_name) = if arg.enable_preemption {
         (
             PreemptiveType::Preemptive {
-                key: "int_scaled_node_absolute_deadline".to_string(),
+                key: "node_absolute_deadline".to_string(),
             },
             "gedf_preemptive",
         )
