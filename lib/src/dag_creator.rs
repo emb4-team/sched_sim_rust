@@ -183,7 +183,8 @@ fn get_yaml_paths_from_dir(dir_path: &str) -> Vec<String> {
 /// let first_node_exe_time = dag_set[0][dag_set[0].node_indices().next().unwrap()].params["execution_time"];
 /// ```
 pub fn create_dag_set_from_dir(dir_path: &str) -> Vec<Graph<NodeData, i32>> {
-    let file_path_list = get_yaml_paths_from_dir(dir_path);
+    let mut file_path_list = get_yaml_paths_from_dir(dir_path);
+    file_path_list.sort();
     let exist_float_dag = get_yaml_paths_from_dir(dir_path).iter().any(|file_path| {
         let yaml_doc = &load_yaml(file_path)[0];
         get_minimum_decimal_places(yaml_doc) > 0
@@ -230,11 +231,11 @@ mod tests {
         let first_node = NodeIndex::new(0);
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
         assert_eq!(
-            dag_set[0][first_node].params["execution_time"], 301000,
+            dag_set[0][first_node].params["execution_time"], 310000,
             "first node execution time is expected to be 301000"
         );
         assert_eq!(
-            dag_set[1][first_node].params["execution_time"], 310000,
+            dag_set[1][first_node].params["execution_time"], 301000,
             "first node execution time is expected to be 301000"
         );
     }
@@ -245,12 +246,12 @@ mod tests {
         let first_node = NodeIndex::new(0);
         assert_eq!(dag_set.len(), 2, "number of dag_set is expected to be 2");
         assert_eq!(
-            dag_set[0][first_node].params["execution_time"], 310000,
-            "first node execution time is expected to be 310000"
+            dag_set[0][first_node].params["execution_time"], 300000,
+            "first node execution time is expected to be 300000"
         );
         assert_eq!(
-            dag_set[1][first_node].params["execution_time"], 300000,
-            "first node execution time is expected to be 300000"
+            dag_set[1][first_node].params["execution_time"], 310000,
+            "first node execution time is expected to be 310000"
         );
     }
 
