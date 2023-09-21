@@ -4,7 +4,7 @@ use petgraph::graph::Graph;
 use serde_derive::{Deserialize, Serialize};
 use FederateResult::{Schedulable, Unschedulable};
 
-/// For determination of federates
+/// For determination of federates.
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum FederateResult {
     Schedulable {
