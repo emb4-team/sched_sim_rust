@@ -1,0 +1,16 @@
+directed: true
+graph: {}
+links:
+- Transfer: 1
+  communication_time: 1
+  source: 0
+  target: 1
+multigraph: false
+nodes:
+- Weight: 4
+  execution_time: 3
+  id: 0
+- Weight: 1
+  end_to_end_deadline: 225
+  execution_time: 43
+  id: 1
