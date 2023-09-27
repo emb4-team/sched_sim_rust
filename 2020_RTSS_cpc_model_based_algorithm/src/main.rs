@@ -51,7 +51,7 @@ fn main() {
         warn!("Since the end-to-end deadline is not set in the input DAG, the end-to-end deadline is determined using ratio_deadline_to_period.");
         dag.get_head_period().unwrap() as f32 * arg.ratio_deadline_to_period
     };
-    let result = (schedule_length as f32) < constrained_end_to_end_deadline;
+    let result = (schedule_length as f32) <= constrained_end_to_end_deadline;
     let file_path = fixed_priority_scheduler.dump_log(&arg.output_dir_path, "cpc_model_based");
 
     dump_dag_scheduler_result_to_yaml(
