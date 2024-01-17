@@ -164,128 +164,101 @@ pub fn calculate_segments_deadline(dag: &mut Graph<NodeData, i32>, segments: &mu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
+    use lib::tests_helper::create_dag_for_segment;
 
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
+    fn test_create_segment_helper(
+        is_duplicate: bool,
+        expected_segments_len: usize,
+        expected_node_counts: &[usize],
+        expected_begin_ranges: &[i32],
+        expected_end_ranges: &[i32],
+    ) {
+        let mut dag = create_dag_for_segment(120, is_duplicate);
+        let segments = create_segments(&mut dag);
+
+        assert_eq!(segments.len(), expected_segments_len);
+
+        for i in 0..segments.len() {
+            assert_eq!(
+                segments[i].nodes.len(),
+                expected_node_counts[i],
+                "Failed at segment {}",
+                i
+            );
+            assert_eq!(
+                segments[i].begin_range, expected_begin_ranges[i],
+                "Failed at segment {}",
+                i
+            );
+            assert_eq!(
+                segments[i].end_range, expected_end_ranges[i],
+                "Failed at segment {}",
+                i
+            );
+        }
     }
-    fn create_sample_dag(period: i32) -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 4));
-        let n1 = dag.add_node(create_node(1, "execution_time", 7));
-        let n2 = dag.add_node(create_node(2, "execution_time", 55));
-        let n3 = dag.add_node(create_node(3, "execution_time", 36));
-        let n4 = dag.add_node(create_node(4, "execution_time", 54));
-        dag.add_param(n0, "period", period);
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag.add_edge(n1, n3, 1);
-        dag.add_edge(n2, n4, 1);
 
-        dag
-    }
+    fn test_calculate_segments_deadline_helper(period: i32, expected_deadlines: &[f32]) {
+        let mut dag = create_dag_for_segment(period, false);
+        let mut segments = create_segments(&mut dag);
+        calculate_segments_deadline(&mut dag, &mut segments);
 
-    fn create_duplicates_dag(period: i32) -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = dag.add_node(create_node(0, "execution_time", 4));
-        let n1 = dag.add_node(create_node(1, "execution_time", 7));
-        let n2 = dag.add_node(create_node(2, "execution_time", 7));
-        let n3 = dag.add_node(create_node(3, "execution_time", 36));
-        let n4 = dag.add_node(create_node(4, "execution_time", 54));
-        dag.add_param(n0, "period", period);
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag.add_edge(n1, n3, 1);
-        dag.add_edge(n2, n4, 1);
-
-        dag
+        for (i, &deadline) in expected_deadlines.iter().enumerate() {
+            assert!(
+                (segments[i].deadline - deadline).abs() < f32::EPSILON,
+                "Failed at segment {}. Expected: {}, but got: {}",
+                i,
+                deadline,
+                segments[i].deadline
+            );
+        }
     }
 
     #[test]
     fn test_create_segment_normal() {
-        let mut dag = create_sample_dag(120);
-        let segments = create_segments(&mut dag);
+        let expected_node_counts = [1, 2, 2, 1, 1];
+        let expected_begin_ranges = [0, 4, 11, 47, 59];
+        let expected_end_ranges = [4, 11, 47, 59, 113];
 
-        assert_eq!(segments.len(), 5);
-
-        assert_eq!(segments[0].nodes.len(), 1);
-        assert_eq!(segments[1].nodes.len(), 2);
-        assert_eq!(segments[2].nodes.len(), 2);
-        assert_eq!(segments[3].nodes.len(), 1);
-        assert_eq!(segments[4].nodes.len(), 1);
-
-        assert_eq!(segments[0].begin_range, 0);
-        assert_eq!(segments[0].end_range, 4);
-        assert_eq!(segments[1].begin_range, 4);
-        assert_eq!(segments[1].end_range, 11);
-        assert_eq!(segments[2].begin_range, 11);
-        assert_eq!(segments[2].end_range, 47);
-        assert_eq!(segments[3].begin_range, 47);
-        assert_eq!(segments[3].end_range, 59);
-        assert_eq!(segments[4].begin_range, 59);
-        assert_eq!(segments[4].end_range, 113);
+        test_create_segment_helper(
+            false,
+            5,
+            &expected_node_counts,
+            &expected_begin_ranges,
+            &expected_end_ranges,
+        );
     }
 
     #[test]
     fn test_create_segment_duplicates() {
-        let mut dag = create_duplicates_dag(120);
-        let segments = create_segments(&mut dag);
+        let expected_node_counts = [1, 2, 2, 1];
+        let expected_begin_ranges = [0, 4, 11, 47];
+        let expected_end_ranges = [4, 11, 47, 65];
 
-        assert_eq!(segments.len(), 4);
-
-        assert_eq!(segments[0].nodes.len(), 1);
-        assert_eq!(segments[1].nodes.len(), 2);
-        assert_eq!(segments[2].nodes.len(), 2);
-        assert_eq!(segments[3].nodes.len(), 1);
-
-        assert_eq!(segments[0].begin_range, 0);
-        assert_eq!(segments[0].end_range, 4);
-        assert_eq!(segments[1].begin_range, 4);
-        assert_eq!(segments[1].end_range, 11);
-        assert_eq!(segments[2].begin_range, 11);
-        assert_eq!(segments[2].end_range, 47);
-        assert_eq!(segments[3].begin_range, 47);
-        assert_eq!(segments[3].end_range, 65);
+        test_create_segment_helper(
+            true,
+            4,
+            &expected_node_counts,
+            &expected_begin_ranges,
+            &expected_end_ranges,
+        );
     }
 
     #[test]
     fn test_calculate_segments_deadline_normal_heavy() {
-        let mut dag = create_sample_dag(150);
-        let mut segments = create_segments(&mut dag);
-        calculate_segments_deadline(&mut dag, &mut segments);
-
-        assert_eq!(segments[0].deadline, 3.8461537);
-        assert_eq!(segments[1].deadline, 13.461538);
-        assert_eq!(segments[2].deadline, 69.23077);
-        assert_eq!(segments[3].deadline, 11.538462);
-        assert_eq!(segments[4].deadline, 51.923077);
+        let expected_deadlines = [3.8461537, 13.461538, 69.23077, 11.538462, 51.923077];
+        test_calculate_segments_deadline_helper(150, &expected_deadlines);
     }
 
     #[test]
     fn test_calculate_segments_deadline_normal_light() {
-        let mut dag = create_sample_dag(65);
-        let mut segments = create_segments(&mut dag);
-        calculate_segments_deadline(&mut dag, &mut segments);
-
-        assert_eq!(segments[0].deadline, 2.300885);
-        assert_eq!(segments[1].deadline, 4.026549);
-        assert_eq!(segments[2].deadline, 20.707964);
-        assert_eq!(segments[3].deadline, 6.9026546);
-        assert_eq!(segments[4].deadline, 31.061947);
+        let expected_deadlines = [2.300885, 4.026549, 20.707964, 6.9026546, 31.061947];
+        test_calculate_segments_deadline_helper(65, &expected_deadlines);
     }
 
     #[test]
     fn test_calculate_segments_deadline_normal_mixture() {
-        let mut dag = create_sample_dag(120);
-        let mut segments = create_segments(&mut dag);
-        calculate_segments_deadline(&mut dag, &mut segments);
-
-        assert_eq!(segments[0].deadline, 3.2285714);
-        assert_eq!(segments[1].deadline, 10.33721);
-        assert_eq!(segments[2].deadline, 53.16279);
-        assert_eq!(segments[3].deadline, 9.685715);
-        assert_eq!(segments[4].deadline, 43.585712);
+        let expected_deadlines = [3.2285714, 10.33721, 53.16279, 9.685715, 43.585712];
+        test_calculate_segments_deadline_helper(120, &expected_deadlines);
     }
 }

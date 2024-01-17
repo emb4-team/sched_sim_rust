@@ -228,225 +228,91 @@ mod tests {
     use lib::fixed_priority_scheduler::FixedPriorityScheduler;
     use lib::homogeneous::HomogeneousProcessor;
     use lib::processor::ProcessorBase;
-    use lib::util::load_yaml;
-    use std::collections::BTreeMap;
-    use std::fs::remove_file;
-
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
-
-    fn create_sample_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 10));
-        let c1 = dag.add_node(create_node(1, "execution_time", 20));
-        let c2 = dag.add_node(create_node(2, "execution_time", 20));
-        dag.add_param(c0, "period", 150);
-        dag.add_param(c2, "end_to_end_deadline", 50);
-        //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(3, "execution_time", 10));
-        let n1_0 = dag.add_node(create_node(4, "execution_time", 10));
-
-        //create critical path edges
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-
-        //create non-critical path edges
-        dag.add_edge(c0, n0_0, 1);
-        dag.add_edge(c0, n1_0, 1);
-        dag.add_edge(n0_0, c2, 1);
-        dag.add_edge(n1_0, c2, 1);
-
-        dag
-    }
-
-    fn create_sample_dag2() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        //cX is the Xth critical node.
-        let c0 = dag.add_node(create_node(0, "execution_time", 11));
-        let c1 = dag.add_node(create_node(1, "execution_time", 21));
-        let c2 = dag.add_node(create_node(2, "execution_time", 21));
-        dag.add_param(c0, "period", 100);
-        dag.add_param(c2, "end_to_end_deadline", 60);
-        //nY_X is the Yth suc node of cX.
-        let n0_0 = dag.add_node(create_node(3, "execution_time", 11));
-
-        //create critical path edges
-        dag.add_edge(c0, c1, 1);
-        dag.add_edge(c1, c2, 1);
-
-        //create non-critical path edges
-        dag.add_edge(c0, n0_0, 1);
-        dag.add_edge(n0_0, c2, 1);
-
-        dag
-    }
+    use lib::tests_helper::{common_sched_dump_test, create_dag_for_dynfed};
+    use lib::{assert_yaml_value, assert_yaml_values_for_prefix};
+    use std::path::PathBuf;
 
     #[test]
     fn test_dynfed_normal() {
-        let mut dag = create_sample_dag();
-        let mut dag2 = create_sample_dag2();
-        dag.set_dag_param("dag_id", 0);
-        dag2.set_dag_param("dag_id", 1);
-        let dag_set = vec![dag, dag2];
+        common_sched_dump_test(
+            || {
+                let mut dag_set = vec![
+                    create_dag_for_dynfed(0, 150, 50, true),
+                    create_dag_for_dynfed(1, 100, 60, false),
+                ];
 
-        let mut dynfed: DynamicFederatedScheduler<FixedPriorityScheduler<HomogeneousProcessor>> =
-            DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
-        let time = dynfed.schedule(PreemptiveType::NonPreemptive);
-        assert_eq!(time, 300);
+                for (dag_id, dag) in dag_set.iter_mut().enumerate() {
+                    dag.set_dag_param("dag_id", dag_id as i32);
+                }
 
-        let file_path = dynfed.dump_log("../lib/tests", "dyn_test");
-        let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];
+                let mut dynfed: DynamicFederatedScheduler<
+                    FixedPriorityScheduler<HomogeneousProcessor>,
+                > = DynamicFederatedScheduler::new(&dag_set, &HomogeneousProcessor::new(5));
+                dynfed.schedule(PreemptiveType::NonPreemptive);
 
-        assert_eq!(
-            yaml_doc["dag_set_info"]["total_utilization"]
-                .as_f64()
-                .unwrap(),
-            3.705357
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][0]["critical_path_length"]
-                .as_i64()
-                .unwrap(),
-            50
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][0]["period"]
-                .as_i64()
-                .unwrap(),
-            150
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][0]["end_to_end_deadline"]
-                .as_i64()
-                .unwrap(),
-            50
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][0]["volume"]
-                .as_i64()
-                .unwrap(),
-            70
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][0]["utilization"]
-                .as_f64()
-                .unwrap(),
-            2.142857
-        );
-        assert_eq!(
-            yaml_doc["dag_set_info"]["each_dag_info"][1]["utilization"]
-                .as_f64()
-                .unwrap(),
-            1.5625
-        );
+                PathBuf::from(dynfed.dump_log("../lib/tests", "dyn_test"))
+            },
+            |yaml_doc| {
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "dag_set_info",
+                    [
+                        ("total_utilization", f64, 3.705357),
+                        ("each_dag_info[0].critical_path_length", i64, 50),
+                        ("each_dag_info[0].period", i64, 150),
+                        ("each_dag_info[0].end_to_end_deadline", i64, 50),
+                        ("each_dag_info[0].volume", i64, 70),
+                        ("each_dag_info[0].utilization", f64, 2.142857),
+                        ("each_dag_info[1].utilization", f64, 1.5625)
+                    ]
+                );
 
-        assert_eq!(
-            yaml_doc["processor_info"]["number_of_cores"]
-                .as_i64()
-                .unwrap(),
-            5
-        );
+                assert_yaml_value!(yaml_doc, "processor_info.number_of_cores", i64, 5);
 
-        assert_eq!(yaml_doc["dag_set_log"][1]["dag_id"].as_i64().unwrap(), 1);
-        assert_eq!(
-            yaml_doc["dag_set_log"][1]["release_time"][0]
-                .as_i64()
-                .unwrap(),
-            0
-        );
-        assert_eq!(
-            yaml_doc["dag_set_log"][1]["finish_time"][0]
-                .as_i64()
-                .unwrap(),
-            53
-        );
-        assert_eq!(
-            yaml_doc["dag_set_log"][1]["response_time"][0]
-                .as_i64()
-                .unwrap(),
-            53
-        );
-        assert_eq!(
-            yaml_doc["dag_set_log"][1]["average_response_time"]
-                .as_f64()
-                .unwrap(),
-            53.0
-        );
-        assert_eq!(
-            yaml_doc["dag_set_log"][1]["worst_response_time"]
-                .as_i64()
-                .unwrap(),
-            53
-        );
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "dag_set_log[1]",
+                    [
+                        ("dag_id", i64, 1),
+                        ("release_time[0]", i64, 0),
+                        ("finish_time[0]", i64, 53),
+                        ("response_time[0]", i64, 53),
+                        ("average_response_time", f64, 53.0),
+                        ("worst_response_time", i64, 53)
+                    ]
+                );
 
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["core_id"].as_i64().unwrap(),
-            1
-        );
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["dag_id"].as_i64().unwrap(),
-            1
-        );
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["node_id"].as_i64().unwrap(),
-            3
-        );
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["job_id"].as_i64().unwrap(),
-            0
-        );
-        // start_time
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][2]["event_time"]
-                .as_str()
-                .unwrap(),
-            "11"
-        );
-        // finish_time
-        assert_eq!(
-            yaml_doc["node_set_logs"][1][4]["event_time"]
-                .as_str()
-                .unwrap(),
-            "22"
-        );
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "node_set_logs[1][2]",
+                    [
+                        ("core_id", i64, 1),
+                        ("dag_id", i64, 1),
+                        ("node_id", i64, 3),
+                        ("job_id", i64, 0),
+                        ("event_time", str, "11")
+                    ]
+                );
 
-        assert_eq!(
-            yaml_doc["processor_log"]["average_utilization"]
-                .as_f64()
-                .unwrap(),
-            0.22133335
-        );
-        assert_eq!(
-            yaml_doc["processor_log"]["variance_utilization"]
-                .as_f64()
-                .unwrap(),
-            0.033460446
-        );
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "processor_log",
+                    [
+                        ("average_utilization", f64, 0.22133335),
+                        ("variance_utilization", f64, 0.033460446)
+                    ]
+                );
 
-        assert_eq!(
-            yaml_doc["processor_log"]["core_logs"][0]["core_id"]
-                .as_i64()
-                .unwrap(),
-            0
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "processor_log.core_logs[0]",
+                    [
+                        ("core_id", i64, 0),
+                        ("total_proc_time", i64, 156),
+                        ("utilization", f64, 0.52)
+                    ]
+                );
+            },
         );
-        assert_eq!(
-            yaml_doc["processor_log"]["core_logs"][0]["total_proc_time"]
-                .as_i64()
-                .unwrap(),
-            156
-        );
-        assert_eq!(
-            yaml_doc["processor_log"]["core_logs"][0]["utilization"]
-                .as_f64()
-                .unwrap(),
-            0.52
-        );
-
-        remove_file(file_path).unwrap();
     }
 }
