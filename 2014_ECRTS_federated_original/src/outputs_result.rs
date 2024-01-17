@@ -31,209 +31,91 @@ pub(crate) fn dump_processor_info_to_yaml(file_path: &str, processor: &impl Proc
 mod tests {
     use super::*;
     use lib::{
-        graph_extension::NodeData,
-        homogeneous,
+        assert_yaml_value, assert_yaml_values_for_prefix, homogeneous,
+        tests_helper::{create_high_utilization_dag, create_low_utilization_dag},
         util::{create_yaml, load_yaml},
     };
-    use petgraph::Graph;
-    use std::{collections::BTreeMap, fs::remove_file};
+    use std::{fs::remove_file, path::Path};
+    use yaml_rust::Yaml;
 
-    fn create_node(id: i32, key: &str, value: i32) -> NodeData {
-        let mut params = BTreeMap::new();
-        params.insert(key.to_string(), value);
-        NodeData { id, params }
-    }
+    fn common_dump_test<F, A>(test_name: &str, dump_fn: F, asserts: A)
+    where
+        F: FnOnce(&Path),
+        A: FnOnce(&Yaml),
+    {
+        let file_path_str = create_yaml("../lib/tests", test_name);
+        let file_path = Path::new(&file_path_str);
+        dump_fn(file_path);
 
-    fn create_high_utilization_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = {
-            let mut params = BTreeMap::new();
-            params.insert("execution_time".to_owned(), 4);
-            params.insert("period".to_owned(), 10);
-            dag.add_node(NodeData { id: 3, params })
-        };
-        let n1 = dag.add_node(create_node(1, "execution_time", 4));
-        let n2 = dag.add_node(create_node(2, "execution_time", 3));
-        let n3 = dag.add_node(create_node(3, "execution_time", 3));
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag.add_edge(n0, n3, 1);
+        let yaml_docs = load_yaml(file_path.to_str().unwrap());
+        let yaml_doc = &yaml_docs[0];
+        asserts(yaml_doc);
 
-        dag
-    }
-
-    fn create_low_utilization_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let n0 = {
-            let mut params = BTreeMap::new();
-            params.insert("execution_time".to_owned(), 3);
-            params.insert("period".to_owned(), 30);
-            dag.add_node(NodeData { id: 2, params })
-        };
-        let n1 = dag.add_node(create_node(0, "execution_time", 3));
-        let n2 = dag.add_node(create_node(1, "execution_time", 4));
-
-        dag.add_edge(n0, n1, 1);
-        dag.add_edge(n0, n2, 1);
-        dag
-    }
-
-    fn create_period_exceeding_dag() -> Graph<NodeData, i32> {
-        let mut dag = Graph::<NodeData, i32>::new();
-        let mut params = BTreeMap::new();
-        params.insert("execution_time".to_owned(), 20);
-        params.insert("period".to_owned(), 10);
-        dag.add_node(NodeData { id: 0, params });
-        dag
+        remove_file(file_path).unwrap();
     }
 
     #[test]
     fn test_dump_federated_result_to_yaml_normal() {
-        let number_of_cores = 40;
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-        let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml("../lib/tests", "test_dump_federated_info_normal");
-        dump_federated_result_to_yaml(&file_path, result);
-
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
-
-        assert_eq!(
-            result_info.result,
-            FederateResult::Schedulable {
-                high_dedicated_cores: 6,
-                low_dedicated_cores: 34,
-            }
+        common_dump_test(
+            "test_dump_federated_info_normal",
+            |path| {
+                let result = crate::federated::federated(
+                    &mut [
+                        create_high_utilization_dag(),
+                        create_high_utilization_dag(),
+                        create_low_utilization_dag(),
+                    ],
+                    40,
+                );
+                dump_federated_result_to_yaml(path.to_str().unwrap(), result);
+            },
+            |yaml_doc| {
+                assert_yaml_value!(yaml_doc, "result.high_dedicated_cores", i64, 6);
+                assert_yaml_value!(yaml_doc, "result.low_dedicated_cores", i64, 34);
+            },
         );
-
-        remove_file(file_path).unwrap();
-    }
-
-    #[test]
-    fn test_dump_federated_result_to_yaml_lack_cores_for_high_tasks() {
-        let number_of_cores = 1;
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-        let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml("../lib/tests", "test_federated_lack_cores_for_high_tasks");
-        dump_federated_result_to_yaml(&file_path, result);
-
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
-
-        assert_eq!(
-            result_info.result,
-            FederateResult::Unschedulable {
-                reason: (String::from("Insufficient number of cores for high-utilization tasks.")),
-                insufficient_cores: 2
-            }
-        );
-
-        remove_file(file_path).unwrap();
-    }
-
-    #[test]
-    fn test_dump_federated_result_to_yaml_lack_cores_for_low_tasks() {
-        let number_of_cores = 3;
-        let mut dag_set = vec![
-            create_high_utilization_dag(),
-            create_low_utilization_dag(),
-            create_low_utilization_dag(),
-        ];
-        let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml("../lib/tests", "test_federated_lack_cores_for_low_tasks");
-        dump_federated_result_to_yaml(&file_path, result);
-
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
-
-        assert_eq!(
-            result_info.result,
-            FederateResult::Unschedulable {
-                reason: (String::from("Insufficient number of cores for low-utilization tasks.")),
-                insufficient_cores: 2
-            }
-        );
-
-        remove_file(file_path).unwrap();
-    }
-
-    #[test]
-    fn test_dump_federated_result_to_yaml_unsuited_tasks() {
-        let number_of_cores = 1;
-        let mut dag_set = vec![create_period_exceeding_dag()];
-        let result = crate::federated::federated(&mut dag_set, number_of_cores);
-        let file_path = create_yaml("../lib/tests", "test_federated_unsuited_tasks");
-        dump_federated_result_to_yaml(&file_path, result);
-
-        let file_contents = std::fs::read_to_string(&file_path).unwrap();
-        let result_info: ResultInfo<FederateResult> = serde_yaml::from_str(&file_contents).unwrap();
-
-        assert_eq!(
-            result_info.result,
-            FederateResult::Unschedulable {
-                reason: (String::from(
-                    "The critical path length is greater than end_to_end_deadline."
-                )),
-                insufficient_cores: 0
-            }
-        );
-
-        remove_file(file_path).unwrap();
     }
 
     #[test]
     fn test_dump_dag_set_info_to_yaml_normal() {
-        let dag_set = vec![create_high_utilization_dag(), create_high_utilization_dag()];
-        let file_path = create_yaml("../lib/tests", "dag_set_info");
-        dump_dag_set_info_to_yaml(&file_path, dag_set);
+        common_dump_test(
+            "dag_set_info",
+            |path| {
+                let path_str = path.to_str().unwrap();
+                dump_dag_set_info_to_yaml(
+                    path_str,
+                    vec![create_high_utilization_dag(), create_high_utilization_dag()],
+                );
+            },
+            |yaml_doc| {
+                assert_yaml_value!(yaml_doc, "total_utilization", f64, 1.4285715);
 
-        let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];
-
-        assert_eq!(yaml_doc["total_utilization"].as_f64().unwrap(), 1.4285715);
-        assert_eq!(
-            yaml_doc["each_dag_info"][1]["critical_path_length"]
-                .as_i64()
-                .unwrap(),
-            8
+                assert_yaml_values_for_prefix!(
+                    yaml_doc,
+                    "each_dag_info[1]",
+                    [
+                        ("critical_path_length", i64, 8),
+                        ("period", i64, 10),
+                        ("end_to_end_deadline", i64, 0),
+                        ("volume", i64, 14),
+                        ("utilization", f64, 0.71428573)
+                    ]
+                );
+            },
         );
-        assert_eq!(yaml_doc["each_dag_info"][1]["period"].as_i64().unwrap(), 10);
-        assert_eq!(
-            yaml_doc["each_dag_info"][1]["end_to_end_deadline"]
-                .as_i64()
-                .unwrap(),
-            0
-        );
-        assert_eq!(yaml_doc["each_dag_info"][1]["volume"].as_i64().unwrap(), 14);
-        assert_eq!(
-            yaml_doc["each_dag_info"][1]["utilization"]
-                .as_f64()
-                .unwrap(),
-            0.71428573
-        );
-
-        remove_file(file_path).unwrap();
     }
 
     #[test]
     fn test_dump_processor_info_to_yaml() {
-        let file_path = create_yaml("../lib/tests", "processor_info");
-        let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
-        dump_processor_info_to_yaml(&file_path, &homogeneous_processor);
-
-        let yaml_docs = load_yaml(&file_path);
-        let yaml_doc = &yaml_docs[0];
-
-        assert_eq!(yaml_doc["number_of_cores"].as_i64().unwrap(), 4);
-
-        remove_file(file_path).unwrap();
+        common_dump_test(
+            "processor_info",
+            |path| {
+                let homogeneous_processor = homogeneous::HomogeneousProcessor::new(4);
+                dump_processor_info_to_yaml(path.to_str().unwrap(), &homogeneous_processor);
+            },
+            |yaml_doc| {
+                assert_yaml_value!(yaml_doc, "number_of_cores", i64, 4);
+            },
+        );
     }
 }

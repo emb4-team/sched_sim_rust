@@ -9,6 +9,13 @@ edition = "2021"
 petgraph = "0.6.3"
 clap = { version = "4.2.4", features = ["derive"] }
 lib = { path = "../lib"}
+yaml-rust = "0.4.5"
 serde = "1.0.163"
 serde_yaml = "0.9.21"
 serde_derive = "1.0.163"
+
+[dev-dependencies]
+lib = { path = "../lib", features = ["test-helpers"] }
+
+[features]
+test-helpers = []
